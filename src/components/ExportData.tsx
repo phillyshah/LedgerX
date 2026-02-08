@@ -198,13 +198,28 @@ export function ExportData({ onClose }: ExportDataProps) {
               }
 
               yPosition += 5;
-              pdf.addImage(img, 'JPEG', margin, yPosition, imgWidth, imgHeight);
+
+              let imageFormat = 'JPEG';
+              if (expense.image_mime) {
+                if (expense.image_mime.includes('png')) {
+                  imageFormat = 'PNG';
+                } else if (expense.image_mime.includes('webp')) {
+                  imageFormat = 'WEBP';
+                }
+              }
+
+              pdf.addImage(img, imageFormat, margin, yPosition, imgWidth, imgHeight);
               yPosition += imgHeight + 10;
 
               URL.revokeObjectURL(imageUrl);
             }
           } catch (imageError) {
             console.error('Error loading image:', imageError);
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('(Image could not be loaded)', margin, yPosition);
+            yPosition += 10;
+            pdf.setTextColor(0, 0, 0);
           }
         }
 

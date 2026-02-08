@@ -12,8 +12,13 @@ interface Expense {
   currency: string;
   category: string | null;
   notes: string | null;
+  transcript: string | null;
   household_id: string;
   household_name?: string;
+  image_path: string | null;
+  image_mime: string | null;
+  image_width: number | null;
+  image_height: number | null;
 }
 
 interface Household {
@@ -62,7 +67,7 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
 
     const { data, error } = await supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, household_id')
+      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
       .in('household_id', householdIds)
       .order('expense_date', { ascending: false });
 
