@@ -51,18 +51,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: roleData, error: roleError } = await supabaseClient
+    const { data: callerRole, error: callerRoleError } = await supabaseClient
       .from("user_roles")
       .select("is_admin")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    console.log("Role check result:", { roleData, roleError, userId: user.id });
-
-    if (roleError) {
-      console.error("Role check error:", roleError);
+    if (callerRoleError) {
       return new Response(
-        JSON.stringify({ error: "Failed to verify admin status: " + roleError.message }),
+        JSON.stringify({ error: "Failed to verify admin status: " + callerRoleError.message }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,7 +67,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!roleData || !roleData.is_admin) {
+    if (!callerRole || !callerRole.is_admin) {
       return new Response(
         JSON.stringify({ error: "Admin access required" }),
         {
@@ -92,7 +89,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Convert userid to email format for Supabase auth
     const email = `${userid}@example.com`;
 
     const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
@@ -105,7 +101,6 @@ Deno.serve(async (req: Request) => {
     });
 
     if (createError) {
-      console.error("Failed to create user:", createError);
       return new Response(
         JSON.stringify({ error: createError.message }),
         {
@@ -116,7 +111,6 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!newUser?.user?.id) {
-      console.error("No user ID returned from createUser");
       return new Response(
         JSON.stringify({ error: "Failed to create user - no user ID returned" }),
         {
@@ -127,80 +121,54 @@ Deno.serve(async (req: Request) => {
     }
 
     const userId = newUser.user.id;
-    console.log("User created in auth:", userId);
 
-    // Wait for trigger to execute
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Check if profile was created by trigger
-    const { data: profileData, error: profileCheckError } = await supabaseClient
+    const { data: profileData } = await supabaseClient
       .from("user_profiles")
       .select("id, username")
       .eq("id", userId)
       .maybeSingle();
 
-    if (profileCheckError) {
-      console.error("Profile check error:", profileCheckError);
-    }
-
-    // If profile doesn't exist, create it manually
     if (!profileData) {
-      console.log("Profile not created by trigger, creating manually...");
-      const { data: insertedProfile, error: manualProfileError } = await supabaseClient
+      const { error: profileInsertError } = await supabaseClient
         .from("user_profiles")
         .insert({
           id: userId,
           username: userid,
           email: email,
-        })
-        .select()
-        .single();
+        });
 
-      if (manualProfileError) {
-        console.error("Failed to create profile manually:", manualProfileError);
-
-        // Try to clean up the auth user since we couldn't create the profile
+      if (profileInsertError) {
         await supabaseClient.auth.admin.deleteUser(userId);
-
         return new Response(
-          JSON.stringify({ error: "Failed to create user profile: " + manualProfileError.message }),
+          JSON.stringify({ error: "Failed to create user profile: " + profileInsertError.message }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
       }
-      console.log("Profile created manually:", insertedProfile);
-    } else {
-      console.log("Profile exists:", profileData);
     }
 
-    // Create user role
-    console.log("Creating user role...");
-    const { error: roleError } = await supabaseClient
+    const { error: newRoleError } = await supabaseClient
       .from("user_roles")
       .insert({
         user_id: userId,
         is_admin: is_admin || false,
       });
 
-    if (roleError) {
-      console.error("Failed to set user role:", roleError);
-
-      // Try to clean up
+    if (newRoleError) {
       await supabaseClient.from("user_profiles").delete().eq("id", userId);
       await supabaseClient.auth.admin.deleteUser(userId);
-
       return new Response(
-        JSON.stringify({ error: "Failed to set user role: " + roleError.message }),
+        JSON.stringify({ error: "Failed to set user role: " + newRoleError.message }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-
-    console.log("User creation completed successfully");
 
     return new Response(
       JSON.stringify({ success: true, user: newUser.user }),
