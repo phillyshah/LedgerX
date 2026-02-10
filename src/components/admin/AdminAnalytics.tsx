@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { DollarSign, Receipt, Home, Calendar, TrendingUp, Download, X } from 'lucide-react';
+import { DollarSign, Receipt, Home, Calendar, Download, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { EditExpense } from '../EditExpense';
 
 interface Expense {
   id: string;
@@ -10,8 +11,14 @@ interface Expense {
   total: number;
   currency: string;
   category: string | null;
+  notes: string | null;
+  transcript: string | null;
   household_id: string;
   household_name?: string;
+  image_path: string | null;
+  image_mime: string | null;
+  image_width: number | null;
+  image_height: number | null;
 }
 
 interface Household {
@@ -46,24 +53,11 @@ export function AdminAnalytics() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDateModal, setShowCustomDateModal] = useState(false);
-  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-  const [editingCategory, setEditingCategory] = useState<string>('');
-  const [editingHousehold, setEditingHousehold] = useState<string>('');
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
-  const [updatingCategory, setUpdatingCategory] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   useEffect(() => {
     loadData();
   }, [dateRange, customStartDate, customEndDate]);
-
-  useEffect(() => {
-    if (editingHousehold && categories.length > 0) {
-      const filtered = categories.filter(
-        (c) => c.household_id === null || c.household_id === editingHousehold
-      );
-      setFilteredCategories(filtered);
-    }
-  }, [editingHousehold, categories]);
 
   const loadData = async () => {
     setLoading(true);
@@ -84,7 +78,7 @@ export function AdminAnalytics() {
 
     let query = supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, household_id')
+      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
       .order('expense_date', { ascending: false });
 
     if (dateRange === '30d') {
@@ -119,39 +113,9 @@ export function AdminAnalytics() {
     setLoading(false);
   };
 
-  const openCategoryEditor = (expenseId: string, currentCategory: string | null, currentHouseholdId: string) => {
-    setEditingExpenseId(expenseId);
-    setEditingCategory(currentCategory || '');
-    setEditingHousehold(currentHouseholdId);
-
-    const filtered = categories.filter(
-      (c) => c.household_id === null || c.household_id === currentHouseholdId
-    );
-    setFilteredCategories(filtered);
-  };
-
-  const updateExpenseCategory = async () => {
-    if (!editingExpenseId) return;
-
-    setUpdatingCategory(true);
-
-    const { error } = await supabase
-      .from('expenses')
-      .update({
-        category: editingCategory || null,
-        household_id: editingHousehold
-      })
-      .eq('id', editingExpenseId);
-
-    if (!error) {
-      await loadData();
-      setEditingExpenseId(null);
-      setEditingCategory('');
-      setEditingHousehold('');
-    }
-
-    setUpdatingCategory(false);
-  };
+  const displayCategories = householdFilter === 'all'
+    ? categories
+    : categories.filter((c) => c.household_id === null || c.household_id === householdFilter);
 
   let filteredExpenses = householdFilter === 'all'
     ? expenses
@@ -470,7 +434,7 @@ export function AdminAnalytics() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {['Uncategorized', ...categories.map((c) => c.name)].map((category) => (
+          {['Uncategorized', ...displayCategories.map((c) => c.name)].map((category) => (
             <button
               key={category}
               onClick={() => toggleCategory(category)}
@@ -527,16 +491,17 @@ export function AdminAnalytics() {
         ) : (
           <div className="divide-y divide-slate-100">
             {filteredExpenses.slice(0, 20).map((expense) => (
-              <div key={expense.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-all">
+              <div
+                key={expense.id}
+                onClick={() => setEditingExpense(expense)}
+                className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-all cursor-pointer"
+              >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <p className="font-medium text-slate-900">{expense.vendor || 'Unnamed'}</p>
-                    <button
-                      onClick={() => openCategoryEditor(expense.id, expense.category, expense.household_id)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-full transition-all cursor-pointer"
-                    >
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
                       {expense.category || 'Uncategorized'}
-                    </button>
+                    </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -701,82 +666,15 @@ export function AdminAnalytics() {
         </div>
       )}
 
-      {editingExpenseId && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900">Edit Transaction</h2>
-                <button
-                  onClick={() => setEditingExpenseId(null)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-                >
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label htmlFor="editHousehold" className="block text-sm font-medium text-slate-700 mb-2">
-                  Household
-                </label>
-                <select
-                  id="editHousehold"
-                  value={editingHousehold}
-                  onChange={(e) => {
-                    setEditingHousehold(e.target.value);
-                    setEditingCategory('');
-                  }}
-                  required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                >
-                  <option value="">Select a household</option>
-                  {households.map((h) => (
-                    <option key={h.id} value={h.id}>{h.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="editCategory" className="block text-sm font-medium text-slate-700 mb-2">
-                  Category
-                </label>
-                <select
-                  id="editCategory"
-                  value={editingCategory}
-                  onChange={(e) => setEditingCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                >
-                  <option value="">Uncategorized</option>
-                  {filteredCategories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingExpenseId(null)}
-                  className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={updateExpenseCategory}
-                  disabled={updatingCategory || !editingHousehold}
-                  className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updatingCategory ? 'Updating...' : 'Update'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {editingExpense && (
+        <EditExpense
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onSuccess={async () => {
+            setEditingExpense(null);
+            await loadData();
+          }}
+        />
       )}
     </div>
   );
