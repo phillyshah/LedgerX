@@ -51,11 +51,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: roleData } = await supabaseClient
+    const { data: roleData, error: roleError } = await supabaseClient
       .from("user_roles")
       .select("is_admin")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
+
+    console.log("Role check result:", { roleData, roleError, userId: user.id });
+
+    if (roleError) {
+      console.error("Role check error:", roleError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify admin status: " + roleError.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!roleData || !roleData.is_admin) {
       return new Response(
@@ -92,6 +105,7 @@ Deno.serve(async (req: Request) => {
     });
 
     if (createError) {
+      console.error("Failed to create user:", createError);
       return new Response(
         JSON.stringify({ error: createError.message }),
         {
@@ -99,6 +113,44 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    if (!newUser?.user?.id) {
+      console.error("No user ID returned from createUser");
+      return new Response(
+        JSON.stringify({ error: "Failed to create user - no user ID returned" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from("user_profiles")
+      .select("id, username")
+      .eq("id", newUser.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Profile check error:", profileError);
+    }
+
+    if (!profileData) {
+      console.log("Profile not created by trigger, creating manually...");
+      const { error: manualProfileError } = await supabaseClient
+        .from("user_profiles")
+        .insert({
+          id: newUser.user.id,
+          username: userid,
+          email: email,
+        });
+
+      if (manualProfileError) {
+        console.error("Failed to create profile manually:", manualProfileError);
+      }
     }
 
     const { error: roleError } = await supabaseClient

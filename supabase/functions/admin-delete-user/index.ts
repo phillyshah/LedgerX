@@ -51,11 +51,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: roleData } = await supabaseClient
+    const { data: roleData, error: roleError } = await supabaseClient
       .from("user_roles")
       .select("is_admin")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
+
+    console.log("Role check result:", { roleData, roleError, userId: user.id });
+
+    if (roleError) {
+      console.error("Role check error:", roleError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify admin status: " + roleError.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!roleData || !roleData.is_admin) {
       return new Response(
@@ -90,16 +103,32 @@ Deno.serve(async (req: Request) => {
     }
 
     // Clean up related data first
-    await supabaseClient.from("expenses").update({ household_id: null }).eq("created_by", user_id);
-    await supabaseClient.from("household_members").delete().eq("user_id", user_id);
-    await supabaseClient.from("user_roles").delete().eq("user_id", user_id);
-    await supabaseClient.from("exports").delete().eq("requested_by", user_id);
-    await supabaseClient.from("user_profiles").delete().eq("id", user_id);
+    console.log("Updating expenses...");
+    const expensesResult = await supabaseClient.from("expenses").update({ household_id: null }).eq("created_by", user_id);
+    if (expensesResult.error) console.error("Expenses update error:", expensesResult.error);
+
+    console.log("Deleting household members...");
+    const householdMembersResult = await supabaseClient.from("household_members").delete().eq("user_id", user_id);
+    if (householdMembersResult.error) console.error("Household members delete error:", householdMembersResult.error);
+
+    console.log("Deleting user roles...");
+    const rolesResult = await supabaseClient.from("user_roles").delete().eq("user_id", user_id);
+    if (rolesResult.error) console.error("User roles delete error:", rolesResult.error);
+
+    console.log("Deleting exports...");
+    const exportsResult = await supabaseClient.from("exports").delete().eq("requested_by", user_id);
+    if (exportsResult.error) console.error("Exports delete error:", exportsResult.error);
+
+    console.log("Deleting user profile...");
+    const profileResult = await supabaseClient.from("user_profiles").delete().eq("id", user_id);
+    if (profileResult.error) console.error("User profile delete error:", profileResult.error);
 
     // Delete the user from auth
+    console.log("Deleting user from auth...");
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
+      console.error("Auth delete error:", deleteError);
       return new Response(
         JSON.stringify({ error: deleteError.message }),
         {
@@ -108,6 +137,8 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
+
+    console.log("User deleted successfully");
 
     return new Response(
       JSON.stringify({ success: true }),
