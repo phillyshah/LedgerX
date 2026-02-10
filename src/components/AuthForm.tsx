@@ -6,6 +6,7 @@ type AuthMode = 'signin' | 'signup' | 'admin';
 
 export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>('signin');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [adminCode, setAdminCode] = useState('');
@@ -22,11 +23,11 @@ export function AuthForm() {
 
     try {
       if (mode === 'admin') {
-        await signInAsAdmin(email, password, adminCode);
+        await signInAsAdmin(username, password, adminCode);
       } else if (mode === 'signup') {
-        await signUp(email, password);
+        await signUp(username, email, password);
       } else {
-        await signIn(email, password);
+        await signIn(username, password);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -43,7 +44,7 @@ export function AuthForm() {
             <FileText className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">LedgerX</h1>
-          <p className="text-slate-600">Shared household expense tracking</p>
+          <p className="text-slate-600">Simplified Transaction Management</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl p-8">
@@ -86,20 +87,40 @@ export function AuthForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email
+              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
+                User ID
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                autoComplete="username email"
+                autoComplete="username"
+                pattern="[a-zA-Z0-9_]{3,20}"
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
-                placeholder="you@example.com"
+                placeholder="your_userid"
               />
+              <p className="text-xs text-slate-500 mt-1">3-20 characters, letters, numbers, and underscores only</p>
             </div>
+
+            {mode === 'signup' && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                  placeholder="you@example.com"
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">

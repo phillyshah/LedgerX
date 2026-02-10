@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageCompression';
 import { X, Upload, Check } from 'lucide-react';
 
 interface Household {
@@ -76,13 +77,19 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const compressedFile = await compressImage(file, 2);
+        setImage(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result as string);
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        alert('Failed to process image. Please try another image.');
+      }
     }
   };
 
@@ -99,9 +106,8 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     setImagePreview(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !formData.household_id) return;
+  const saveExpense = async () => {
+    if (!user || !formData.household_id) return false;
 
     setSaving(true);
     try {
@@ -153,12 +159,33 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       onSaved();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
-      resetForm();
+      return true;
     } catch (error) {
       console.error('Error adding expense:', error);
       alert('Failed to add transaction. Please try again.');
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = await saveExpense();
+    if (success) {
+      resetForm();
+    }
+  };
+
+  const handleDone = async () => {
+    if (!formData.vendor && !formData.total) {
+      onClose();
+      return;
+    }
+
+    const success = await saveExpense();
+    if (success) {
+      onClose();
     }
   };
 
@@ -305,7 +332,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG up to 10MB</p>
+                  <p className="text-xs text-slate-400">PNG, JPG (auto-compressed to 2MB)</p>
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               )}
@@ -315,15 +342,16 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
+              onClick={handleDone}
+              disabled={saving}
+              className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Done
+              {saving ? 'Saving...' : 'Done'}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : 'Save & Add Another'}
             </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { compressImage } from '../lib/imageCompression';
 import { X, Upload } from 'lucide-react';
 
 interface Expense {
@@ -109,13 +110,19 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     }
   };
 
-  const handleNewImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setNewImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setNewImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
+      try {
+        const compressedFile = await compressImage(file, 2);
+        setNewImage(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => setNewImagePreview(reader.result as string);
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        alert('Failed to process image. Please try another image.');
+      }
     }
   };
 
@@ -380,7 +387,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG up to 10MB</p>
+                  <p className="text-xs text-slate-400">PNG, JPG (auto-compressed to 2MB)</p>
                   <input type="file" accept="image/*" onChange={handleNewImageChange} className="hidden" />
                 </label>
               )}

@@ -7,9 +7,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signInAsAdmin: (email: string, password: string, adminCode: string) => Promise<void>;
+  signUp: (username: string, email: string, password: string) => Promise<void>;
+  signIn: (username: string, password: string) => Promise<void>;
+  signInAsAdmin: (username: string, password: string, adminCode: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -57,19 +57,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  const signUp = async (username: string, email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username
+        }
+      }
+    });
     if (error) throw error;
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  const signIn = async (username: string, password: string) => {
+    const { data: email, error: lookupError } = await supabase.rpc('get_user_email_by_username', { p_username: username });
+
+    if (lookupError || !email) {
+      throw new Error('Invalid username or password');
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
+    if (error) throw new Error('Invalid username or password');
   };
 
-  const signInAsAdmin = async (email: string, password: string, adminCode: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  const signInAsAdmin = async (username: string, password: string, adminCode: string) => {
+    const { data: email, error: lookupError } = await supabase.rpc('get_user_email_by_username', { p_username: username });
+
+    if (lookupError || !email) {
+      throw new Error('Invalid username or password');
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
+    if (error) throw new Error('Invalid username or password');
 
     const { data: claimed } = await supabase.rpc('claim_admin_role', { admin_code: adminCode });
     if (!claimed) {
