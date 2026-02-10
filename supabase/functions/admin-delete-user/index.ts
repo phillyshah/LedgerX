@@ -67,11 +67,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { userid, password, is_admin } = await req.json();
+    const { user_id } = await req.json();
 
-    if (!userid || !password) {
+    if (!user_id) {
       return new Response(
-        JSON.stringify({ error: "User ID and password are required" }),
+        JSON.stringify({ error: "User ID is required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -79,21 +79,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Convert userid to email format for Supabase auth
-    const email = `${userid}@example.com`;
-
-    const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        username: userid,
-      },
-    });
-
-    if (createError) {
+    if (user_id === user.id) {
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({ error: "Cannot delete your own account" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -101,26 +89,28 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { error: roleError } = await supabaseClient
-      .from("user_roles")
-      .upsert({
-        user_id: newUser.user.id,
-        is_admin: is_admin || false,
-      });
+    // Clean up related data first
+    await supabaseClient.from("expenses").update({ household_id: null }).eq("created_by", user_id);
+    await supabaseClient.from("household_members").delete().eq("user_id", user_id);
+    await supabaseClient.from("user_roles").delete().eq("user_id", user_id);
+    await supabaseClient.from("exports").delete().eq("requested_by", user_id);
+    await supabaseClient.from("user_profiles").delete().eq("id", user_id);
 
-    if (roleError) {
-      console.error("Failed to set user role:", roleError);
+    // Delete the user from auth
+    const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id);
+
+    if (deleteError) {
       return new Response(
-        JSON.stringify({ error: "Failed to set user role: " + roleError.message }),
+        JSON.stringify({ error: deleteError.message }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, user: newUser.user }),
+      JSON.stringify({ success: true }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

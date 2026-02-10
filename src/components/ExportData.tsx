@@ -253,8 +253,8 @@ export function ExportData({ onClose }: ExportDataProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-md shadow-xl min-h-screen sm:min-h-0 sm:my-4">
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900">Export Data</h2>

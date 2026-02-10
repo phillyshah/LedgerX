@@ -102,17 +102,39 @@ export function ManageUsers() {
     setActionLoading(userId);
     setError('');
 
-    const { error: deleteError } = await supabase.rpc('admin_delete_user', {
-      p_user_id: userId,
-    });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('No active session');
+        return;
+      }
 
-    if (deleteError) {
-      setError(deleteError.message);
-    } else {
-      await loadUsers();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'Failed to delete user');
+      } else {
+        await loadUsers();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete user');
+    } finally {
+      setActionLoading(null);
     }
-
-    setActionLoading(null);
   };
 
   const createUser = async (e: React.FormEvent) => {
