@@ -102,43 +102,74 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Clean up related data first
+    console.log("Starting user deletion process for:", user_id);
+
+    // Clean up related data first (use service role which bypasses RLS)
     console.log("Updating expenses...");
-    const expensesResult = await supabaseClient.from("expenses").update({ household_id: null }).eq("created_by", user_id);
-    if (expensesResult.error) console.error("Expenses update error:", expensesResult.error);
+    const expensesResult = await supabaseClient
+      .from("expenses")
+      .update({ household_id: null })
+      .eq("created_by", user_id);
+    if (expensesResult.error) {
+      console.error("Expenses update error:", expensesResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to update expenses: " + expensesResult.error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("Deleting household members...");
-    const householdMembersResult = await supabaseClient.from("household_members").delete().eq("user_id", user_id);
-    if (householdMembersResult.error) console.error("Household members delete error:", householdMembersResult.error);
+    const householdMembersResult = await supabaseClient
+      .from("household_members")
+      .delete()
+      .eq("user_id", user_id);
+    if (householdMembersResult.error) {
+      console.error("Household members delete error:", householdMembersResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to delete household members: " + householdMembersResult.error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("Deleting user roles...");
-    const rolesResult = await supabaseClient.from("user_roles").delete().eq("user_id", user_id);
-    if (rolesResult.error) console.error("User roles delete error:", rolesResult.error);
-
-    console.log("Deleting exports...");
-    const exportsResult = await supabaseClient.from("exports").delete().eq("requested_by", user_id);
-    if (exportsResult.error) console.error("Exports delete error:", exportsResult.error);
+    const rolesResult = await supabaseClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", user_id);
+    if (rolesResult.error) {
+      console.error("User roles delete error:", rolesResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to delete user roles: " + rolesResult.error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("Deleting user profile...");
-    const profileResult = await supabaseClient.from("user_profiles").delete().eq("id", user_id);
-    if (profileResult.error) console.error("User profile delete error:", profileResult.error);
+    const profileResult = await supabaseClient
+      .from("user_profiles")
+      .delete()
+      .eq("id", user_id);
+    if (profileResult.error) {
+      console.error("User profile delete error:", profileResult.error);
+      return new Response(
+        JSON.stringify({ error: "Failed to delete user profile: " + profileResult.error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Delete the user from auth
+    // Delete the user from auth (this must be last)
     console.log("Deleting user from auth...");
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
       console.error("Auth delete error:", deleteError);
       return new Response(
-        JSON.stringify({ error: deleteError.message }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Failed to delete user from auth: " + deleteError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("User deleted successfully");
+    console.log("User deleted successfully:", user_id);
 
     return new Response(
       JSON.stringify({ success: true }),
