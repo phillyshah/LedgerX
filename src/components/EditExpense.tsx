@@ -114,14 +114,17 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressedFile = await compressImage(file, 2);
-        setNewImage(compressedFile);
+        let fileToUse = file;
+        if (file.type.startsWith('image/')) {
+          fileToUse = await compressImage(file, 2);
+        }
+        setNewImage(fileToUse);
         const reader = new FileReader();
         reader.onloadend = () => setNewImagePreview(reader.result as string);
-        reader.readAsDataURL(compressedFile);
+        reader.readAsDataURL(fileToUse);
       } catch (error) {
-        console.error('Error compressing image:', error);
-        alert('Failed to process image. Please try another image.');
+        console.error('Error processing file:', error);
+        alert('Failed to process file. Please try another file.');
       }
     }
   };
@@ -370,7 +373,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                   <div className="absolute top-2 right-2 flex gap-2">
                     <label className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all cursor-pointer">
                       <Upload className="w-4 h-4" />
-                      <input type="file" accept="image/*" onChange={handleNewImageChange} className="hidden" />
+                      <input type="file" accept="image/*,.pdf,application/pdf" onChange={handleNewImageChange} className="hidden" />
                     </label>
                     <button
                       type="button"
@@ -387,7 +390,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG (auto-compressed to 2MB)</p>
+                  <p className="text-xs text-slate-400">PNG, JPG, PDF (images auto-compressed)</p>
                   <input type="file" accept="image/*" onChange={handleNewImageChange} className="hidden" />
                 </label>
               )}

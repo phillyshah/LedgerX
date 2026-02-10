@@ -81,14 +81,17 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressedFile = await compressImage(file, 2);
-        setImage(compressedFile);
+        let fileToUse = file;
+        if (file.type.startsWith('image/')) {
+          fileToUse = await compressImage(file, 2);
+        }
+        setImage(fileToUse);
         const reader = new FileReader();
         reader.onloadend = () => setImagePreview(reader.result as string);
-        reader.readAsDataURL(compressedFile);
+        reader.readAsDataURL(fileToUse);
       } catch (error) {
-        console.error('Error compressing image:', error);
-        alert('Failed to process image. Please try another image.');
+        console.error('Error processing file:', error);
+        alert('Failed to process file. Please try another file.');
       }
     }
   };
@@ -332,8 +335,8 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG (auto-compressed to 2MB)</p>
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <p className="text-xs text-slate-400">PNG, JPG, PDF (images auto-compressed)</p>
+                  <input type="file" accept="image/*,.pdf,application/pdf" onChange={handleImageChange} className="hidden" />
                 </label>
               )}
             </div>
