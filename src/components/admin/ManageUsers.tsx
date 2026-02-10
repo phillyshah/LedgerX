@@ -292,16 +292,16 @@ export function ManageUsers() {
       }
 
       for (const householdId of toAdd) {
-        await supabase.rpc('admin_add_household_member', {
+        await supabase.rpc('admin_add_household_member_by_id', {
           p_household_id: householdId,
-          p_user_email: selectedUserEmail,
+          p_user_id: selectedUserId,
           p_role: 'member',
         });
       }
 
       setShowHouseholdModal(false);
       setSelectedUserId('');
-      setSelectedUserEmail('');
+      setSelectedUserUsername('');
       setSelectedHouseholdIds([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save households');
