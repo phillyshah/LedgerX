@@ -7,9 +7,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signUp: (username: string, email: string, password: string) => Promise<void>;
+  signUp: (username: string, password: string) => Promise<void>;
   signIn: (username: string, password: string) => Promise<void>;
-  signInAsAdmin: (username: string, password: string, adminCode: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -57,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (username: string, email: string, password: string) => {
+  const signUp = async (username: string, password: string) => {
+    const email = `${username}@ledgerx.local`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -81,25 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw new Error('Invalid username or password');
   };
 
-  const signInAsAdmin = async (username: string, password: string, adminCode: string) => {
-    const { data: email, error: lookupError } = await supabase.rpc('get_user_email_by_username', { p_username: username });
-
-    if (lookupError || !email) {
-      throw new Error('Invalid username or password');
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
-    if (error) throw new Error('Invalid username or password');
-
-    const { data: claimed } = await supabase.rpc('claim_admin_role', { admin_code: adminCode });
-    if (!claimed) {
-      await supabase.auth.signOut();
-      throw new Error('Invalid admin code');
-    }
-
-    setIsAdmin(true);
-  };
-
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -107,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signUp, signIn, signInAsAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
