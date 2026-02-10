@@ -27,6 +27,14 @@ export function AdminLayout() {
     setMobileMenuOpen(false);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-slate-100">
       <header className="lg:hidden bg-gradient-to-r from-emerald-900 to-emerald-950 sticky top-0 z-20">
@@ -42,7 +50,7 @@ export function AdminLayout() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
               title="Sign Out"
             >
@@ -109,7 +117,7 @@ export function AdminLayout() {
 
         <div className="p-4 border-t border-emerald-800">
           <button
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
           >
             <LogOut className="w-4.5 h-4.5" />

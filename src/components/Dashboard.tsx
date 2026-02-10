@@ -15,6 +15,14 @@ export function Dashboard() {
     setRefreshKey((prev) => prev + 1);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
@@ -22,7 +30,7 @@ export function Dashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-slate-900">LedgerX</h1>
             <button
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
             >
               <LogOut className="w-4 h-4" />
