@@ -12,7 +12,12 @@ interface HouseholdMember {
   id: string;
   user_id: string;
   role: string;
-  email?: string;
+  username?: string;
+}
+
+interface User {
+  id: string;
+  username: string;
 }
 
 export function ManageHouseholds() {
@@ -24,13 +29,15 @@ export function ManageHouseholds() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [addEmail, setAddEmail] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [addingMember, setAddingMember] = useState(false);
   const [memberError, setMemberError] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   useEffect(() => {
     loadHouseholds();
+    loadAllUsers();
   }, []);
 
   const loadHouseholds = async () => {
@@ -41,6 +48,13 @@ export function ManageHouseholds() {
 
     if (data) setHouseholds(data);
     setLoading(false);
+  };
+
+  const loadAllUsers = async () => {
+    const { data } = await supabase.rpc('admin_list_users');
+    if (data) {
+      setAllUsers(data.map((u: { id: string; username: string }) => ({ id: u.id, username: u.username })));
+    }
   };
 
   const createHousehold = async (e: React.FormEvent) => {
@@ -77,12 +91,12 @@ export function ManageHouseholds() {
 
     if (memberData && memberData.length > 0) {
       const { data: users } = await supabase.rpc('admin_list_users');
-      const userMap = new Map((users || []).map((u: { id: string; email: string }) => [u.id, u.email]));
+      const userMap = new Map((users || []).map((u: { id: string; username: string }) => [u.id, u.username]));
 
       setMembers(
         memberData.map((m) => ({
           ...m,
-          email: userMap.get(m.user_id) || 'Unknown',
+          username: userMap.get(m.user_id) || 'Unknown',
         }))
       );
     } else {
@@ -94,20 +108,20 @@ export function ManageHouseholds() {
 
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expandedId || !addEmail.trim()) return;
+    if (!expandedId || !selectedUserId) return;
     setAddingMember(true);
     setMemberError('');
 
-    const { error } = await supabase.rpc('admin_add_household_member', {
+    const { error } = await supabase.rpc('admin_add_household_member_by_id', {
       p_household_id: expandedId,
-      p_user_email: addEmail.trim(),
+      p_user_id: selectedUserId,
       p_role: 'member',
     });
 
     if (error) {
       setMemberError(error.message);
     } else {
-      setAddEmail('');
+      setSelectedUserId('');
       await loadMembers(expandedId);
       setExpandedId(expandedId);
     }
@@ -247,14 +261,21 @@ export function ManageHouseholds() {
                 <form onSubmit={addMember} className="flex gap-2 mb-4">
                   <div className="flex-1 relative">
                     <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      value={addEmail}
-                      onChange={(e) => setAddEmail(e.target.value)}
-                      placeholder="Add member by email"
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
                       required
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
-                    />
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent appearance-none"
+                    >
+                      <option value="">Select a user to add</option>
+                      {allUsers
+                        .filter((user) => !members.some((m) => m.user_id === user.id))
+                        .map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.username}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                   <button
                     type="submit"
@@ -283,7 +304,7 @@ export function ManageHouseholds() {
                         className="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-200"
                       >
                         <div>
-                          <p className="text-sm font-medium text-slate-900">{member.email}</p>
+                          <p className="text-sm font-medium text-slate-900">{member.username}</p>
                           <p className="text-xs text-slate-500 capitalize">{member.role}</p>
                         </div>
                         <button

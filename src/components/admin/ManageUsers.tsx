@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
   id: string;
-  email: string;
+  username: string;
   created_at: string;
   is_admin?: boolean;
 }
@@ -28,7 +28,7 @@ export function ManageUsers() {
   const [creating, setCreating] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [selectedUserEmail, setSelectedUserEmail] = useState<string>('');
+  const [selectedUserUsername, setSelectedUserUsername] = useState<string>('');
   const [newPassword, setNewPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
@@ -183,9 +183,9 @@ export function ManageUsers() {
     }
   };
 
-  const openPasswordModal = (userId: string, userEmail: string) => {
+  const openPasswordModal = (userId: string, username: string) => {
     setSelectedUserId(userId);
-    setSelectedUserEmail(userEmail);
+    setSelectedUserUsername(username);
     setNewPassword('');
     setShowPasswordModal(true);
     setError('');
@@ -225,7 +225,7 @@ export function ManageUsers() {
       } else {
         setShowPasswordModal(false);
         setSelectedUserId('');
-        setSelectedUserEmail('');
+        setSelectedUserUsername('');
         setNewPassword('');
       }
     } catch (err) {
@@ -235,9 +235,9 @@ export function ManageUsers() {
     }
   };
 
-  const openHouseholdModal = async (userId: string, userEmail: string) => {
+  const openHouseholdModal = async (userId: string, username: string) => {
     setSelectedUserId(userId);
-    setSelectedUserEmail(userEmail);
+    setSelectedUserUsername(username);
     setError('');
     setShowHouseholdModal(true);
 
@@ -367,7 +367,7 @@ export function ManageUsers() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-slate-900 truncate">{user.email}</p>
+                      <p className="text-sm font-medium text-slate-900 truncate">{user.username}</p>
                       {isCurrentUser && (
                         <span className="inline-flex px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                           You
@@ -389,7 +389,7 @@ export function ManageUsers() {
                     {isCurrentUser ? (
                       <>
                         <button
-                          onClick={() => openHouseholdModal(user.id, user.email)}
+                          onClick={() => openHouseholdModal(user.id, user.username)}
                           className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-all"
                           title="Assign Households"
                         >
@@ -397,7 +397,7 @@ export function ManageUsers() {
                           Households
                         </button>
                         <button
-                          onClick={() => openPasswordModal(user.id, user.email)}
+                          onClick={() => openPasswordModal(user.id, user.username)}
                           className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium rounded-lg transition-all"
                           title="Change My Password"
                         >
@@ -408,7 +408,7 @@ export function ManageUsers() {
                     ) : (
                       <>
                         <button
-                          onClick={() => openHouseholdModal(user.id, user.email)}
+                          onClick={() => openHouseholdModal(user.id, user.username)}
                           disabled={isLoading}
                           className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
                           title="Assign Households"
@@ -438,7 +438,7 @@ export function ManageUsers() {
                           )}
                         </button>
                         <button
-                          onClick={() => openPasswordModal(user.id, user.email)}
+                          onClick={() => openPasswordModal(user.id, user.username)}
                           disabled={isLoading}
                           className="p-2 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50"
                           title="Change Password"
@@ -550,7 +550,7 @@ export function ManageUsers() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">Change Password</h3>
-                  <p className="text-sm text-slate-500 mt-1">{selectedUserEmail}</p>
+                  <p className="text-sm text-slate-500 mt-1">{selectedUserUsername}</p>
                 </div>
                 <button
                   onClick={() => setShowPasswordModal(false)}
@@ -606,7 +606,7 @@ export function ManageUsers() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">Assign Households</h3>
-                  <p className="text-sm text-slate-500 mt-1">{selectedUserEmail}</p>
+                  <p className="text-sm text-slate-500 mt-1">{selectedUserUsername}</p>
                 </div>
                 <button
                   onClick={() => setShowHouseholdModal(false)}
