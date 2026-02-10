@@ -22,7 +22,7 @@ export function ManageUsers() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserId, setNewUserId] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserIsAdmin, setNewUserIsAdmin] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -136,7 +136,7 @@ export function ManageUsers() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: newUserEmail,
+            userid: newUserId,
             password: newUserPassword,
             is_admin: newUserIsAdmin,
           }),
@@ -149,7 +149,7 @@ export function ManageUsers() {
         setError(result.error || 'Failed to create user');
       } else {
         setShowCreateModal(false);
-        setNewUserEmail('');
+        setNewUserId('');
         setNewUserPassword('');
         setNewUserIsAdmin(false);
         await loadUsers();
@@ -457,17 +457,17 @@ export function ManageUsers() {
 
             <form onSubmit={createUser} className="p-6 space-y-4">
               <div>
-                <label htmlFor="newEmail" className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
+                <label htmlFor="newUserId" className="block text-sm font-medium text-slate-700 mb-2">
+                  User ID
                 </label>
                 <input
-                  id="newEmail"
-                  type="email"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  id="newUserId"
+                  type="text"
+                  value={newUserId}
+                  onChange={(e) => setNewUserId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                   required
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                  placeholder="user@example.com"
+                  placeholder="johndoe"
                 />
               </div>
 

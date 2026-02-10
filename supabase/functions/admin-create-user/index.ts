@@ -67,17 +67,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { email, password, is_admin } = await req.json();
+    const { userid, password, is_admin } = await req.json();
 
-    if (!email || !password) {
+    if (!userid || !password) {
       return new Response(
-        JSON.stringify({ error: "Email and password are required" }),
+        JSON.stringify({ error: "User ID and password are required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
+    // Convert userid to email format for Supabase auth
+    const email = `${userid}@example.com`;
 
     const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
       email,
