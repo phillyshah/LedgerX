@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { AlertCircle, Home, Tag, Check, X } from 'lucide-react';
+import { AlertCircle, Home, Tag, Check, X, Edit } from 'lucide-react';
+import { EditExpense } from '../EditExpense';
 
 interface UncategorizedExpense {
   id: string;
@@ -14,6 +15,7 @@ interface UncategorizedExpense {
   currency: string;
   category: string | null;
   notes: string | null;
+  transcript: string | null;
   image_path: string | null;
   image_mime: string | null;
   image_width: number | null;
@@ -46,6 +48,7 @@ export function UncategorizedTransactions() {
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fullEditExpense, setFullEditExpense] = useState<UncategorizedExpense | null>(null);
 
   useEffect(() => {
     loadData();
@@ -88,6 +91,10 @@ export function UncategorizedTransactions() {
       );
       setFilteredCategories(filtered);
     }
+  };
+
+  const openFullEdit = (expense: UncategorizedExpense) => {
+    setFullEditExpense(expense);
   };
 
   const cancelEdit = () => {
@@ -277,12 +284,21 @@ export function UncategorizedTransactions() {
                           </div>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => startEdit(expense)}
-                          className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all"
-                        >
-                          Re-allocate
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => startEdit(expense)}
+                            className="flex-1 sm:flex-initial px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all"
+                          >
+                            Re-allocate
+                          </button>
+                          <button
+                            onClick={() => openFullEdit(expense)}
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Full Edit
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -291,6 +307,17 @@ export function UncategorizedTransactions() {
             );
           })}
         </div>
+      )}
+
+      {fullEditExpense && (
+        <EditExpense
+          expense={fullEditExpense as any}
+          onClose={() => setFullEditExpense(null)}
+          onSuccess={async () => {
+            setFullEditExpense(null);
+            await loadData();
+          }}
+        />
       )}
     </div>
   );

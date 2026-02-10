@@ -85,16 +85,35 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const loadHouseholds = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id);
+    const { data: rolesData } = await supabase
+      .from('user_roles')
+      .select('is_admin')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (data) {
-      const hh = data
-        .map((item) => item.households)
-        .filter(Boolean) as unknown as Household[];
-      setHouseholds(hh);
+    const isAdmin = rolesData?.is_admin || false;
+
+    if (isAdmin) {
+      const { data } = await supabase
+        .from('households')
+        .select('id, name')
+        .order('name');
+
+      if (data) {
+        setHouseholds(data);
+      }
+    } else {
+      const { data } = await supabase
+        .from('household_members')
+        .select('household_id, households(id, name)')
+        .eq('user_id', user.id);
+
+      if (data) {
+        const hh = data
+          .map((item) => item.households)
+          .filter(Boolean) as unknown as Household[];
+        setHouseholds(hh);
+      }
     }
   };
 
