@@ -9,6 +9,11 @@ interface Category {
   household_id: string | null;
 }
 
+interface CategoryHousehold {
+  category_id: string;
+  household_id: string;
+}
+
 interface Household {
   id: string;
   name: string;
@@ -16,6 +21,7 @@ interface Household {
 
 export function ManageCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryHouseholds, setCategoryHouseholds] = useState<CategoryHousehold[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -27,7 +33,7 @@ export function ManageCategories() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>('');
+  const [selectedHouseholdIds, setSelectedHouseholdIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
@@ -35,7 +41,7 @@ export function ManageCategories() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([loadCategories(), loadHouseholds()]);
+    await Promise.all([loadCategories(), loadCategoryHouseholds(), loadHouseholds()]);
   };
 
   const loadCategories = async () => {
@@ -46,6 +52,14 @@ export function ManageCategories() {
 
     if (data) setCategories(data);
     setLoading(false);
+  };
+
+  const loadCategoryHouseholds = async () => {
+    const { data } = await supabase
+      .from('category_households')
+      .select('category_id, household_id');
+
+    if (data) setCategoryHouseholds(data);
   };
 
   const loadHouseholds = async () => {
@@ -109,7 +123,10 @@ export function ManageCategories() {
   const openAssignModal = (category: Category) => {
     setSelectedCategoryId(category.id);
     setSelectedCategoryName(category.name);
-    setSelectedHouseholdId(category.household_id || 'global');
+    const assignedHouseholds = categoryHouseholds
+      .filter(ch => ch.category_id === category.id)
+      .map(ch => ch.household_id);
+    setSelectedHouseholdIds(assignedHouseholds);
     setShowAssignModal(true);
     setError('');
   };
@@ -119,19 +136,17 @@ export function ManageCategories() {
     setError('');
 
     try {
-      if (selectedHouseholdId === 'global') {
-        await supabase.rpc('admin_make_category_global', {
-          p_category_id: selectedCategoryId,
-        });
-      } else {
-        await supabase.rpc('admin_assign_category_to_household', {
-          p_category_id: selectedCategoryId,
-          p_household_id: selectedHouseholdId,
-        });
-      }
+      const householdIds = selectedHouseholdIds.length > 0 ? selectedHouseholdIds : null;
+
+      const { error: rpcError } = await supabase.rpc('admin_set_category_households', {
+        p_category_id: selectedCategoryId,
+        p_household_ids: householdIds,
+      });
+
+      if (rpcError) throw rpcError;
 
       setShowAssignModal(false);
-      await loadCategories();
+      await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign category');
     } finally {
@@ -139,9 +154,22 @@ export function ManageCategories() {
     }
   };
 
-  const getHouseholdName = (householdId: string | null) => {
-    if (!householdId) return 'Global';
-    return households.find(h => h.id === householdId)?.name || 'Unknown';
+  const toggleHousehold = (householdId: string) => {
+    setSelectedHouseholdIds(prev => {
+      if (prev.includes(householdId)) {
+        return prev.filter(id => id !== householdId);
+      } else {
+        return [...prev, householdId];
+      }
+    });
+  };
+
+  const getHouseholdNames = (categoryId: string) => {
+    const assignedHouseholds = categoryHouseholds
+      .filter(ch => ch.category_id === categoryId)
+      .map(ch => households.find(h => h.id === ch.household_id)?.name || 'Unknown');
+
+    return assignedHouseholds.length > 0 ? assignedHouseholds : ['Global'];
   };
 
   if (loading) {
@@ -237,19 +265,21 @@ export function ManageCategories() {
                 ) : (
                   <>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-slate-900">{category.name}</span>
-                        {category.household_id ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">
-                            <Home className="w-3 h-3" />
-                            {getHouseholdName(category.household_id)}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
-                            <Globe className="w-3 h-3" />
-                            Global
-                          </span>
-                        )}
+                        {getHouseholdNames(category.id).map((name, idx) => (
+                          name === 'Global' ? (
+                            <span key="global" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
+                              <Globe className="w-3 h-3" />
+                              Global
+                            </span>
+                          ) : (
+                            <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">
+                              <Home className="w-3 h-3" />
+                              {name}
+                            </span>
+                          )
+                        ))}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -301,37 +331,20 @@ export function ManageCategories() {
 
             <div className="p-6">
               <p className="text-sm text-slate-600 mb-4">
-                Choose whether this category is available globally or only to a specific household:
+                Select which households can use this category. Leave all unchecked to make it available globally:
               </p>
 
               <div className="space-y-2">
-                <label className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all">
-                  <input
-                    type="radio"
-                    name="household"
-                    value="global"
-                    checked={selectedHouseholdId === 'global'}
-                    onChange={(e) => setSelectedHouseholdId(e.target.value)}
-                    className="w-4 h-4 text-emerald-600"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-slate-600" />
-                    <span className="text-sm font-medium text-slate-900">Global (All Households)</span>
-                  </div>
-                </label>
-
                 {households.map((household) => (
                   <label
                     key={household.id}
                     className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all"
                   >
                     <input
-                      type="radio"
-                      name="household"
-                      value={household.id}
-                      checked={selectedHouseholdId === household.id}
-                      onChange={(e) => setSelectedHouseholdId(e.target.value)}
-                      className="w-4 h-4 text-emerald-600"
+                      type="checkbox"
+                      checked={selectedHouseholdIds.includes(household.id)}
+                      onChange={() => toggleHousehold(household.id)}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-600"
                     />
                     <div className="flex items-center gap-2">
                       <Home className="w-4 h-4 text-blue-600" />
@@ -340,6 +353,15 @@ export function ManageCategories() {
                   </label>
                 ))}
               </div>
+
+              {selectedHouseholdIds.length === 0 && (
+                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-slate-600" />
+                    <p className="text-sm text-slate-700 font-medium">This category will be available to all households</p>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
