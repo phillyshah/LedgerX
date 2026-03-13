@@ -54,6 +54,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [imageZoom, setImageZoom] = useState(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -153,6 +154,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     setCurrentImageUrl(null);
     setNewImage(null);
     setNewImagePreview(null);
+    setImageZoom(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -377,10 +379,52 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
               {newImagePreview ? (
                 <div className="relative">
-                  <img src={newImagePreview} alt="New receipt preview" className="max-h-48 mx-auto rounded-lg" />
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
+                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+                      title="Zoom in"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
+                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+                      title="Zoom out"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom(1)}
+                      className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
+                      title="Reset zoom"
+                    >
+                      reset
+                    </button>
+                  </div>
+                  <div
+                    className="max-h-48 overflow-hidden"
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      setImageZoom((z) => {
+                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                        return Math.min(3, Math.max(0.5, next));
+                      });
+                    }}
+                  >
+                    <img
+                      src={newImagePreview}
+                      alt="New receipt preview"
+                      style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
+                      className="max-h-48 mx-auto rounded-lg"
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { setNewImage(null); setNewImagePreview(null); }}
+                    onClick={() => { setNewImage(null); setNewImagePreview(null); setImageZoom(1); }}
                     className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
                   >
                     <X className="w-4 h-4" />
@@ -388,7 +432,49 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                 </div>
               ) : currentImageUrl ? (
                 <div className="relative">
-                  <img src={currentImageUrl} alt="Current receipt" className="max-h-48 mx-auto rounded-lg" />
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
+                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+                      title="Zoom in"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
+                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+                      title="Zoom out"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageZoom(1)}
+                      className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
+                      title="Reset zoom"
+                    >
+                      reset
+                    </button>
+                  </div>
+                  <div
+                    className="max-h-48 overflow-hidden"
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      setImageZoom((z) => {
+                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                        return Math.min(3, Math.max(0.5, next));
+                      });
+                    }}
+                  >
+                    <img
+                      src={currentImageUrl}
+                      alt="Current receipt"
+                      style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
+                      className="max-h-48 mx-auto rounded-lg"
+                    />
+                  </div>
                   <div className="absolute top-2 right-2 flex gap-2">
                     <label className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all cursor-pointer">
                       <Upload className="w-4 h-4" />

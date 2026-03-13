@@ -39,9 +39,10 @@ export function Reports({ onClose }: ReportsProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
 
-  const availableCategories = allCategories.filter((c) =>
-    !c.household_id || selectedHouseholds.includes(c.household_id)
-  );
+  const availableCategories = selectedHouseholds.length
+    ? allCategories.filter((c) => c.household_id && selectedHouseholds.includes(c.household_id))
+    : [];
+
   const [endDate, setEndDate] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,7 @@ export function Reports({ onClose }: ReportsProps) {
   const [error, setError] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageZoom, setImageZoom] = useState(1);
 
   useEffect(() => {
     loadOptions();
@@ -379,13 +381,54 @@ export function Reports({ onClose }: ReportsProps) {
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
-            <div className="p-6 flex justify-center">
+            <div className="p-6 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
+                  className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
+                  title="Zoom in"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
+                  className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
+                  title="Zoom out"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageZoom(1)}
+                  className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg"
+                  title="Reset zoom"
+                >
+                  reset
+                </button>
+              </div>
               {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt="Receipt"
-                  className="max-w-full max-h-[70vh] object-contain"
-                />
+                <div
+                  className="max-w-full max-h-[70vh] overflow-hidden"
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    setImageZoom((z) => {
+                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                      return Math.min(3, Math.max(0.5, next));
+                    });
+                  }}
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Receipt"
+                    style={{
+                      transform: `scale(${imageZoom})`,
+                      transformOrigin: 'center center',
+                    }}
+                    className="max-w-full max-h-[70vh] object-contain"
+                  />
+                </div>
               ) : (
                 <div className="text-slate-500">Loading image...</div>
               )}
