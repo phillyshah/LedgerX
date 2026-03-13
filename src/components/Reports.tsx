@@ -425,7 +425,9 @@ export function Reports({ onClose }: ReportsProps) {
                     src={imageUrl}
                     alt="Receipt"
                     style={{
-                      width: `${imageZoom * 100}%`,
+                      transform: `scale(${imageZoom})`,
+                      transformOrigin: 'center center',
+                      width: '100%',
                       height: 'auto',
                     }}
                     className="block mx-auto"

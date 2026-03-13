@@ -420,7 +420,12 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     <img
                       src={newImagePreview}
                       alt="New receipt preview"
-                      style={{ width: `${imageZoom * 100}%`, height: 'auto' }}
+                      style={{
+                        transform: `scale(${imageZoom})`,
+                        transformOrigin: 'center center',
+                        width: '100%',
+                        height: 'auto',
+                      }}
                       className="mx-auto rounded-lg"
                     />
                   </div>
@@ -475,7 +480,12 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     <img
                       src={currentImageUrl}
                       alt="Current receipt"
-                      style={{ width: `${imageZoom * 100}%`, height: 'auto' }}
+                      style={{
+                        transform: `scale(${imageZoom})`,
+                        transformOrigin: 'center center',
+                        width: '100%',
+                        height: 'auto',
+                      }}
                       className="mx-auto rounded-lg"
                     />
                   </div>
