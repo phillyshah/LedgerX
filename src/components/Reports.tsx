@@ -83,7 +83,8 @@ export function Reports({ onClose }: ReportsProps) {
       .order('expense_date', { ascending: false });
 
     if (selectedCategories.length > 0) {
-      query = query.in('category', selectedCategories);
+      const selectedCategoryNames = categories.filter((c: Category) => selectedCategories.includes(c.id)).map((c: Category) => c.name);
+      query = query.in('category', selectedCategoryNames);
     }
 
     if (startDate) {
