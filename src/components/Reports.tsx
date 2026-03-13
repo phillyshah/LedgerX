@@ -42,6 +42,7 @@ export function Reports({ onClose }: ReportsProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
@@ -76,6 +77,8 @@ export function Reports({ onClose }: ReportsProps) {
   const loadOptions = async () => {
     if (!user) return;
 
+    setError(null);
+
     try {
       // Load households
       const { data: memberData, error: memberError } = await supabase
@@ -85,6 +88,7 @@ export function Reports({ onClose }: ReportsProps) {
 
       if (memberError) {
         console.error('Error loading households:', memberError);
+        setError('Could not load households. Please try again.');
         return;
       }
 
@@ -102,12 +106,14 @@ export function Reports({ onClose }: ReportsProps) {
 
       if (catError) {
         console.error('Error loading categories:', catError);
+        setError('Could not load categories. Please try again.');
         return;
       }
 
       setAllCategories(catData || []);
     } catch (error) {
       console.error('Unexpected error in loadOptions:', error);
+      setError('Something went wrong while loading report filters.');
     }
   };
 
@@ -150,12 +156,16 @@ export function Reports({ onClose }: ReportsProps) {
         setExpenses(filteredExpenses);
         setTotalAmount(filteredExpenses.reduce((sum: number, e: Expense) => sum + e.total, 0));
       } else {
-        if (error) console.error('Error running report:', error);
+        if (error) {
+          console.error('Error running report:', error);
+          setError('Failed to run report. Please try again.');
+        }
         setExpenses([]);
         setTotalAmount(0);
       }
     } catch (error) {
       console.error('Unexpected error running report:', error);
+      setError('Unexpected error running report.');
       setExpenses([]);
       setTotalAmount(0);
     } finally {
@@ -192,6 +202,11 @@ export function Reports({ onClose }: ReportsProps) {
         </div>
 
         <div className="p-6 space-y-6">
+          {error && (
+            <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+              <strong className="font-semibold">Error:</strong> {error}
+            </div>
+          )}
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Households */}
