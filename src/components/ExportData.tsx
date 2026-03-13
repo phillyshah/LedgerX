@@ -107,8 +107,17 @@ export function ExportData({ onClose }: ExportDataProps) {
       pdf.text(`Period: ${startDate} to ${endDate}`, margin, yPosition);
       yPosition += 15;
 
+      let txOnPage = 0;
+
       for (let i = 0; i < expenses.length; i++) {
         const expense = expenses[i];
+
+        // Force no more than 4 transactions per page
+        if (txOnPage >= 4) {
+          pdf.addPage();
+          yPosition = margin;
+          txOnPage = 0;
+        }
 
         // Estimate required height for this expense block
         const lineHeight = 5;
@@ -250,6 +259,8 @@ export function ExportData({ onClose }: ExportDataProps) {
           pdf.line(margin, yPosition, pageWidth - margin, yPosition);
           yPosition += 10;
         }
+
+        txOnPage += 1;
       }
 
       pdf.save(`ledgerx-export-${startDate}-to-${endDate}.pdf`);
