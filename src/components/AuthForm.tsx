@@ -81,7 +81,7 @@ export function AuthForm() {
                 required
                 autoComplete="username"
                 pattern="[a-zA-Z0-9_]{3,20}"
-                className="w-full px-4 py-3 bg-green-700 border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-white placeholder-green-300"
+                className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
                 placeholder="your_userid"
               />
               <p className="text-xs text-green-300 mt-1">3-20 characters, letters, numbers, and underscores only</p>
@@ -100,19 +100,19 @@ export function AuthForm() {
                   required
                   minLength={6}
                   autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                  className="w-full px-4 py-3 pr-12 bg-green-700 border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-white placeholder-green-300"
+                  className="w-full px-4 py-3 pr-12 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-green-600 rounded-lg transition-all"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-green-50 rounded-lg transition-all"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-green-300" />
+                    <EyeOff className="w-4 h-4 text-slate-600" />
                   ) : (
-                    <Eye className="w-4 h-4 text-green-300" />
+                    <Eye className="w-4 h-4 text-slate-600" />
                   )}
                 </button>
               </div>
