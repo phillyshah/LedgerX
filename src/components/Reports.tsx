@@ -38,6 +38,10 @@ export function Reports({ onClose }: ReportsProps) {
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
+
+  const availableCategories = allCategories.filter((c) =>
+    !c.household_id || selectedHouseholds.includes(c.household_id)
+  );
   const [endDate, setEndDate] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
