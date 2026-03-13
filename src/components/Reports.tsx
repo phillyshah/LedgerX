@@ -252,7 +252,7 @@ export function Reports({ onClose }: ReportsProps) {
         let yPosition = yOffset + 5;
 
         const imageY = yOffset + cellHeight - 35;
-        const imageX = xOffset;
+        const imageX = xOffset + cellWidth - 110; // Right side of the cell
 
         if (expense.id) {
           pdf.setFontSize(9);
@@ -321,8 +321,8 @@ export function Reports({ onClose }: ReportsProps) {
                 img.src = imageUrl;
               });
 
-              const maxImgWidth = cellWidth - 10;
-              const maxImgHeight = 30;
+              const maxImgWidth = 100; // Fixed width for right-side placement
+              const maxImgHeight = 60; // Increased by 100% from 30
               let imgWidth = img.width;
               let imgHeightRaw = img.height;
 
