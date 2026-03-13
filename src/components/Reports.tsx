@@ -410,23 +410,25 @@ export function Reports({ onClose }: ReportsProps) {
               </div>
               {imageUrl ? (
                 <div
-                  className="max-w-full max-h-[70vh] overflow-hidden"
+                  className="max-w-full max-h-[70vh] overflow-auto"
                   onWheel={(e) => {
-                    e.preventDefault();
-                    setImageZoom((z) => {
-                      const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                      return Math.min(3, Math.max(0.5, next));
-                    });
+                    if (e.ctrlKey) {
+                      e.preventDefault();
+                      setImageZoom((z) => {
+                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                        return Math.min(3, Math.max(0.5, next));
+                      });
+                    }
                   }}
                 >
                   <img
                     src={imageUrl}
                     alt="Receipt"
                     style={{
-                      transform: `scale(${imageZoom})`,
-                      transformOrigin: 'center center',
+                      width: `${imageZoom * 100}%`,
+                      height: 'auto',
                     }}
-                    className="max-w-full max-h-[70vh] object-contain"
+                    className="block mx-auto"
                   />
                 </div>
               ) : (

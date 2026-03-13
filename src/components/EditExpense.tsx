@@ -406,20 +406,22 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     </button>
                   </div>
                   <div
-                    className="max-h-48 overflow-hidden"
+                    className="max-h-48 overflow-auto"
                     onWheel={(e) => {
-                      e.preventDefault();
-                      setImageZoom((z) => {
-                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                        return Math.min(3, Math.max(0.5, next));
-                      });
+                      if (e.ctrlKey) {
+                        e.preventDefault();
+                        setImageZoom((z) => {
+                          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                          return Math.min(3, Math.max(0.5, next));
+                        });
+                      }
                     }}
                   >
                     <img
                       src={newImagePreview}
                       alt="New receipt preview"
-                      style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
-                      className="max-h-48 mx-auto rounded-lg"
+                      style={{ width: `${imageZoom * 100}%`, height: 'auto' }}
+                      className="mx-auto rounded-lg"
                     />
                   </div>
                   <button
@@ -459,20 +461,22 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     </button>
                   </div>
                   <div
-                    className="max-h-48 overflow-hidden"
+                    className="max-h-48 overflow-auto"
                     onWheel={(e) => {
-                      e.preventDefault();
-                      setImageZoom((z) => {
-                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                        return Math.min(3, Math.max(0.5, next));
-                      });
+                      if (e.ctrlKey) {
+                        e.preventDefault();
+                        setImageZoom((z) => {
+                          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+                          return Math.min(3, Math.max(0.5, next));
+                        });
+                      }
                     }}
                   >
                     <img
                       src={currentImageUrl}
                       alt="Current receipt"
-                      style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
-                      className="max-h-48 mx-auto rounded-lg"
+                      style={{ width: `${imageZoom * 100}%`, height: 'auto' }}
+                      className="mx-auto rounded-lg"
                     />
                   </div>
                   <div className="absolute top-2 right-2 flex gap-2">
