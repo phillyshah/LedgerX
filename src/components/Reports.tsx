@@ -251,8 +251,11 @@ export function Reports({ onClose }: ReportsProps) {
 
         let yPosition = yOffset + 5;
 
-        const imageY = yOffset + cellHeight - 35;
-        const imageX = xOffset + cellWidth - 110; // Right side of the cell
+        // Reserve right-side space for the image (aligned with the Pic ID row)
+        const imageBoxWidth = 110;
+        const imageX = xOffset + cellWidth - imageBoxWidth;
+        const imageY = yOffset + 5;
+        const textWidth = cellWidth - imageBoxWidth - 10;
 
         if (expense.id) {
           pdf.setFontSize(9);
@@ -265,8 +268,12 @@ export function Reports({ onClose }: ReportsProps) {
 
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
-        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, xOffset, yPosition);
-        yPosition += 6;
+        const vendorLines = pdf.splitTextToSize(
+          `${expense.vendor || 'Unnamed Transaction'}`,
+          textWidth
+        );
+        pdf.text(vendorLines, xOffset, yPosition);
+        yPosition += vendorLines.length * 6;
 
         pdf.setFontSize(10);
         pdf.setFont(undefined as unknown as string, 'normal');
@@ -296,7 +303,7 @@ export function Reports({ onClose }: ReportsProps) {
         if (expense.notes) {
           const noteLines = pdf.splitTextToSize(
             `Notes: ${expense.notes}`,
-            cellWidth - 10
+            textWidth
           );
           const availableForNotes = imageY - yPosition - 5;
           const maxNoteLines = Math.floor(availableForNotes / 5);

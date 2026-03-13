@@ -135,8 +135,11 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         let yPosition = yOffset + 5; // Small padding inside cell
 
-        const imageY = yOffset + cellHeight - 35; // Fixed position for image at bottom of cell
-        const imageX = xOffset;
+        // Reserve right-side space for the image (aligned with the Pic ID row)
+        const imageBoxWidth = 110;
+        const imageX = xOffset + cellWidth - imageBoxWidth;
+        const imageY = yOffset + 5;
+        const textWidth = cellWidth - imageBoxWidth - 10;
 
         // Show pic-id as header
         if (expense.pic_id) {
@@ -150,8 +153,9 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
-        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, xOffset, yPosition);
-        yPosition += 6;
+        const vendorLines = pdf.splitTextToSize(`${expense.vendor || 'Unnamed Transaction'}`, textWidth);
+        pdf.text(vendorLines, margin, yPosition);
+        yPosition += vendorLines.length * 6;
 
         pdf.setFontSize(10);
         pdf.setFont(undefined as unknown as string, 'normal');
@@ -181,7 +185,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         if (expense.notes) {
           const noteLines = pdf.splitTextToSize(
             `Notes: ${expense.notes}`,
-            cellWidth - 10 // Leave some padding
+            textWidth // Leave some padding for the image column
           );
 
           // Limit to fit above the image
@@ -209,8 +213,8 @@ export function ExportData({ onClose }: ExportDataProps) {
                 img.src = imageUrl;
               });
 
-              const maxImgWidth = cellWidth - 10;
-              const maxImgHeight = 30; // 50% smaller than previous 60
+              const maxImgWidth = imageBoxWidth - 10;
+              const maxImgHeight = 60; // Increased size to better visibility
               let imgWidth = expense.image_width || img.width;
               let imgHeightRaw = expense.image_height || img.height;
 
