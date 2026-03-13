@@ -110,7 +110,29 @@ export function ExportData({ onClose }: ExportDataProps) {
       for (let i = 0; i < expenses.length; i++) {
         const expense = expenses[i];
 
-        if (yPosition > pageHeight - 40) {
+        // Estimate required height for this expense block
+        const lineHeight = 5;
+        let requiredHeight = 0;
+
+        // Pic ID / title / lines
+        requiredHeight += lineHeight * 4; // pic id + title + date + amount
+        if (householdMap.get(expense.household_id)) requiredHeight += lineHeight;
+        if (expense.category) requiredHeight += lineHeight;
+        if (expense.notes) {
+          const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, pageWidth - 2 * margin);
+          requiredHeight += noteLines.length * lineHeight;
+        }
+
+        let imgHeight = 0;
+        if (expense.image_path) {
+          imgHeight = 100 + 15; // max height + padding
+          requiredHeight += imgHeight;
+        }
+
+        // Add spacing and separator
+        requiredHeight += 15;
+
+        if (yPosition + requiredHeight > pageHeight - margin) {
           pdf.addPage();
           yPosition = margin;
         }
@@ -183,16 +205,16 @@ export function ExportData({ onClose }: ExportDataProps) {
               const maxWidth = pageWidth - 2 * margin;
               const maxHeight = 100;
               let imgWidth = expense.image_width || img.width;
-              let imgHeight = expense.image_height || img.height;
+              let imgHeightRaw = expense.image_height || img.height;
 
               const widthRatio = maxWidth / imgWidth;
-              const heightRatio = maxHeight / imgHeight;
+              const heightRatio = maxHeight / imgHeightRaw;
               const ratio = Math.min(widthRatio, heightRatio);
 
               imgWidth *= ratio;
-              imgHeight *= ratio;
+              const adjustedImgHeight = imgHeightRaw * ratio;
 
-              if (yPosition + imgHeight > pageHeight - margin) {
+              if (yPosition + adjustedImgHeight + 10 > pageHeight - margin) {
                 pdf.addPage();
                 yPosition = margin;
               }
@@ -208,8 +230,8 @@ export function ExportData({ onClose }: ExportDataProps) {
                 }
               }
 
-              pdf.addImage(img, imageFormat, margin, yPosition, imgWidth, imgHeight);
-              yPosition += imgHeight + 10;
+              pdf.addImage(img, imageFormat, margin, yPosition, imgWidth, adjustedImgHeight);
+              yPosition += adjustedImgHeight + 10;
 
               URL.revokeObjectURL(imageUrl);
             }
