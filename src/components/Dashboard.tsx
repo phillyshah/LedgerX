@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { ExpenseList } from './ExpenseList';
 import { AddExpense } from './AddExpense';
 import { ExportData } from './ExportData';
-import { LogOut, Plus, Download } from 'lucide-react';
+import { Reports } from './Reports';
+import { LogOut, Plus, Download, FileText } from 'lucide-react';
 
 export function Dashboard() {
   const { signOut } = useAuth();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showReports, setShowReports] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleExpenseAdded = () => {
@@ -57,6 +59,13 @@ export function Dashboard() {
               <Download className="w-4 h-4" />
               Export Data
             </button>
+            <button
+              onClick={() => setShowReports(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 rounded-xl transition-all shadow-sm font-medium"
+            >
+              <FileText className="w-4 h-4" />
+              Reports
+            </button>
           </div>
 
           <ExpenseList refreshKey={refreshKey} />
@@ -72,6 +81,10 @@ export function Dashboard() {
 
       {showExport && (
         <ExportData onClose={() => setShowExport(false)} />
+      )}
+
+      {showReports && (
+        <Reports onClose={() => setShowReports(false)} />
       )}
     </div>
   );

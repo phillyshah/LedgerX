@@ -5,9 +5,10 @@ import { ManageCategories } from './ManageCategories';
 import { AdminAnalytics } from './AdminAnalytics';
 import { UncategorizedTransactions } from './UncategorizedTransactions';
 import { ManageUsers } from './ManageUsers';
+import { Reports } from '../Reports';
 import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X } from 'lucide-react';
 
-type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users';
+type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'reports';
 
 const navItems: { key: AdminView; label: string; icon: typeof BarChart3 }[] = [
   { key: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -15,6 +16,7 @@ const navItems: { key: AdminView; label: string; icon: typeof BarChart3 }[] = [
   { key: 'categories', label: 'Categories', icon: Tag },
   { key: 'uncategorized', label: 'Uncategorized', icon: AlertCircle },
   { key: 'users', label: 'Users', icon: Users },
+  { key: 'reports', label: 'Reports', icon: FileText },
 ];
 
 export function AdminLayout() {
@@ -133,6 +135,7 @@ export function AdminLayout() {
           {activeView === 'categories' && <ManageCategories />}
           {activeView === 'uncategorized' && <UncategorizedTransactions />}
           {activeView === 'users' && <ManageUsers />}
+          {activeView === 'reports' && <Reports onClose={() => setActiveView('analytics')} />}
         </div>
       </main>
     </div>
