@@ -23,6 +23,7 @@ interface Expense {
   notes: string | null;
   household_id: string;
   household_name?: string;
+  image_path: string | null;
 }
 
 interface ReportsProps {
@@ -41,6 +42,7 @@ export function Reports({ onClose }: ReportsProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadOptions();
@@ -78,7 +80,7 @@ export function Reports({ onClose }: ReportsProps) {
 
     let query = supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, household_id')
+      .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
       .in('household_id', selectedHouseholds)
       .order('expense_date', { ascending: false });
 
@@ -246,6 +248,7 @@ export function Reports({ onClose }: ReportsProps) {
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Household</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Receipt</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
@@ -266,6 +269,19 @@ export function Reports({ onClose }: ReportsProps) {
                         <td className="px-4 py-3 text-sm text-slate-900 text-right">
                           ${expense.total.toFixed(2)}
                         </td>
+                        <td className="px-4 py-3 text-sm text-slate-900 text-center">
+                          {expense.image_path ? (
+                            <button
+                              onClick={() => setViewingImage(expense.image_path)}
+                              className="p-1 hover:bg-slate-100 rounded"
+                              title="View Receipt"
+                            >
+                              <FileText className="w-4 h-4 text-slate-600" />
+                            </button>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -281,6 +297,29 @@ export function Reports({ onClose }: ReportsProps) {
           )}
         </div>
       </div>
+
+      {viewingImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900">Receipt Image</h3>
+              <button
+                onClick={() => setViewingImage(null)}
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-6 flex justify-center">
+              <img
+                src={supabase.storage.from('receipts').getPublicUrl(viewingImage).data.publicUrl}
+                alt="Receipt"
+                className="max-w-full max-h-[70vh] object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
