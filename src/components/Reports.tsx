@@ -34,7 +34,7 @@ export function Reports({ onClose }: ReportsProps) {
   console.log('Reports component rendered');
   const { user } = useAuth();
   const [households, setHouseholds] = useState<Household[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
@@ -43,10 +43,35 @@ export function Reports({ onClose }: ReportsProps) {
   const [loading, setLoading] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadOptions();
   }, [user]);
+
+  useEffect(() => {
+    // Reset selected categories when households change
+    setSelectedCategories([]);
+  }, [selectedHouseholds]);
+
+  useEffect(() => {
+    const loadImageUrl = async () => {
+      if (viewingImage) {
+        const { data, error } = await supabase.storage
+          .from('receipts')
+          .createSignedUrl(viewingImage, 3600);
+        if (!error && data) {
+          setImageUrl(data.signedUrl);
+        } else {
+          console.error('Error loading image:', error);
+          setImageUrl(null);
+        }
+      } else {
+        setImageUrl(null);
+      }
+    };
+    loadImageUrl();
+  }, [viewingImage]);
 
   const loadOptions = async () => {
     if (!user) return;
@@ -66,10 +91,10 @@ export function Reports({ onClose }: ReportsProps) {
     const householdIds = hh.map((h) => h.id);
     const { data: catData } = await supabase
       .from('categories')
-      .select('id, name')
+      .select('id, name, household_id')
       .or(`household_id.is.null,household_id.in.(${householdIds.join(',')})`);
 
-    setCategories(catData || []);
+    setAllCategories(catData || []);
   };
 
   const runReport = async () => {
@@ -172,7 +197,7 @@ export function Reports({ onClose }: ReportsProps) {
                 Categories
               </label>
               <div className="space-y-1 max-h-32 overflow-y-auto">
-                {categories.map((c: Category) => (
+                {availableCategories.map((c: Category) => (
                   <label key={c.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -311,11 +336,15 @@ export function Reports({ onClose }: ReportsProps) {
               </button>
             </div>
             <div className="p-6 flex justify-center">
-              <img
-                src={supabase.storage.from('receipts').getPublicUrl(viewingImage).data.publicUrl}
-                alt="Receipt"
-                className="max-w-full max-h-[70vh] object-contain"
-              />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Receipt"
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              ) : (
+                <div className="text-slate-500">Loading image...</div>
+              )}
             </div>
           </div>
         </div>
