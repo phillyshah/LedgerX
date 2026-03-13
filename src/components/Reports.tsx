@@ -76,68 +76,91 @@ export function Reports({ onClose }: ReportsProps) {
   const loadOptions = async () => {
     if (!user) return;
 
-    // Load households
-    const { data: memberData } = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id);
+    try {
+      // Load households
+      const { data: memberData, error: memberError } = await supabase
+        .from('household_members')
+        .select('household_id, households(id, name)')
+        .eq('user_id', user.id);
 
-    const hh = (memberData || [])
-      .map((item: any) => item.households)
-      .filter(Boolean) as unknown as Household[];
-    setHouseholds(hh);
+      if (memberError) {
+        console.error('Error loading households:', memberError);
+        return;
+      }
 
-    // Load categories: global + household-specific for user's households
-    const householdIds = hh.map((h) => h.id);
-    const { data: catData } = await supabase
-      .from('categories')
-      .select('id, name, household_id')
-      .or(`household_id.is.null,household_id.in.(${householdIds.join(',')})`);
+      const hh = (memberData || [])
+        .map((item: any) => item.households)
+        .filter(Boolean) as unknown as Household[];
+      setHouseholds(hh);
 
-    setAllCategories(catData || []);
+      // Load categories: global + household-specific for user's households
+      const householdIds = hh.map((h) => h.id);
+      const { data: catData, error: catError } = await supabase
+        .from('categories')
+        .select('id, name, household_id')
+        .or(`household_id.is.null,household_id.in.(${householdIds.join(',')})`);
+
+      if (catError) {
+        console.error('Error loading categories:', catError);
+        return;
+      }
+
+      setAllCategories(catData || []);
+    } catch (error) {
+      console.error('Unexpected error in loadOptions:', error);
+    }
   };
 
   const runReport = async () => {
     if (!user || selectedHouseholds.length === 0) return;
 
     setLoading(true);
-    const householdMap = new Map(households.map((h: Household) => [h.id, h.name]));
 
-    let query = supabase
-      .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
-      .in('household_id', selectedHouseholds)
-      .order('expense_date', { ascending: false });
+    try {
+      const householdMap = new Map(households.map((h: Household) => [h.id, h.name]));
 
-    if (selectedCategories.length > 0) {
-      const selectedCategoryNames = availableCategories
-        .filter((c: Category) => selectedCategories.includes(c.id))
-        .map((c: Category) => c.name);
-      query = query.in('category', selectedCategoryNames);
-    }
+      let query = supabase
+        .from('expenses')
+        .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
+        .in('household_id', selectedHouseholds)
+        .order('expense_date', { ascending: false });
 
-    if (startDate) {
-      query = query.gte('expense_date', startDate);
-    }
+      if (selectedCategories.length > 0) {
+        const selectedCategoryNames = availableCategories
+          .filter((c: Category) => selectedCategories.includes(c.id))
+          .map((c: Category) => c.name);
+        query = query.in('category', selectedCategoryNames);
+      }
 
-    if (endDate) {
-      query = query.lte('expense_date', endDate);
-    }
+      if (startDate) {
+        query = query.gte('expense_date', startDate);
+      }
 
-    const { data, error } = await query;
+      if (endDate) {
+        query = query.lte('expense_date', endDate);
+      }
 
-    if (!error && data) {
-      const filteredExpenses = data.map((e: any) => ({
-        ...e,
-        household_name: householdMap.get(e.household_id) || 'Unknown',
-      }));
-      setExpenses(filteredExpenses);
-      setTotalAmount(filteredExpenses.reduce((sum: number, e: Expense) => sum + e.total, 0));
-    } else {
+      const { data, error } = await query;
+
+      if (!error && data) {
+        const filteredExpenses = data.map((e: any) => ({
+          ...e,
+          household_name: householdMap.get(e.household_id) || 'Unknown',
+        }));
+        setExpenses(filteredExpenses);
+        setTotalAmount(filteredExpenses.reduce((sum: number, e: Expense) => sum + e.total, 0));
+      } else {
+        if (error) console.error('Error running report:', error);
+        setExpenses([]);
+        setTotalAmount(0);
+      }
+    } catch (error) {
+      console.error('Unexpected error running report:', error);
       setExpenses([]);
       setTotalAmount(0);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const toggleHousehold = (id: string) => {
