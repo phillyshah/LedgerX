@@ -97,102 +97,100 @@ export function ExportData({ onClose }: ExportDataProps) {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
-      let yPosition = margin;
 
-      pdf.setFontSize(18);
-      pdf.text('Transaction Report', margin, yPosition);
-      yPosition += 10;
+      const addPageHeader = () => {
+        pdf.setFontSize(16); // Smaller title
+        pdf.text('Transaction Report', margin, margin);
 
-      pdf.setFontSize(10);
-      pdf.text(`Period: ${startDate} to ${endDate}`, margin, yPosition);
-      yPosition += 15;
+        pdf.setFontSize(9); // Smaller date
+        pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
 
-      let txOnPage = 0;
+        // Leave less space after the header
+        return margin + 20;
+      };
+
+      let contentStartY = addPageHeader();
+      const maxItemsPerPage = 4;
+      const cols = 1; // Single column for vertical stacking
+      const rows = 4;
+      const cellWidth = pageWidth - 2 * margin;
+      const cellHeight = (pageHeight - margin - contentStartY) / rows;
+
+      let txIndex = 0;
 
       for (let i = 0; i < expenses.length; i++) {
         const expense = expenses[i];
 
-        // Force no more than 4 transactions per page
-        if (txOnPage >= 4) {
+        if (txIndex >= maxItemsPerPage) {
           pdf.addPage();
-          yPosition = margin;
-          txOnPage = 0;
+          contentStartY = addPageHeader();
+          txIndex = 0;
         }
 
-        // Estimate required height for this expense block
-        const lineHeight = 5;
-        let requiredHeight = 0;
+        // Calculate grid position
+        const col = txIndex % cols;
+        const row = Math.floor(txIndex / cols);
+        const xOffset = margin + col * cellWidth;
+        const yOffset = contentStartY + row * cellHeight;
 
-        // Pic ID / title / lines
-        requiredHeight += lineHeight * 4; // pic id + title + date + amount
-        if (householdMap.get(expense.household_id)) requiredHeight += lineHeight;
-        if (expense.category) requiredHeight += lineHeight;
-        if (expense.notes) {
-          const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, pageWidth - 2 * margin);
-          requiredHeight += noteLines.length * lineHeight;
-        }
+        let yPosition = yOffset + 5; // Small padding inside cell
 
-        let imgHeight = 0;
-        if (expense.image_path) {
-          imgHeight = 100 + 15; // max height + padding
-          requiredHeight += imgHeight;
-        }
-
-        // Add spacing and separator
-        requiredHeight += 15;
-
-        if (yPosition + requiredHeight > pageHeight - margin) {
-          pdf.addPage();
-          yPosition = margin;
-        }
+        const imageY = yOffset + cellHeight - 35; // Fixed position for image at bottom of cell
+        const imageX = xOffset;
 
         // Show pic-id as header
         if (expense.pic_id) {
           pdf.setFontSize(9);
           pdf.setFont(undefined as unknown as string, 'bold');
           pdf.setTextColor(100, 100, 100);
-          pdf.text(`Pic ID: ${expense.pic_id}`, margin, yPosition);
+          pdf.text(`Pic ID: ${expense.pic_id}`, xOffset, yPosition);
           yPosition += 5;
           pdf.setTextColor(0, 0, 0);
         }
 
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
-        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, margin, yPosition);
+        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, xOffset, yPosition);
         yPosition += 6;
 
         pdf.setFontSize(10);
         pdf.setFont(undefined as unknown as string, 'normal');
-        pdf.text(`Date: ${expense.expense_date}`, margin, yPosition);
+        pdf.text(`Date: ${expense.expense_date}`, xOffset, yPosition);
         yPosition += 5;
         pdf.text(
           `Amount: ${new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: expense.currency || 'USD',
           }).format(expense.total)}`,
-          margin,
+          xOffset,
           yPosition
         );
         yPosition += 5;
 
         const hhName = householdMap.get(expense.household_id);
         if (hhName) {
-          pdf.text(`Household: ${hhName}`, margin, yPosition);
+          pdf.text(`Household: ${hhName}`, xOffset, yPosition);
           yPosition += 5;
         }
 
         if (expense.category) {
-          pdf.text(`Category: ${expense.category}`, margin, yPosition);
+          pdf.text(`Category: ${expense.category}`, xOffset, yPosition);
           yPosition += 5;
         }
 
         if (expense.notes) {
           const noteLines = pdf.splitTextToSize(
             `Notes: ${expense.notes}`,
-            pageWidth - 2 * margin
+            cellWidth - 10 // Leave some padding
           );
-          pdf.text(noteLines, margin, yPosition);
-          yPosition += noteLines.length * 5;
+
+          // Limit to fit above the image
+          const availableForNotes = imageY - yPosition - 5;
+          const maxNoteLines = Math.floor(availableForNotes / 5);
+          const limitedNoteLines = noteLines.slice(0, Math.max(1, maxNoteLines));
+
+          pdf.text(limitedNoteLines, xOffset, yPosition);
+          yPosition += limitedNoteLines.length * 5;
         }
 
         if (expense.image_path) {
@@ -211,24 +209,17 @@ export function ExportData({ onClose }: ExportDataProps) {
                 img.src = imageUrl;
               });
 
-              const maxWidth = pageWidth - 2 * margin;
-              const maxHeight = 100;
+              const maxImgWidth = cellWidth - 10;
+              const maxImgHeight = 30; // 50% smaller than previous 60
               let imgWidth = expense.image_width || img.width;
               let imgHeightRaw = expense.image_height || img.height;
 
-              const widthRatio = maxWidth / imgWidth;
-              const heightRatio = maxHeight / imgHeightRaw;
+              const widthRatio = maxImgWidth / imgWidth;
+              const heightRatio = maxImgHeight / imgHeightRaw;
               const ratio = Math.min(widthRatio, heightRatio);
 
               imgWidth *= ratio;
               const adjustedImgHeight = imgHeightRaw * ratio;
-
-              if (yPosition + adjustedImgHeight + 10 > pageHeight - margin) {
-                pdf.addPage();
-                yPosition = margin;
-              }
-
-              yPosition += 5;
 
               let imageFormat = 'JPEG';
               if (expense.image_mime) {
@@ -239,8 +230,7 @@ export function ExportData({ onClose }: ExportDataProps) {
                 }
               }
 
-              pdf.addImage(img, imageFormat, margin, yPosition, imgWidth, adjustedImgHeight);
-              yPosition += adjustedImgHeight + 10;
+              pdf.addImage(img, imageFormat, imageX, imageY, imgWidth, adjustedImgHeight);
 
               URL.revokeObjectURL(imageUrl);
             }
@@ -248,20 +238,14 @@ export function ExportData({ onClose }: ExportDataProps) {
             console.error('Error loading image:', imageError);
             pdf.setFontSize(8);
             pdf.setTextColor(150, 150, 150);
-            pdf.text('(Image could not be loaded)', margin, yPosition);
-            yPosition += 10;
+            pdf.text('(Image could not be loaded)', imageX, imageY);
             pdf.setTextColor(0, 0, 0);
           }
         }
 
-        if (i < expenses.length - 1) {
-          pdf.setDrawColor(200, 200, 200);
-          pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-          yPosition += 10;
-        }
-
-        txOnPage += 1;
+        txIndex += 1;
       }
+
 
       pdf.save(`ledgerx-export-${startDate}-to-${endDate}.pdf`);
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Calendar, Home, Tag, DollarSign } from 'lucide-react';
+import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 interface Household {
   id: string;
@@ -51,6 +52,7 @@ export function Reports({ onClose }: ReportsProps) {
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageZoom, setImageZoom] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     loadOptions();
@@ -176,6 +178,186 @@ export function Reports({ onClose }: ReportsProps) {
       setTotalAmount(0);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const exportReport = async () => {
+    setExporting(true);
+
+    try {
+      const householdMap = new Map(households.map((h) => [h.id, h.name]));
+
+      // CSV
+      const csvContent = [
+        ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
+        ...expenses.map((expense) => [
+          `"${expense.id || ''}"`,
+          `"${expense.expense_date}"`,
+          `"${expense.vendor || ''}"`,
+          `"${expense.total}"`,
+          `"${expense.currency || 'USD'}"`,
+          `"${expense.category || ''}"`,
+          `"${householdMap.get(expense.household_id) || ''}"`,
+          `"${expense.notes || ''}"`,
+        ].join(','))
+      ].join('\n');
+
+      const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+      const csvUrl = window.URL.createObjectURL(csvBlob);
+      const csvLink = document.createElement('a');
+      csvLink.href = csvUrl;
+      csvLink.download = `ledgerx-report-${startDate}-to-${endDate}.csv`;
+      document.body.appendChild(csvLink);
+      csvLink.click();
+      document.body.removeChild(csvLink);
+      window.URL.revokeObjectURL(csvUrl);
+
+      // PDF
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+
+      const addPageHeader = () => {
+        pdf.setFontSize(16);
+        pdf.text('Transaction Report', margin, margin);
+        pdf.setFontSize(9);
+        pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
+        return margin + 20;
+      };
+
+      let contentStartY = addPageHeader();
+      const maxItemsPerPage = 4;
+      const cols = 1;
+      const rows = 4;
+      const cellWidth = pageWidth - 2 * margin;
+      const cellHeight = (pageHeight - margin - contentStartY) / rows;
+
+      let txIndex = 0;
+
+      for (let i = 0; i < expenses.length; i++) {
+        const expense = expenses[i];
+
+        if (txIndex >= maxItemsPerPage) {
+          pdf.addPage();
+          contentStartY = addPageHeader();
+          txIndex = 0;
+        }
+
+        const col = txIndex % cols;
+        const row = Math.floor(txIndex / cols);
+        const xOffset = margin + col * cellWidth;
+        const yOffset = contentStartY + row * cellHeight;
+
+        let yPosition = yOffset + 5;
+
+        const imageY = yOffset + cellHeight - 35;
+        const imageX = xOffset;
+
+        if (expense.id) {
+          pdf.setFontSize(9);
+          pdf.setFont(undefined as unknown as string, 'bold');
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(`Pic ID: ${expense.id}`, xOffset, yPosition);
+          yPosition += 5;
+          pdf.setTextColor(0, 0, 0);
+        }
+
+        pdf.setFontSize(12);
+        pdf.setFont(undefined as unknown as string, 'bold');
+        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, xOffset, yPosition);
+        yPosition += 6;
+
+        pdf.setFontSize(10);
+        pdf.setFont(undefined as unknown as string, 'normal');
+        pdf.text(`Date: ${expense.expense_date}`, xOffset, yPosition);
+        yPosition += 5;
+        pdf.text(
+          `Amount: ${new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: expense.currency || 'USD',
+          }).format(expense.total)}`,
+          xOffset,
+          yPosition
+        );
+        yPosition += 5;
+
+        const hhName = householdMap.get(expense.household_id);
+        if (hhName) {
+          pdf.text(`Household: ${hhName}`, xOffset, yPosition);
+          yPosition += 5;
+        }
+
+        if (expense.category) {
+          pdf.text(`Category: ${expense.category}`, xOffset, yPosition);
+          yPosition += 5;
+        }
+
+        if (expense.notes) {
+          const noteLines = pdf.splitTextToSize(
+            `Notes: ${expense.notes}`,
+            cellWidth - 10
+          );
+          const availableForNotes = imageY - yPosition - 5;
+          const maxNoteLines = Math.floor(availableForNotes / 5);
+          const limitedNoteLines = noteLines.slice(0, Math.max(1, maxNoteLines));
+          pdf.text(limitedNoteLines, xOffset, yPosition);
+          yPosition += limitedNoteLines.length * 5;
+        }
+
+        if (expense.image_path) {
+          try {
+            const { data: imageData } = await supabase.storage
+              .from('receipts')
+              .download(expense.image_path);
+
+            if (imageData) {
+              const imageUrl = URL.createObjectURL(imageData);
+              const img = new Image();
+
+              await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = imageUrl;
+              });
+
+              const maxImgWidth = cellWidth - 10;
+              const maxImgHeight = 30;
+              let imgWidth = img.width;
+              let imgHeightRaw = img.height;
+
+              const widthRatio = maxImgWidth / imgWidth;
+              const heightRatio = maxImgHeight / imgHeightRaw;
+              const ratio = Math.min(widthRatio, heightRatio);
+
+              imgWidth *= ratio;
+              const adjustedImgHeight = imgHeightRaw * ratio;
+
+              let imageFormat = 'JPEG';
+
+              pdf.addImage(img, imageFormat, imageX, imageY, imgWidth, adjustedImgHeight);
+
+              URL.revokeObjectURL(imageUrl);
+            }
+          } catch (imageError) {
+            console.error('Error loading image:', imageError);
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('(Image could not be loaded)', imageX, imageY);
+            pdf.setTextColor(0, 0, 0);
+          }
+        }
+
+        txIndex += 1;
+      }
+
+      pdf.save(`ledgerx-report-${startDate}-to-${endDate}.pdf`);
+
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      alert('Failed to export report. Please try again.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -357,6 +539,17 @@ export function Reports({ onClose }: ReportsProps) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={exportReport}
+                  disabled={exporting || expenses.length === 0}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl transition-all shadow-sm font-medium flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  {exporting ? 'Exporting...' : 'Export PDF & CSV'}
+                </button>
               </div>
             </div>
           )}

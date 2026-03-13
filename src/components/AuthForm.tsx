@@ -32,25 +32,25 @@ export function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
             <FileText className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">LedgerX</h1>
-          <p className="text-slate-600">Simplified Transaction Management</p>
+          <h1 className="text-3xl font-bold text-white mb-2">LedgerX</h1>
+          <p className="text-green-200">Simplified Transaction Management</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8">
-          <div className="flex gap-1 mb-6 bg-slate-100 rounded-2xl p-1">
+        <div className="bg-green-800 rounded-3xl shadow-xl p-8">
+          <div className="flex gap-1 mb-6 bg-green-700 rounded-2xl p-1">
             <button
               type="button"
               onClick={() => setMode('signin')}
               className={`flex-1 py-2.5 px-3 rounded-xl font-medium transition-all text-sm ${
                 mode === 'signin'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'text-green-300 hover:text-white'
               }`}
             >
               Sign In
@@ -60,8 +60,8 @@ export function AuthForm() {
               onClick={() => setMode('signup')}
               className={`flex-1 py-2.5 px-3 rounded-xl font-medium transition-all text-sm ${
                 mode === 'signup'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'text-green-300 hover:text-white'
               }`}
             >
               Sign Up
@@ -70,7 +70,7 @@ export function AuthForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-green-100 mb-2">
                 User ID
               </label>
               <input
@@ -81,14 +81,14 @@ export function AuthForm() {
                 required
                 autoComplete="username"
                 pattern="[a-zA-Z0-9_]{3,20}"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-green-700 border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-white placeholder-green-300"
                 placeholder="your_userid"
               />
-              <p className="text-xs text-slate-500 mt-1">3-20 characters, letters, numbers, and underscores only</p>
+              <p className="text-xs text-green-300 mt-1">3-20 characters, letters, numbers, and underscores only</p>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-green-100 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -100,34 +100,34 @@ export function AuthForm() {
                   required
                   minLength={6}
                   autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-                  className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 pr-12 bg-green-700 border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-white placeholder-green-300"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-100 rounded-lg transition-all"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-green-600 rounded-lg transition-all"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-slate-600" />
+                    <EyeOff className="w-4 h-4 text-green-300" />
                   ) : (
-                    <Eye className="w-4 h-4 text-slate-600" />
+                    <Eye className="w-4 h-4 text-green-300" />
                   )}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="p-3 bg-red-900 border border-red-700 rounded-xl">
+                <p className="text-sm text-red-300">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {loading ? 'Please wait...' : mode === 'signup' ? 'Sign Up' : 'Sign In'}
             </button>
