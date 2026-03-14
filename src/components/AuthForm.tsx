@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Eye, EyeOff } from 'lucide-react';
+import { FileText, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { HelpModal } from './HelpModal';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -11,6 +12,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,7 +135,20 @@ export function AuthForm() {
             </button>
           </form>
         </div>
+
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-green-200 hover:text-white hover:bg-green-700/50 rounded-xl transition-all"
+          >
+            <HelpCircle className="w-4 h-4" />
+            Need help getting started?
+          </button>
+        </div>
       </div>
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
