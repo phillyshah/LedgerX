@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
-import { X, Upload, Check } from 'lucide-react';
+import { scanReceipt, ReceiptData } from '../lib/receiptScanner';
+import { X, Upload, Check, Camera, Loader2 } from 'lucide-react';
 
 interface Household {
   id: string;
@@ -35,6 +36,8 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOptions();
@@ -77,6 +80,36 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }
   };
 
+  const applyReceiptData = (data: ReceiptData) => {
+    setFormData((prev) => ({
+      ...prev,
+      vendor: data.vendor_name || prev.vendor,
+      total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
+      expense_date: data.transaction_date || prev.expense_date,
+      category: data.category || prev.category,
+      notes: data.handwritten_notes
+        ? prev.notes
+          ? `${prev.notes}\n${data.handwritten_notes}`
+          : data.handwritten_notes
+        : prev.notes,
+    }));
+  };
+
+  const handleScanReceipt = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const data = await scanReceipt(file);
+      applyReceiptData(data);
+    } catch (error) {
+      console.error('Receipt scan error:', error);
+      setScanError(error instanceof Error ? error.message : 'Failed to scan receipt');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -89,6 +122,11 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         const reader = new FileReader();
         reader.onloadend = () => setImagePreview(reader.result as string);
         reader.readAsDataURL(fileToUse);
+
+        // Auto-scan receipt for images
+        if (file.type.startsWith('image/')) {
+          handleScanReceipt(fileToUse);
+        }
       } catch (error) {
         console.error('Error processing file:', error);
         alert('Failed to process file. Please try another file.');
@@ -107,6 +145,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }));
     setImage(null);
     setImagePreview(null);
+    setScanError(null);
   };
 
   const saveExpense = async () => {
@@ -323,11 +362,39 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                   <img src={imagePreview} alt="Receipt preview" className="max-h-48 mx-auto rounded-lg" />
                   <button
                     type="button"
-                    onClick={() => { setImage(null); setImagePreview(null); }}
+                    onClick={() => { setImage(null); setImagePreview(null); setScanError(null); }}
                     className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
                   >
                     <X className="w-4 h-4" />
                   </button>
+                  {scanning && (
+                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Scanning receipt...
+                    </div>
+                  )}
+                  {scanError && (
+                    <div className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
+                      <span>{scanError}</span>
+                      <button
+                        type="button"
+                        onClick={() => image && handleScanReceipt(image)}
+                        className="ml-2 text-red-700 underline font-medium"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                  {!scanning && !scanError && image?.type.startsWith('image/') && (
+                    <button
+                      type="button"
+                      onClick={() => image && handleScanReceipt(image)}
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Re-scan Receipt
+                    </button>
+                  )}
                 </div>
               ) : (
                 <label className="flex flex-col items-center cursor-pointer py-2">
@@ -335,7 +402,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG, PDF (images auto-compressed)</p>
+                  <p className="text-xs text-slate-400">PNG, JPG, PDF — auto-scans to fill form fields</p>
                   <input type="file" accept="image/*,.pdf,application/pdf" onChange={handleImageChange} className="hidden" />
                 </label>
               )}
