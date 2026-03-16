@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { compressImage } from '../lib/imageCompression';
-import { X, Upload } from 'lucide-react';
+import { scanReceipt, ReceiptData } from '../lib/receiptScanner';
+import { X, Upload, Camera, Loader2 } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -56,6 +57,8 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [imageZoom, setImageZoom] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     loadHouseholds();
@@ -130,6 +133,36 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     }
   };
 
+  const applyReceiptData = (data: ReceiptData) => {
+    setFormData((prev) => ({
+      ...prev,
+      vendor: data.vendor_name || prev.vendor,
+      total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
+      expense_date: data.transaction_date || prev.expense_date,
+      category: data.category || prev.category,
+      notes: data.handwritten_notes
+        ? prev.notes
+          ? `${prev.notes}\n${data.handwritten_notes}`
+          : data.handwritten_notes
+        : prev.notes,
+    }));
+  };
+
+  const handleScanReceipt = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const data = await scanReceipt(file);
+      applyReceiptData(data);
+    } catch (error) {
+      console.error('Receipt scan error:', error);
+      setScanError(error instanceof Error ? error.message : 'Failed to scan receipt');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -142,6 +175,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         const reader = new FileReader();
         reader.onloadend = () => setNewImagePreview(reader.result as string);
         reader.readAsDataURL(fileToUse);
+
+        // Auto-scan receipt for images
+        if (file.type.startsWith('image/')) {
+          handleScanReceipt(fileToUse);
+        }
       } catch (error) {
         console.error('Error processing file:', error);
         alert('Failed to process file. Please try another file.');
@@ -431,11 +469,39 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setNewImage(null); setNewImagePreview(null); setImageZoom(1); }}
+                    onClick={() => { setNewImage(null); setNewImagePreview(null); setImageZoom(1); setScanError(null); }}
                     className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
                   >
                     <X className="w-4 h-4" />
                   </button>
+                  {scanning && (
+                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Scanning receipt...
+                    </div>
+                  )}
+                  {scanError && (
+                    <div className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
+                      <span>{scanError}</span>
+                      <button
+                        type="button"
+                        onClick={() => newImage && handleScanReceipt(newImage)}
+                        className="ml-2 text-red-700 underline font-medium"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                  {!scanning && !scanError && newImage?.type.startsWith('image/') && (
+                    <button
+                      type="button"
+                      onClick={() => newImage && handleScanReceipt(newImage)}
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Scan Receipt
+                    </button>
+                  )}
                 </div>
               ) : currentImageUrl ? (
                 <div className="relative">
