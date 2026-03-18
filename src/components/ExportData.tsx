@@ -12,7 +12,11 @@ interface Household {
 interface Category {
   id: string;
   name: string;
-  household_id: string | null;
+}
+
+interface CategoryHousehold {
+  category_id: string;
+  household_id: string;
 }
 
 type SortBy = 'date' | 'household' | 'category';
@@ -26,6 +30,7 @@ export function ExportData({ onClose }: ExportDataProps) {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHousehold, setSelectedHousehold] = useState<string>('all');
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [categoryHouseholds, setCategoryHouseholds] = useState<CategoryHousehold[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [startDate, setStartDate] = useState('');
@@ -51,18 +56,16 @@ export function ExportData({ onClose }: ExportDataProps) {
       });
   }, [user]);
 
-  // Load categories when households are available
+  // Load categories and their household assignments
   useEffect(() => {
     if (!user || households.length === 0) return;
-    const householdIds = households.map((h) => h.id);
-    supabase
-      .from('categories')
-      .select('id, name, household_id')
-      .or(`household_id.is.null,household_id.in.(${householdIds.join(',')})`)
-      .order('name')
-      .then(({ data }) => {
-        if (data) setAllCategories(data);
-      });
+    Promise.all([
+      supabase.from('categories').select('id, name').order('name'),
+      supabase.from('category_households').select('category_id, household_id'),
+    ]).then(([catRes, chRes]) => {
+      if (catRes.data) setAllCategories(catRes.data);
+      if (chRes.data) setCategoryHouseholds(chRes.data);
+    });
   }, [user, households]);
 
   // Reset selected categories when household selection changes
@@ -82,9 +85,19 @@ export function ExportData({ onClose }: ExportDataProps) {
   }, []);
 
   // Filter categories based on selected household
-  const availableCategories = selectedHousehold === 'all'
-    ? allCategories
-    : allCategories.filter((c) => c.household_id === null || c.household_id === selectedHousehold);
+  // A category with no entries in category_households is global (available to all)
+  const availableCategories = allCategories.filter((c) => {
+    const assignedHouseholds = categoryHouseholds
+      .filter((ch) => ch.category_id === c.id)
+      .map((ch) => ch.household_id);
+    const isGlobal = assignedHouseholds.length === 0;
+    if (selectedHousehold === 'all') {
+      // Show global categories + categories assigned to any of the user's households
+      return isGlobal || assignedHouseholds.some((hid) => households.some((h) => h.id === hid));
+    }
+    // Show global categories + categories assigned to the selected household
+    return isGlobal || assignedHouseholds.includes(selectedHousehold);
+  });
 
   const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
