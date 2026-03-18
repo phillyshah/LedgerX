@@ -146,6 +146,10 @@ export function AuthForm() {
             Need help getting started?
           </button>
         </div>
+
+        <div className="mt-4 text-center">
+          <p className="text-xs text-green-300/60">v1.0</p>
+        </div>
       </div>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
