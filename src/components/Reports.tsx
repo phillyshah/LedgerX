@@ -137,7 +137,7 @@ export function Reports({ onClose }: ReportsProps) {
         .from('expenses')
         .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
         .in('household_id', selectedHouseholds)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       if (selectedCategories.length > 0) {
         const selectedCategoryNames = availableCategories
@@ -515,7 +515,7 @@ export function Reports({ onClose }: ReportsProps) {
                     {expenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {new Date(expense.expense_date).toLocaleDateString()}
+                          {new Date(expense.expense_date + 'T00:00:00').toLocaleDateString()}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-900">
                           {expense.vendor || 'N/A'}

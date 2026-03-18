@@ -79,7 +79,7 @@ export function AdminAnalytics() {
     let query = supabase
       .from('expenses')
       .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
-      .order('expense_date', { ascending: false });
+      .order('expense_date', { ascending: true });
 
     if (dateRange === '30d') {
       const from = new Date();
@@ -147,7 +147,7 @@ export function AdminAnalytics() {
         .select('*')
         .gte('expense_date', exportStartDate)
         .lte('expense_date', exportEndDate)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       if (householdFilter !== 'all') {
         query = query.eq('household_id', householdFilter);
@@ -165,11 +165,10 @@ export function AdminAnalytics() {
 
       const householdMap = new Map(households.map((h) => [h.id, h.name]));
 
-      // Sort by pic_id for export
-      const sortedData = [...dataToExport].sort((a, b) => {
-        if (!a.pic_id || !b.pic_id) return 0;
-        return a.pic_id.localeCompare(b.pic_id);
-      });
+      // Sort by expense_date ascending (string compare works for YYYY-MM-DD)
+      const sortedData = [...dataToExport].sort((a, b) =>
+        (a.expense_date || '').localeCompare(b.expense_date || '')
+      );
 
       const csvContent = [
         ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
@@ -506,7 +505,7 @@ export function AdminAnalytics() {
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(expense.expense_date).toLocaleDateString()}
+                      {new Date(expense.expense_date + 'T00:00:00').toLocaleDateString()}
                     </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Home className="w-3 h-3" />

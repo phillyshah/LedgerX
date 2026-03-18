@@ -56,16 +56,15 @@ export function ExportData({ onClose }: ExportDataProps) {
         .in('household_id', householdIds)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       const { data: expensesData, error } = await query;
       if (error) throw error;
 
-      // Sort by pic_id for PDF export
-      const expenses = [...expensesData].sort((a, b) => {
-        if (!a.pic_id || !b.pic_id) return 0;
-        return a.pic_id.localeCompare(b.pic_id);
-      });
+      // Sort by expense_date ascending (string compare works for YYYY-MM-DD)
+      const expenses = [...expensesData].sort((a, b) =>
+        (a.expense_date || '').localeCompare(b.expense_date || '')
+      );
 
       const csvContent = [
         ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
