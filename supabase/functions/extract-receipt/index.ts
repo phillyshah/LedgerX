@@ -16,10 +16,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
       return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY is not configured" }),
+        JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,21 +39,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/chat/completions",
+    // Detect media type from base64 header or default to jpeg
+    let mediaType = "image/jpeg";
+    if (image.startsWith("/9j/")) mediaType = "image/jpeg";
+    else if (image.startsWith("iVBOR")) mediaType = "image/png";
+    else if (image.startsWith("R0lGO")) mediaType = "image/gif";
+    else if (image.startsWith("UklGR")) mediaType = "image/webp";
+
+    const anthropicResponse = await fetch(
+      "https://api.anthropic.com/v1/messages",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${openaiApiKey}`,
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 500,
           messages: [
             {
               role: "user",
               content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: mediaType,
+                    data: image,
+                  },
+                },
                 {
                   type: "text",
                   text: `Analyze this receipt image and extract the following fields as JSON:
@@ -68,13 +84,7 @@ Category rules for meals:
 - Meals $20 or more, or with business context (e.g. mentions of clients, meetings, business), default to "business_meals"
 - Non-meal items should use the appropriate category or "other"
 
-Return ONLY valid JSON with these exact field names. If a field cannot be determined, use null.`,
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:image/jpeg;base64,${image}`,
-                  },
+Return ONLY valid JSON with these exact field names. No markdown fences, no explanation. If a field cannot be determined, use null.`,
                 },
               ],
             },
@@ -83,11 +93,11 @@ Return ONLY valid JSON with these exact field names. If a field cannot be determ
       }
     );
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
+    if (!anthropicResponse.ok) {
+      const errorText = await anthropicResponse.text();
       return new Response(
         JSON.stringify({
-          error: "OpenAI API error",
+          error: "Anthropic API error",
           details: errorText,
         }),
         {
@@ -97,12 +107,12 @@ Return ONLY valid JSON with these exact field names. If a field cannot be determ
       );
     }
 
-    const openaiData = await openaiResponse.json();
-    const content = openaiData.choices?.[0]?.message?.content;
+    const anthropicData = await anthropicResponse.json();
+    const content = anthropicData.content?.[0]?.text;
 
     if (!content) {
       return new Response(
-        JSON.stringify({ error: "No response from OpenAI" }),
+        JSON.stringify({ error: "No response from Anthropic API" }),
         {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -110,7 +120,7 @@ Return ONLY valid JSON with these exact field names. If a field cannot be determ
       );
     }
 
-    // Parse the JSON from OpenAI's response (strip markdown fences if present)
+    // Parse the JSON from Claude's response (strip markdown fences if present)
     let extracted;
     try {
       const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
