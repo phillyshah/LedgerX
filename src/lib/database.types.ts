@@ -172,6 +172,29 @@ export interface Database {
           created_at?: string;
         };
       };
+      vendor_category_map: {
+        Row: {
+          id: string;
+          household_id: string;
+          vendor_name: string;
+          category_name: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          household_id: string;
+          vendor_name: string;
+          category_name: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          household_id?: string;
+          vendor_name?: string;
+          category_name?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

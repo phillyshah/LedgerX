@@ -38,6 +38,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [justSaved, setJustSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
 
   useEffect(() => {
     loadOptions();
@@ -48,6 +49,15 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       loadCategoriesForHousehold(formData.household_id);
     }
   }, [formData.household_id]);
+
+  // Auto-populate category when vendor changes (debounced to avoid firing on every keystroke)
+  useEffect(() => {
+    if (!formData.vendor || !formData.household_id || formData.category) return;
+    const timer = setTimeout(() => {
+      lookupVendorCategory(formData.vendor, formData.household_id);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.vendor, formData.household_id]);
 
   const loadOptions = async () => {
     if (!user) return;
@@ -78,6 +88,34 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     if (data) {
       setCategories(data);
     }
+  };
+
+  const lookupVendorCategory = async (vendor: string, householdId: string) => {
+    const { data } = await supabase
+      .from('vendor_category_map')
+      .select('category_name')
+      .eq('household_id', householdId)
+      .ilike('vendor_name', vendor)
+      .maybeSingle();
+
+    if (data?.category_name) {
+      // Only auto-fill if the category is valid for this household
+      const isValid = categories.some((c) => c.name === data.category_name);
+      if (isValid) {
+        setFormData((prev) => ({ ...prev, category: data.category_name }));
+        setCategoryAutoFilled(true);
+      }
+    }
+  };
+
+  const upsertVendorCategory = async (vendor: string, category: string, householdId: string) => {
+    if (!vendor || !category) return;
+    await supabase
+      .from('vendor_category_map')
+      .upsert(
+        { household_id: householdId, vendor_name: vendor, category_name: category, updated_at: new Date().toISOString() },
+        { onConflict: 'household_id,vendor_name' }
+      );
   };
 
   const applyReceiptData = (data: ReceiptData) => {
@@ -146,6 +184,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     setImage(null);
     setImagePreview(null);
     setScanError(null);
+    setCategoryAutoFilled(false);
   };
 
   const saveExpense = async () => {
@@ -198,8 +237,14 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
 
       if (error) throw error;
 
+      // Update vendor-to-category mapping for future auto-fill
+      if (formData.vendor && formData.category) {
+        upsertVendorCategory(formData.vendor, formData.category, formData.household_id);
+      }
+
       onSaved();
       setJustSaved(true);
+      setCategoryAutoFilled(false);
       setTimeout(() => setJustSaved(false), 2000);
       return true;
     } catch (error) {
@@ -410,6 +455,14 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           </div>
 
           <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="py-3 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
             <button
               type="button"
               onClick={handleDone}
