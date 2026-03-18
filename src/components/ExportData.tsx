@@ -1,13 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, Download } from 'lucide-react';
+import { X, Download, ChevronDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 interface Household {
   id: string;
   name: string;
 }
+
+interface Category {
+  id: string;
+  name: string;
+  household_id: string | null;
+}
+
+type SortBy = 'date' | 'household' | 'category';
 
 interface ExportDataProps {
   onClose: () => void;
@@ -17,10 +25,16 @@ export function ExportData({ onClose }: ExportDataProps) {
   const { user } = useAuth();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHousehold, setSelectedHousehold] = useState<string>('all');
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortBy>('date');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Load households
   useEffect(() => {
     if (!user) return;
     supabase
@@ -36,6 +50,87 @@ export function ExportData({ onClose }: ExportDataProps) {
         }
       });
   }, [user]);
+
+  // Load categories when households are available
+  useEffect(() => {
+    if (!user || households.length === 0) return;
+    const householdIds = households.map((h) => h.id);
+    supabase
+      .from('categories')
+      .select('id, name, household_id')
+      .or(`household_id.is.null,household_id.in.(${householdIds.join(',')})`)
+      .order('name')
+      .then(({ data }) => {
+        if (data) setAllCategories(data);
+      });
+  }, [user, households]);
+
+  // Reset selected categories when household selection changes
+  useEffect(() => {
+    setSelectedCategories([]);
+  }, [selectedHousehold]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter categories based on selected household
+  const availableCategories = selectedHousehold === 'all'
+    ? allCategories
+    : allCategories.filter((c) => c.household_id === null || c.household_id === selectedHousehold);
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllCategories = () => {
+    setSelectedCategories([]);
+  };
+
+  const deselectAllCategories = () => {
+    setSelectedCategories(['__none__']);
+  };
+
+  // Empty selectedCategories means "all categories" (default)
+  const allSelected = selectedCategories.length === 0;
+
+  const getCategoryDropdownLabel = () => {
+    if (allSelected) return 'All Categories';
+    if (selectedCategories.length === 1 && selectedCategories[0] === '__none__') return 'None selected';
+    const count = selectedCategories.filter((c) => c !== '__none__').length;
+    if (count === 1) {
+      const cat = availableCategories.find((c) => c.id === selectedCategories[0]);
+      return cat ? cat.name : '1 category';
+    }
+    return `${count} categories`;
+  };
+
+  const sortExpenses = (expenses: any[], householdMap: Map<string, string>) => {
+    return [...expenses].sort((a, b) => {
+      const dateCompare = (a.expense_date || '').localeCompare(b.expense_date || '');
+      const householdCompare = (householdMap.get(a.household_id) || '').localeCompare(householdMap.get(b.household_id) || '');
+      const categoryCompare = (a.category || '').localeCompare(b.category || '');
+
+      switch (sortBy) {
+        case 'household':
+          return householdCompare || dateCompare;
+        case 'category':
+          return categoryCompare || householdCompare || dateCompare;
+        case 'date':
+        default:
+          return dateCompare;
+      }
+    });
+  };
 
   const handleExport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +153,23 @@ export function ExportData({ onClose }: ExportDataProps) {
         .lte('expense_date', endDate)
         .order('expense_date', { ascending: true });
 
+      // Apply category filter if specific categories are selected
+      if (!allSelected) {
+        const selectedCategoryNames = availableCategories
+          .filter((c) => selectedCategories.includes(c.id))
+          .map((c) => c.name);
+        if (selectedCategoryNames.length > 0) {
+          query = query.in('category', selectedCategoryNames);
+        } else {
+          // No categories selected - return empty result
+          query = query.eq('category', '__impossible_match__');
+        }
+      }
+
       const { data: expensesData, error } = await query;
       if (error) throw error;
 
-      // Sort by expense_date ascending (string compare works for YYYY-MM-DD)
-      const expenses = [...expensesData].sort((a, b) =>
-        (a.expense_date || '').localeCompare(b.expense_date || '')
-      );
+      const expenses = sortExpenses(expensesData, householdMap);
 
       const csvContent = [
         ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
@@ -98,19 +203,18 @@ export function ExportData({ onClose }: ExportDataProps) {
       const margin = 20;
 
       const addPageHeader = () => {
-        pdf.setFontSize(16); // Smaller title
+        pdf.setFontSize(16);
         pdf.text('Transaction Report', margin, margin);
 
-        pdf.setFontSize(9); // Smaller date
+        pdf.setFontSize(9);
         pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
 
-        // Leave less space after the header
         return margin + 20;
       };
 
       let contentStartY = addPageHeader();
       const maxItemsPerPage = 4;
-      const cols = 1; // Single column for vertical stacking
+      const cols = 1;
       const rows = 4;
       const cellWidth = pageWidth - 2 * margin;
       const cellHeight = (pageHeight - margin - contentStartY) / rows;
@@ -126,21 +230,18 @@ export function ExportData({ onClose }: ExportDataProps) {
           txIndex = 0;
         }
 
-        // Calculate grid position
         const col = txIndex % cols;
         const row = Math.floor(txIndex / cols);
         const xOffset = margin + col * cellWidth;
         const yOffset = contentStartY + row * cellHeight;
 
-        let yPosition = yOffset + 5; // Small padding inside cell
+        let yPosition = yOffset + 5;
 
-        // Reserve right-side space for the image (aligned with the Pic ID row)
         const imageBoxWidth = 110;
         const imageX = xOffset + cellWidth - imageBoxWidth;
         const imageY = yOffset + 5;
         const textWidth = cellWidth - imageBoxWidth - 10;
 
-        // Show pic-id as header
         if (expense.pic_id) {
           pdf.setFontSize(9);
           pdf.setFont(undefined as unknown as string, 'bold');
@@ -184,10 +285,9 @@ export function ExportData({ onClose }: ExportDataProps) {
         if (expense.notes) {
           const noteLines = pdf.splitTextToSize(
             `Notes: ${expense.notes}`,
-            textWidth // Leave some padding for the image column
+            textWidth
           );
 
-          // Limit to fit above the image
           const availableForNotes = imageY - yPosition - 5;
           const maxNoteLines = Math.floor(availableForNotes / 5);
           const limitedNoteLines = noteLines.slice(0, Math.max(1, maxNoteLines));
@@ -213,7 +313,7 @@ export function ExportData({ onClose }: ExportDataProps) {
               });
 
               const maxImgWidth = imageBoxWidth - 10;
-              const maxImgHeight = 60; // Increased size to better visibility
+              const maxImgHeight = 60;
               let imgWidth = expense.image_width || img.width;
               let imgHeightRaw = expense.image_height || img.height;
 
@@ -305,6 +405,70 @@ export function ExportData({ onClose }: ExportDataProps) {
             </select>
           </div>
 
+          {/* Category Filter Dropdown */}
+          <div ref={categoryDropdownRef} className="relative">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Categories
+            </label>
+            <button
+              type="button"
+              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all flex items-center justify-between text-left"
+            >
+              <span className={allSelected ? 'text-slate-900' : 'text-slate-900'}>
+                {getCategoryDropdownLabel()}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {categoryDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                <div className="p-2 border-b border-slate-100 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllCategories}
+                    className="text-xs text-slate-600 hover:text-slate-900 font-medium"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={deselectAllCategories}
+                    className="text-xs text-slate-600 hover:text-slate-900 font-medium"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+                {availableCategories.map((c) => (
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allSelected || selectedCategories.includes(c.id)}
+                      onChange={() => {
+                        if (allSelected) {
+                          // Switch from "all" to "all except this one"
+                          setSelectedCategories(
+                            availableCategories.filter((cat) => cat.id !== c.id).map((cat) => cat.id)
+                          );
+                        } else {
+                          toggleCategory(c.id);
+                        }
+                      }}
+                      className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                    />
+                    <span className="text-sm text-slate-700">{c.name}</span>
+                  </label>
+                ))}
+                {availableCategories.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-slate-400">No categories available</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div>
             <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 mb-2">
               Start Date
@@ -331,6 +495,23 @@ export function ExportData({ onClose }: ExportDataProps) {
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             />
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div>
+            <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
+              Sort By
+            </label>
+            <select
+              id="sortBy"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortBy)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            >
+              <option value="date">Date</option>
+              <option value="household">Household, then Date</option>
+              <option value="category">Category, then Household, then Date</option>
+            </select>
           </div>
 
           <div className="bg-slate-50 rounded-xl p-4">
