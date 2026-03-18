@@ -122,15 +122,35 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   };
 
   const loadCategoriesForHousehold = async (householdId: string) => {
-    const { data } = await supabase
+    // Get categories assigned to this household via junction table
+    const { data: junctionData } = await supabase
+      .from('category_households')
+      .select('categories(id, name)')
+      .eq('household_id', householdId);
+
+    const junctionCats = (junctionData || [])
+      .map((r) => r.categories)
+      .filter(Boolean) as unknown as Category[];
+
+    // Also get global categories (household_id IS NULL, available to all)
+    const { data: globalCats } = await supabase
       .from('categories')
       .select('id, name')
-      .or(`household_id.is.null,household_id.eq.${householdId}`)
+      .is('household_id', null)
       .order('name');
 
-    if (data) {
-      setCategories(data);
-    }
+    // Merge junction-assigned + global, deduplicate
+    const all = [...junctionCats, ...(globalCats || [])];
+    const seen = new Set<string>();
+    const unique = all
+      .filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    setCategories(unique);
   };
 
   const applyReceiptData = (data: ReceiptData) => {
