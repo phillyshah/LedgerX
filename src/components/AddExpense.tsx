@@ -26,7 +26,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     household_id: '',
-    expense_date: new Date().toISOString().split('T')[0],
+    expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
     vendor: '',
     total: '',
     category: '',
@@ -195,7 +195,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const resetForm = () => {
     setFormData((prev) => ({
       household_id: prev.household_id,
-      expense_date: new Date().toISOString().split('T')[0],
+      expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
       vendor: '',
       total: '',
       category: '',
