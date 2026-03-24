@@ -515,7 +515,7 @@ export function Reports({ onClose }: ReportsProps) {
                     {expenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {new Date(expense.expense_date + 'T00:00:00').toLocaleDateString()}
+                          {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-900">
                           {expense.vendor || 'N/A'}

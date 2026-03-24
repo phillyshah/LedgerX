@@ -84,14 +84,14 @@ export function AdminAnalytics() {
     if (dateRange === '30d') {
       const from = new Date();
       from.setDate(from.getDate() - 30);
-      query = query.gte('expense_date', from.toISOString().split('T')[0]);
+      query = query.gte('expense_date', `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`);
     } else if (dateRange === '90d') {
       const from = new Date();
       from.setDate(from.getDate() - 90);
-      query = query.gte('expense_date', from.toISOString().split('T')[0]);
+      query = query.gte('expense_date', `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`);
     } else if (dateRange === 'ytd') {
       const yearStart = new Date(new Date().getFullYear(), 0, 1);
-      query = query.gte('expense_date', yearStart.toISOString().split('T')[0]);
+      query = query.gte('expense_date', `${yearStart.getFullYear()}-01-01`);
     } else if (dateRange === 'custom' && customStartDate && customEndDate) {
       query = query
         .gte('expense_date', customStartDate)
@@ -505,7 +505,7 @@ export function AdminAnalytics() {
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(expense.expense_date + 'T00:00:00').toLocaleDateString()}
+                      {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()}
                     </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Home className="w-3 h-3" />
