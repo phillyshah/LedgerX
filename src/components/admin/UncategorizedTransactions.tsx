@@ -189,7 +189,7 @@ export function UncategorizedTransactions() {
                             {expense.vendor || 'Unknown Vendor'}
                           </h3>
                           <p className="text-sm text-slate-500 mt-0.5">
-                            {new Date(expense.expense_date).toLocaleDateString()} • Created by {expense.creator_email}
+                            {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()} • Created by {expense.creator_email}
                           </p>
                         </div>
                         <div className="text-right">

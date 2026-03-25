@@ -96,12 +96,14 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
     loadExpenses();
   };
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+  };
 
   const formatAmount = (amount: number, currency: string) =>
     new Intl.NumberFormat('en-US', {
@@ -164,54 +166,48 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
 
         <div className="divide-y divide-slate-100">
           {filteredExpenses.map((expense) => (
-            <div key={expense.id} className="p-5 hover:bg-slate-50 transition-all group">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <h3 className="text-base font-semibold text-slate-900 truncate">
-                      {expense.vendor || 'Unnamed'}
-                    </h3>
-                    {expense.category && (
-                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-full shrink-0">
-                        {expense.category}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(expense.expense_date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Home className="w-3.5 h-3.5" />
-                      {expense.household_name}
-                    </span>
-                    {expense.notes && (
-                      <p className="line-clamp-1 hidden sm:block">{expense.notes}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0 ml-4">
-                  <p className="text-lg font-bold text-slate-900">
+            <div key={expense.id} className="p-4 sm:p-5 hover:bg-slate-50 transition-all group">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <h3 className="text-base font-semibold text-slate-900 truncate min-w-0 flex-1">
+                  {expense.vendor || 'Unnamed'}
+                </h3>
+                <div className="flex items-center gap-2 shrink-0">
+                  <p className="text-base font-bold text-slate-900 tabular-nums">
                     {formatAmount(expense.total, expense.currency)}
                   </p>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button
-                      onClick={() => setEditingExpense(expense)}
-                      className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <button
-                      onClick={() => deleteExpense(expense.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-all"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setEditingExpense(expense)}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-4 h-4 text-slate-500" />
+                  </button>
+                  <button
+                    onClick={() => deleteExpense(expense.id)}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-sm text-slate-500">
+                {expense.category && (
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
+                    {expense.category}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {formatDate(expense.expense_date)}
+                </span>
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <Home className="w-3.5 h-3.5" />
+                  {expense.household_name}
+                </span>
+                {expense.notes && (
+                  <p className="line-clamp-1 hidden sm:block text-slate-400">{expense.notes}</p>
+                )}
               </div>
             </div>
           ))}
