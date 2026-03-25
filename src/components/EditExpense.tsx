@@ -272,11 +272,10 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     setSaving(true);
     try {
       // Delete removed images from storage and DB
+      // Use the original existingImages list (before filtering) to find paths
       for (const imgId of removedImageIds) {
-        const img = existingImages.find((i) => i.id === imgId) ||
-          // Check original list before filtering
-          (await supabase.from('expense_images').select('image_path').eq('id', imgId).single()).data;
-        if (img && 'image_path' in img) {
+        const img = existingImages.find((i) => i.id === imgId);
+        if (img) {
           await supabase.storage.from('receipts').remove([img.image_path]);
         }
         if (imgId !== '__legacy__') {
@@ -284,12 +283,14 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         }
       }
 
-      // Upload new images
+      // Upload new images and track their metadata for primary image selection
       const nextOrder = visibleExistingImages.length;
+      const uploadedNewImages: { path: string; mime: string | null; width: number | null; height: number | null }[] = [];
+
       for (let i = 0; i < newImages.length; i++) {
         const imgItem = newImages[i];
         const fileExt = imgItem.file.name.split('.').pop();
-        const fileName = `${formData.household_id}/${Date.now()}_${i}.${fileExt}`;
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('receipts')
@@ -322,10 +323,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           image_height: h,
           display_order: nextOrder + i,
         });
+
+        uploadedNewImages.push({ path: fileName, mime: imgItem.file.type, width: w, height: h });
       }
 
       // Update the primary image fields on the expense for backward compat
-      // Use first visible existing image, or first new image, or null
       let primaryImagePath: string | null = null;
       let primaryImageMime: string | null = null;
       let primaryImageWidth: number | null = null;
@@ -337,23 +339,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         primaryImageMime = first.image_mime;
         primaryImageWidth = first.image_width;
         primaryImageHeight = first.image_height;
-      } else if (newImages.length > 0) {
-        // The first new image was just uploaded above, find its path
-        const fileExt = newImages[0].file.name.split('.').pop();
-        primaryImagePath = `${formData.household_id}/${Date.now()}_first.${fileExt}`;
-        // Actually we already uploaded it with a different name, let's just query
-        const { data: latestImgs } = await supabase
-          .from('expense_images')
-          .select('image_path, image_mime, image_width, image_height')
-          .eq('expense_id', expense.id)
-          .order('display_order')
-          .limit(1);
-        if (latestImgs && latestImgs.length > 0) {
-          primaryImagePath = latestImgs[0].image_path;
-          primaryImageMime = latestImgs[0].image_mime;
-          primaryImageWidth = latestImgs[0].image_width;
-          primaryImageHeight = latestImgs[0].image_height;
-        }
+      } else if (uploadedNewImages.length > 0) {
+        primaryImagePath = uploadedNewImages[0].path;
+        primaryImageMime = uploadedNewImages[0].mime;
+        primaryImageWidth = uploadedNewImages[0].width;
+        primaryImageHeight = uploadedNewImages[0].height;
       }
 
       const { error } = await supabase

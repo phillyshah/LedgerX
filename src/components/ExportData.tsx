@@ -226,9 +226,9 @@ export function ExportData({ onClose }: ExportDataProps) {
       };
 
       let contentStartY = addPageHeader();
-      const maxItemsPerPage = 4;
+      const maxItemsPerPage = 2;
       const cols = 1;
-      const rows = 4;
+      const rows = 2;
       const cellWidth = pageWidth - 2 * margin;
       const cellHeight = (pageHeight - margin - contentStartY) / rows;
 
@@ -329,12 +329,23 @@ export function ExportData({ onClose }: ExportDataProps) {
         }
 
         if (expenseImages.length > 0) {
-          const maxImgPerTx = 2; // Show up to 2 images per transaction in PDF
+          const maxImgPerTx = 6;
           const imagesToShow = expenseImages.slice(0, maxImgPerTx);
-          let currentImageY = imageY;
+
+          // Arrange in a grid: 3 columns, up to 2 rows
+          const gridCols = Math.min(3, imagesToShow.length);
+          const gridGap = 2;
+          const totalGapX = (gridCols - 1) * gridGap;
+          const thumbWidth = (imageBoxWidth - 10 - totalGapX) / gridCols;
+          const thumbHeight = 38;
 
           for (let imgIdx = 0; imgIdx < imagesToShow.length; imgIdx++) {
             const expImg = imagesToShow[imgIdx];
+            const gridCol = imgIdx % 3;
+            const gridRow = Math.floor(imgIdx / 3);
+            const thumbX = imageX + gridCol * (thumbWidth + gridGap);
+            const thumbY = imageY + gridRow * (thumbHeight + gridGap);
+
             try {
               const { data: imageData } = await supabase.storage
                 .from('receipts')
@@ -350,17 +361,19 @@ export function ExportData({ onClose }: ExportDataProps) {
                   img.src = imageUrl;
                 });
 
-                const maxImgWidth = imageBoxWidth - 10;
-                const maxImgHeight = imagesToShow.length > 1 ? 28 : 60;
                 let imgWidth = expImg.image_width || img.width;
                 let imgHeightRaw = expImg.image_height || img.height;
 
-                const widthRatio = maxImgWidth / imgWidth;
-                const heightRatio = maxImgHeight / imgHeightRaw;
+                const widthRatio = thumbWidth / imgWidth;
+                const heightRatio = thumbHeight / imgHeightRaw;
                 const ratio = Math.min(widthRatio, heightRatio);
 
-                imgWidth *= ratio;
-                const adjustedImgHeight = imgHeightRaw * ratio;
+                const scaledW = imgWidth * ratio;
+                const scaledH = imgHeightRaw * ratio;
+
+                // Center the image within its grid cell
+                const offsetX = thumbX + (thumbWidth - scaledW) / 2;
+                const offsetY = thumbY + (thumbHeight - scaledH) / 2;
 
                 let imageFormat = 'JPEG';
                 if (expImg.image_mime) {
@@ -371,25 +384,24 @@ export function ExportData({ onClose }: ExportDataProps) {
                   }
                 }
 
-                pdf.addImage(img, imageFormat, imageX, currentImageY, imgWidth, adjustedImgHeight);
-                currentImageY += adjustedImgHeight + 2;
+                pdf.addImage(img, imageFormat, offsetX, offsetY, scaledW, scaledH);
 
                 URL.revokeObjectURL(imageUrl);
               }
             } catch (imageError) {
               console.error('Error loading image:', imageError);
-              pdf.setFontSize(8);
+              pdf.setFontSize(7);
               pdf.setTextColor(150, 150, 150);
-              pdf.text('(Image could not be loaded)', imageX, currentImageY);
+              pdf.text('(error)', thumbX, thumbY + thumbHeight / 2);
               pdf.setTextColor(0, 0, 0);
-              currentImageY += 10;
             }
           }
 
           if (expenseImages.length > maxImgPerTx) {
+            const overflowY = imageY + (Math.ceil(imagesToShow.length / 3)) * (thumbHeight + gridGap);
             pdf.setFontSize(7);
             pdf.setTextColor(130, 130, 130);
-            pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, currentImageY);
+            pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, overflowY);
             pdf.setTextColor(0, 0, 0);
           }
         }

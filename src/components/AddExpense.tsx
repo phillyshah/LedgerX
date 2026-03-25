@@ -205,10 +205,11 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   };
 
   const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    if (images.length <= 1) {
-      setScanError(null);
-    }
+    setImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) setScanError(null);
+      return updated;
+    });
   };
 
   const resetForm = () => {
@@ -239,7 +240,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       if (images.length > 0) {
         const firstImg = images[0];
         const fileExt = firstImg.file.name.split('.').pop();
-        const fileName = `${formData.household_id}/${Date.now()}.${fileExt}`;
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('receipts')
@@ -287,7 +288,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           uploadedPath = imagePath;
         } else {
           const fileExt = imgItem.file.name.split('.').pop();
-          const fileName = `${formData.household_id}/${Date.now()}_${i}.${fileExt}`;
+          const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from('receipts')
