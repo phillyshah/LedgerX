@@ -193,7 +193,7 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
               </div>
               <div className="flex items-center gap-2 flex-wrap text-sm text-slate-500">
                 {expense.category && (
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full truncate max-w-[10rem] sm:max-w-[14rem]" title={expense.category}>
                     {expense.category}
                   </span>
                 )}
