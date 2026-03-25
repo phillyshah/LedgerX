@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Check, Camera, Loader2 } from 'lucide-react';
+import { X, Upload, Check, Camera, Loader2, Plus } from 'lucide-react';
 
 interface Household {
   id: string;
@@ -13,6 +13,11 @@ interface Household {
 interface Category {
   id: string;
   name: string;
+}
+
+interface ImageItem {
+  file: File;
+  preview: string;
 }
 
 interface AddExpenseProps {
@@ -32,8 +37,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     category: '',
     notes: '',
   });
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -169,26 +173,41 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of Array.from(files)) {
       try {
         let fileToUse = file;
         if (file.type.startsWith('image/')) {
           fileToUse = await compressImage(file, 2);
         }
-        setImage(fileToUse);
-        const reader = new FileReader();
-        reader.onloadend = () => setImagePreview(reader.result as string);
-        reader.readAsDataURL(fileToUse);
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(fileToUse);
+        });
 
-        // Auto-scan receipt for images
-        if (file.type.startsWith('image/')) {
+        setImages((prev) => [...prev, { file: fileToUse, preview }]);
+
+        // Auto-scan only the first image added when form fields are empty
+        if (images.length === 0 && file.type.startsWith('image/')) {
           handleScanReceipt(fileToUse);
         }
       } catch (error) {
         console.error('Error processing file:', error);
         alert('Failed to process file. Please try another file.');
       }
+    }
+
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (images.length <= 1) {
+      setScanError(null);
     }
   };
 
@@ -201,8 +220,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       category: '',
       notes: '',
     }));
-    setImage(null);
-    setImagePreview(null);
+    setImages([]);
     setScanError(null);
     setCategoryAutoFilled(false);
   };
@@ -212,25 +230,27 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
 
     setSaving(true);
     try {
+      // Keep backward compat: store first image in expense row too
       let imagePath = null;
       let imageMime = null;
       let imageWidth = null;
       let imageHeight = null;
 
-      if (image) {
-        const fileExt = image.name.split('.').pop();
+      if (images.length > 0) {
+        const firstImg = images[0];
+        const fileExt = firstImg.file.name.split('.').pop();
         const fileName = `${formData.household_id}/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('receipts')
-          .upload(fileName, image);
+          .upload(fileName, firstImg.file);
 
         if (!uploadError) {
           imagePath = fileName;
-          imageMime = image.type;
+          imageMime = firstImg.file.type;
 
           const img = new Image();
-          img.src = imagePreview!;
+          img.src = firstImg.preview;
           await new Promise((resolve) => {
             img.onload = () => {
               imageWidth = img.width;
@@ -241,7 +261,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         }
       }
 
-      const { error } = await supabase.from('expenses').insert({
+      const { data: expenseData, error } = await supabase.from('expenses').insert({
         household_id: formData.household_id,
         created_by: user.id,
         expense_date: formData.expense_date,
@@ -253,9 +273,57 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         image_mime: imageMime,
         image_width: imageWidth,
         image_height: imageHeight,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Upload all images to expense_images table
+      for (let i = 0; i < images.length; i++) {
+        const imgItem = images[i];
+        let uploadedPath: string;
+
+        if (i === 0 && imagePath) {
+          // First image already uploaded above
+          uploadedPath = imagePath;
+        } else {
+          const fileExt = imgItem.file.name.split('.').pop();
+          const fileName = `${formData.household_id}/${Date.now()}_${i}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(fileName, imgItem.file);
+
+          if (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            continue;
+          }
+          uploadedPath = fileName;
+        }
+
+        // Get dimensions
+        let w: number | null = null;
+        let h: number | null = null;
+        if (imgItem.file.type.startsWith('image/')) {
+          const img = new Image();
+          img.src = imgItem.preview;
+          await new Promise((resolve) => {
+            img.onload = () => {
+              w = img.width;
+              h = img.height;
+              resolve(null);
+            };
+          });
+        }
+
+        await supabase.from('expense_images').insert({
+          expense_id: expenseData.id,
+          image_path: uploadedPath,
+          image_mime: imgItem.file.type,
+          image_width: w,
+          image_height: h,
+          display_order: i,
+        });
+      }
 
       // Update vendor-to-category mapping for future auto-fill
       if (formData.vendor && formData.category) {
@@ -419,42 +487,61 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Receipt Image
+              Receipt Images
+              {images.length > 0 && (
+                <span className="ml-2 text-slate-400 font-normal">({images.length} attached)</span>
+              )}
             </label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
-              {imagePreview ? (
-                <div className="relative">
-                  <img src={imagePreview} alt="Receipt preview" className="max-h-48 mx-auto rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => { setImage(null); setImagePreview(null); setScanError(null); }}
-                    className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+              {images.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((img, index) => (
+                      <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-200">
+                        <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1.5 right-1.5 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-slate-900/70 text-white text-xs rounded-md">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
+                      <Plus className="w-6 h-6 text-slate-400" />
+                      <span className="text-xs text-slate-400 mt-1">Add more</span>
+                      <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleImageChange} className="hidden" />
+                    </label>
+                  </div>
                   {scanning && (
-                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
+                    <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Scanning receipt...
                     </div>
                   )}
                   {scanError && (
-                    <div className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
+                    <div className="text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
                       <span>{scanError}</span>
                       <button
                         type="button"
-                        onClick={() => image && handleScanReceipt(image)}
+                        onClick={() => images.length > 0 && handleScanReceipt(images[0].file)}
                         className="ml-2 text-red-700 underline font-medium"
                       >
                         Retry
                       </button>
                     </div>
                   )}
-                  {!scanning && !scanError && image?.type.startsWith('image/') && (
+                  {!scanning && !scanError && images.length > 0 && images[0].file.type.startsWith('image/') && (
                     <button
                       type="button"
-                      onClick={() => image && handleScanReceipt(image)}
-                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
+                      onClick={() => handleScanReceipt(images[0].file)}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
                     >
                       <Camera className="w-4 h-4" />
                       Re-scan Receipt
@@ -466,9 +553,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                   <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mb-2">
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG, PDF — auto-scans to fill form fields</p>
-                  <input type="file" accept="image/*,.pdf,application/pdf" onChange={handleImageChange} className="hidden" />
+                  <p className="text-sm font-medium text-slate-600">Upload receipts</p>
+                  <p className="text-xs text-slate-400">PNG, JPG, PDF — select multiple files. First image auto-scans.</p>
+                  <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleImageChange} className="hidden" />
                 </label>
               )}
             </div>

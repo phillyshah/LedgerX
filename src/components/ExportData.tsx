@@ -309,52 +309,87 @@ export function ExportData({ onClose }: ExportDataProps) {
           yPosition += limitedNoteLines.length * 5;
         }
 
-        if (expense.image_path) {
-          try {
-            const { data: imageData } = await supabase.storage
-              .from('receipts')
-              .download(expense.image_path);
+        // Load images from expense_images table, fallback to legacy single image
+        let expenseImages: { image_path: string; image_mime: string | null; image_width: number | null; image_height: number | null }[] = [];
+        const { data: imgRows } = await supabase
+          .from('expense_images')
+          .select('image_path, image_mime, image_width, image_height')
+          .eq('expense_id', expense.id)
+          .order('display_order');
 
-            if (imageData) {
-              const imageUrl = URL.createObjectURL(imageData);
-              const img = new Image();
+        if (imgRows && imgRows.length > 0) {
+          expenseImages = imgRows;
+        } else if (expense.image_path) {
+          expenseImages = [{
+            image_path: expense.image_path,
+            image_mime: expense.image_mime,
+            image_width: expense.image_width,
+            image_height: expense.image_height,
+          }];
+        }
 
-              await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-                img.src = imageUrl;
-              });
+        if (expenseImages.length > 0) {
+          const maxImgPerTx = 2; // Show up to 2 images per transaction in PDF
+          const imagesToShow = expenseImages.slice(0, maxImgPerTx);
+          let currentImageY = imageY;
 
-              const maxImgWidth = imageBoxWidth - 10;
-              const maxImgHeight = 60;
-              let imgWidth = expense.image_width || img.width;
-              let imgHeightRaw = expense.image_height || img.height;
+          for (let imgIdx = 0; imgIdx < imagesToShow.length; imgIdx++) {
+            const expImg = imagesToShow[imgIdx];
+            try {
+              const { data: imageData } = await supabase.storage
+                .from('receipts')
+                .download(expImg.image_path);
 
-              const widthRatio = maxImgWidth / imgWidth;
-              const heightRatio = maxImgHeight / imgHeightRaw;
-              const ratio = Math.min(widthRatio, heightRatio);
+              if (imageData) {
+                const imageUrl = URL.createObjectURL(imageData);
+                const img = new Image();
 
-              imgWidth *= ratio;
-              const adjustedImgHeight = imgHeightRaw * ratio;
+                await new Promise((resolve, reject) => {
+                  img.onload = resolve;
+                  img.onerror = reject;
+                  img.src = imageUrl;
+                });
 
-              let imageFormat = 'JPEG';
-              if (expense.image_mime) {
-                if (expense.image_mime.includes('png')) {
-                  imageFormat = 'PNG';
-                } else if (expense.image_mime.includes('webp')) {
-                  imageFormat = 'WEBP';
+                const maxImgWidth = imageBoxWidth - 10;
+                const maxImgHeight = imagesToShow.length > 1 ? 28 : 60;
+                let imgWidth = expImg.image_width || img.width;
+                let imgHeightRaw = expImg.image_height || img.height;
+
+                const widthRatio = maxImgWidth / imgWidth;
+                const heightRatio = maxImgHeight / imgHeightRaw;
+                const ratio = Math.min(widthRatio, heightRatio);
+
+                imgWidth *= ratio;
+                const adjustedImgHeight = imgHeightRaw * ratio;
+
+                let imageFormat = 'JPEG';
+                if (expImg.image_mime) {
+                  if (expImg.image_mime.includes('png')) {
+                    imageFormat = 'PNG';
+                  } else if (expImg.image_mime.includes('webp')) {
+                    imageFormat = 'WEBP';
+                  }
                 }
+
+                pdf.addImage(img, imageFormat, imageX, currentImageY, imgWidth, adjustedImgHeight);
+                currentImageY += adjustedImgHeight + 2;
+
+                URL.revokeObjectURL(imageUrl);
               }
-
-              pdf.addImage(img, imageFormat, imageX, imageY, imgWidth, adjustedImgHeight);
-
-              URL.revokeObjectURL(imageUrl);
+            } catch (imageError) {
+              console.error('Error loading image:', imageError);
+              pdf.setFontSize(8);
+              pdf.setTextColor(150, 150, 150);
+              pdf.text('(Image could not be loaded)', imageX, currentImageY);
+              pdf.setTextColor(0, 0, 0);
+              currentImageY += 10;
             }
-          } catch (imageError) {
-            console.error('Error loading image:', imageError);
-            pdf.setFontSize(8);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text('(Image could not be loaded)', imageX, imageY);
+          }
+
+          if (expenseImages.length > maxImgPerTx) {
+            pdf.setFontSize(7);
+            pdf.setTextColor(130, 130, 130);
+            pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, currentImageY);
             pdf.setTextColor(0, 0, 0);
           }
         }

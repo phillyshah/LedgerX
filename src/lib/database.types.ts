@@ -172,6 +172,38 @@ export interface Database {
           created_at?: string;
         };
       };
+      expense_images: {
+        Row: {
+          id: string;
+          expense_id: string;
+          image_path: string;
+          image_mime: string | null;
+          image_width: number | null;
+          image_height: number | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          expense_id: string;
+          image_path: string;
+          image_mime?: string | null;
+          image_width?: number | null;
+          image_height?: number | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          expense_id?: string;
+          image_path?: string;
+          image_mime?: string | null;
+          image_width?: number | null;
+          image_height?: number | null;
+          display_order?: number;
+          created_at?: string;
+        };
+      };
       vendor_category_map: {
         Row: {
           id: string;
