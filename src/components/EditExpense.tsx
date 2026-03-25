@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Camera, Loader2 } from 'lucide-react';
+import { X, Upload, Camera, Loader2, Plus } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -31,6 +31,21 @@ interface Household {
   name: string;
 }
 
+interface ExistingImage {
+  id: string;
+  image_path: string;
+  image_mime: string | null;
+  image_width: number | null;
+  image_height: number | null;
+  display_order: number;
+  signedUrl?: string;
+}
+
+interface NewImage {
+  file: File;
+  preview: string;
+}
+
 interface EditExpenseProps {
   expense: Expense;
   onClose: () => void;
@@ -51,18 +66,18 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     notes: expense.notes || '',
     transcript: expense.transcript || '',
   });
-  const [currentImagePath, setCurrentImagePath] = useState(expense.image_path);
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
-  const [newImage, setNewImage] = useState<File | null>(null);
-  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<NewImage[]>([]);
   const [imageZoom, setImageZoom] = useState(1);
+  const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     loadHouseholds();
-    loadCurrentImage();
+    loadExistingImages();
   }, [user]);
 
   useEffect(() => {
@@ -71,18 +86,39 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     }
   }, [formData.household_id]);
 
-  const loadCurrentImage = async () => {
-    if (currentImagePath) {
-      try {
-        const { data } = await supabase.storage
-          .from('receipts')
-          .createSignedUrl(currentImagePath, 3600);
-        if (data?.signedUrl) {
-          setCurrentImageUrl(data.signedUrl);
-        }
-      } catch (error) {
-        console.error('Error loading image:', error);
-      }
+  const loadExistingImages = async () => {
+    // Load from expense_images table
+    const { data } = await supabase
+      .from('expense_images')
+      .select('id, image_path, image_mime, image_width, image_height, display_order')
+      .eq('expense_id', expense.id)
+      .order('display_order');
+
+    if (data && data.length > 0) {
+      // Get signed URLs for all images
+      const imagesWithUrls = await Promise.all(
+        data.map(async (img) => {
+          const { data: urlData } = await supabase.storage
+            .from('receipts')
+            .createSignedUrl(img.image_path, 3600);
+          return { ...img, signedUrl: urlData?.signedUrl };
+        })
+      );
+      setExistingImages(imagesWithUrls);
+    } else if (expense.image_path) {
+      // Fallback: load from legacy single-image field
+      const { data: urlData } = await supabase.storage
+        .from('receipts')
+        .createSignedUrl(expense.image_path, 3600);
+      setExistingImages([{
+        id: '__legacy__',
+        image_path: expense.image_path,
+        image_mime: expense.image_mime,
+        image_width: expense.image_width,
+        image_height: expense.image_height,
+        display_order: 0,
+        signedUrl: urlData?.signedUrl || undefined,
+      }]);
     }
   };
 
@@ -184,20 +220,25 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   };
 
   const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of Array.from(files)) {
       try {
         let fileToUse = file;
         if (file.type.startsWith('image/')) {
           fileToUse = await compressImage(file, 2);
         }
-        setNewImage(fileToUse);
-        const reader = new FileReader();
-        reader.onloadend = () => setNewImagePreview(reader.result as string);
-        reader.readAsDataURL(fileToUse);
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(fileToUse);
+        });
 
-        // Auto-scan receipt for images
-        if (file.type.startsWith('image/')) {
+        setNewImages((prev) => [...prev, { file: fileToUse, preview }]);
+
+        // Auto-scan first new image if no existing images
+        if (existingImages.length === 0 && newImages.length === 0 && file.type.startsWith('image/')) {
           handleScanReceipt(fileToUse);
         }
       } catch (error) {
@@ -205,58 +246,104 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         alert('Failed to process file. Please try another file.');
       }
     }
+
+    e.target.value = '';
   };
 
-  const handleRemoveImage = () => {
-    setCurrentImagePath(null);
-    setCurrentImageUrl(null);
-    setNewImage(null);
-    setNewImagePreview(null);
+  const removeExistingImage = (imageId: string) => {
+    setRemovedImageIds((prev) => [...prev, imageId]);
+    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
+    setZoomedImageIndex(null);
     setImageZoom(1);
   };
+
+  const removeNewImage = (index: number) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setZoomedImageIndex(null);
+    setImageZoom(1);
+  };
+
+  const visibleExistingImages = existingImages.filter((img) => !removedImageIds.includes(img.id));
+  const totalImages = visibleExistingImages.length + newImages.length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setSaving(true);
     try {
-      let imagePath = currentImagePath;
-      let imageMime = expense.image_mime;
-      let imageWidth = expense.image_width;
-      let imageHeight = expense.image_height;
+      // Delete removed images from storage and DB
+      // Use the original existingImages list (before filtering) to find paths
+      for (const imgId of removedImageIds) {
+        const img = existingImages.find((i) => i.id === imgId);
+        if (img) {
+          await supabase.storage.from('receipts').remove([img.image_path]);
+        }
+        if (imgId !== '__legacy__') {
+          await supabase.from('expense_images').delete().eq('id', imgId);
+        }
+      }
 
-      if (newImage) {
-        const fileExt = newImage.name.split('.').pop();
-        const fileName = `${formData.household_id}/${Date.now()}.${fileExt}`;
+      // Upload new images and track their metadata for primary image selection
+      const nextOrder = visibleExistingImages.length;
+      const uploadedNewImages: { path: string; mime: string | null; width: number | null; height: number | null }[] = [];
+
+      for (let i = 0; i < newImages.length; i++) {
+        const imgItem = newImages[i];
+        const fileExt = imgItem.file.name.split('.').pop();
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('receipts')
-          .upload(fileName, newImage);
+          .upload(fileName, imgItem.file);
 
-        if (!uploadError) {
-          if (currentImagePath) {
-            await supabase.storage.from('receipts').remove([currentImagePath]);
-          }
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          continue;
+        }
 
-          imagePath = fileName;
-          imageMime = newImage.type;
-
+        let w: number | null = null;
+        let h: number | null = null;
+        if (imgItem.file.type.startsWith('image/')) {
           const img = new Image();
-          img.src = newImagePreview!;
+          img.src = imgItem.preview;
           await new Promise((resolve) => {
             img.onload = () => {
-              imageWidth = img.width;
-              imageHeight = img.height;
+              w = img.width;
+              h = img.height;
               resolve(null);
             };
           });
         }
-      } else if (currentImagePath === null && expense.image_path) {
-        await supabase.storage.from('receipts').remove([expense.image_path]);
-        imagePath = null;
-        imageMime = null;
-        imageWidth = null;
-        imageHeight = null;
+
+        await supabase.from('expense_images').insert({
+          expense_id: expense.id,
+          image_path: fileName,
+          image_mime: imgItem.file.type,
+          image_width: w,
+          image_height: h,
+          display_order: nextOrder + i,
+        });
+
+        uploadedNewImages.push({ path: fileName, mime: imgItem.file.type, width: w, height: h });
+      }
+
+      // Update the primary image fields on the expense for backward compat
+      let primaryImagePath: string | null = null;
+      let primaryImageMime: string | null = null;
+      let primaryImageWidth: number | null = null;
+      let primaryImageHeight: number | null = null;
+
+      if (visibleExistingImages.length > 0) {
+        const first = visibleExistingImages[0];
+        primaryImagePath = first.image_path;
+        primaryImageMime = first.image_mime;
+        primaryImageWidth = first.image_width;
+        primaryImageHeight = first.image_height;
+      } else if (uploadedNewImages.length > 0) {
+        primaryImagePath = uploadedNewImages[0].path;
+        primaryImageMime = uploadedNewImages[0].mime;
+        primaryImageWidth = uploadedNewImages[0].width;
+        primaryImageHeight = uploadedNewImages[0].height;
       }
 
       const { error } = await supabase
@@ -270,10 +357,10 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           category: formData.category || null,
           notes: formData.notes || null,
           transcript: formData.transcript || null,
-          image_path: imagePath,
-          image_mime: imageMime,
-          image_width: imageWidth,
-          image_height: imageHeight,
+          image_path: primaryImagePath,
+          image_mime: primaryImageMime,
+          image_width: primaryImageWidth,
+          image_height: primaryImageHeight,
           updated_at: new Date().toISOString(),
         })
         .eq('id', expense.id);
@@ -287,6 +374,61 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       setSaving(false);
     }
   };
+
+  const renderZoomedImage = (src: string) => (
+    <div className="relative">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
+          className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+          title="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
+          className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
+          title="Zoom out"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          onClick={() => { setZoomedImageIndex(null); setImageZoom(1); }}
+          className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
+          title="Close zoom"
+        >
+          close
+        </button>
+      </div>
+      <div
+        className="max-h-64 overflow-auto"
+        onWheel={(e) => {
+          if (e.ctrlKey) {
+            e.preventDefault();
+            setImageZoom((z) => {
+              const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
+              return Math.min(3, Math.max(0.5, next));
+            });
+          }
+        }}
+      >
+        <img
+          src={src}
+          alt="Zoomed receipt"
+          style={{
+            transform: `scale(${imageZoom})`,
+            transformOrigin: 'center center',
+            width: '100%',
+            height: 'auto',
+          }}
+          className="mx-auto rounded-lg"
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
@@ -432,171 +574,125 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Receipt Image
+              Receipt Images
+              {totalImages > 0 && (
+                <span className="ml-2 text-slate-400 font-normal">({totalImages} attached)</span>
+              )}
             </label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
-              {newImagePreview ? (
-                <div className="relative">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
-                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-                      title="Zoom in"
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
-                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-                      title="Zoom out"
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom(1)}
-                      className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
-                      title="Reset zoom"
-                    >
-                      reset
-                    </button>
+              {/* Zoomed view */}
+              {zoomedImageIndex !== null && (
+                <div className="mb-4">
+                  {zoomedImageIndex < visibleExistingImages.length ? (
+                    visibleExistingImages[zoomedImageIndex].signedUrl &&
+                    renderZoomedImage(visibleExistingImages[zoomedImageIndex].signedUrl!)
+                  ) : (
+                    renderZoomedImage(newImages[zoomedImageIndex - visibleExistingImages.length].preview)
+                  )}
+                </div>
+              )}
+
+              {totalImages > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {/* Existing images */}
+                    {visibleExistingImages.map((img, index) => (
+                      <div
+                        key={img.id}
+                        className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
+                        onClick={() => { setZoomedImageIndex(index); setImageZoom(1); }}
+                      >
+                        {img.signedUrl ? (
+                          <img src={img.signedUrl} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        ) : (
+                          <div className="w-full h-32 bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
+                            Loading...
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeExistingImage(img.id); }}
+                          className="absolute top-1.5 right-1.5 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        {index === 0 && newImages.length === 0 && (
+                          <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-slate-900/70 text-white text-xs rounded-md">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* New images */}
+                    {newImages.map((img, index) => (
+                      <div
+                        key={`new-${index}`}
+                        className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
+                        onClick={() => { setZoomedImageIndex(visibleExistingImages.length + index); setImageZoom(1); }}
+                      >
+                        <img src={img.preview} alt={`New receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeNewImage(index); }}
+                          className="absolute top-1.5 right-1.5 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-emerald-600/70 text-white text-xs rounded-md">
+                          New
+                        </span>
+                      </div>
+                    ))}
+
+                    {/* Add more button */}
+                    <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
+                      <Plus className="w-6 h-6 text-slate-400" />
+                      <span className="text-xs text-slate-400 mt-1">Add more</span>
+                      <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleNewImageChange} className="hidden" />
+                    </label>
                   </div>
-                  <div
-                    className="max-h-48 overflow-auto"
-                    onWheel={(e) => {
-                      if (e.ctrlKey) {
-                        e.preventDefault();
-                        setImageZoom((z) => {
-                          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                          return Math.min(3, Math.max(0.5, next));
-                        });
-                      }
-                    }}
-                  >
-                    <img
-                      src={newImagePreview}
-                      alt="New receipt preview"
-                      style={{
-                        transform: `scale(${imageZoom})`,
-                        transformOrigin: 'center center',
-                        width: '100%',
-                        height: 'auto',
-                      }}
-                      className="mx-auto rounded-lg"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { setNewImage(null); setNewImagePreview(null); setImageZoom(1); setScanError(null); }}
-                    className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+
                   {scanning && (
-                    <div className="mt-3 flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
+                    <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Scanning receipt...
                     </div>
                   )}
                   {scanError && (
-                    <div className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
+                    <div className="text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
                       <span>{scanError}</span>
                       <button
                         type="button"
-                        onClick={() => newImage && handleScanReceipt(newImage)}
+                        onClick={() => {
+                          const firstFile = newImages[0]?.file;
+                          if (firstFile) handleScanReceipt(firstFile);
+                        }}
                         className="ml-2 text-red-700 underline font-medium"
                       >
                         Retry
                       </button>
                     </div>
                   )}
-                  {!scanning && !scanError && newImage?.type.startsWith('image/') && (
+                  {!scanning && !scanError && newImages.length > 0 && newImages[0].file.type.startsWith('image/') && (
                     <button
                       type="button"
-                      onClick={() => newImage && handleScanReceipt(newImage)}
-                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
+                      onClick={() => handleScanReceipt(newImages[0].file)}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
                     >
                       <Camera className="w-4 h-4" />
                       Scan Receipt
                     </button>
                   )}
                 </div>
-              ) : currentImageUrl ? (
-                <div className="relative">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
-                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-                      title="Zoom in"
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
-                      className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-                      title="Zoom out"
-                    >
-                      −
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageZoom(1)}
-                      className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
-                      title="Reset zoom"
-                    >
-                      reset
-                    </button>
-                  </div>
-                  <div
-                    className="max-h-48 overflow-auto"
-                    onWheel={(e) => {
-                      if (e.ctrlKey) {
-                        e.preventDefault();
-                        setImageZoom((z) => {
-                          const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                          return Math.min(3, Math.max(0.5, next));
-                        });
-                      }
-                    }}
-                  >
-                    <img
-                      src={currentImageUrl}
-                      alt="Current receipt"
-                      style={{
-                        transform: `scale(${imageZoom})`,
-                        transformOrigin: 'center center',
-                        width: '100%',
-                        height: 'auto',
-                      }}
-                      className="mx-auto rounded-lg"
-                    />
-                  </div>
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <label className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-all cursor-pointer">
-                      <Upload className="w-4 h-4" />
-                      <input type="file" accept="image/*,.pdf,application/pdf" onChange={handleNewImageChange} className="hidden" />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
               ) : (
                 <label className="flex flex-col items-center cursor-pointer py-2">
                   <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mb-2">
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">Upload receipt</p>
-                  <p className="text-xs text-slate-400">PNG, JPG, PDF (images auto-compressed)</p>
-                  <input type="file" accept="image/*" onChange={handleNewImageChange} className="hidden" />
+                  <p className="text-sm font-medium text-slate-600">Upload receipts</p>
+                  <p className="text-xs text-slate-400">PNG, JPG, PDF — select multiple files</p>
+                  <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleNewImageChange} className="hidden" />
                 </label>
               )}
             </div>

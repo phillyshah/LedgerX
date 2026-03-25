@@ -226,9 +226,9 @@ export function ExportData({ onClose }: ExportDataProps) {
       };
 
       let contentStartY = addPageHeader();
-      const maxItemsPerPage = 4;
+      const maxItemsPerPage = 2;
       const cols = 1;
-      const rows = 4;
+      const rows = 2;
       const cellWidth = pageWidth - 2 * margin;
       const cellHeight = (pageHeight - margin - contentStartY) / rows;
 
@@ -309,52 +309,99 @@ export function ExportData({ onClose }: ExportDataProps) {
           yPosition += limitedNoteLines.length * 5;
         }
 
-        if (expense.image_path) {
-          try {
-            const { data: imageData } = await supabase.storage
-              .from('receipts')
-              .download(expense.image_path);
+        // Load images from expense_images table, fallback to legacy single image
+        let expenseImages: { image_path: string; image_mime: string | null; image_width: number | null; image_height: number | null }[] = [];
+        const { data: imgRows } = await supabase
+          .from('expense_images')
+          .select('image_path, image_mime, image_width, image_height')
+          .eq('expense_id', expense.id)
+          .order('display_order');
 
-            if (imageData) {
-              const imageUrl = URL.createObjectURL(imageData);
-              const img = new Image();
+        if (imgRows && imgRows.length > 0) {
+          expenseImages = imgRows;
+        } else if (expense.image_path) {
+          expenseImages = [{
+            image_path: expense.image_path,
+            image_mime: expense.image_mime,
+            image_width: expense.image_width,
+            image_height: expense.image_height,
+          }];
+        }
 
-              await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-                img.src = imageUrl;
-              });
+        if (expenseImages.length > 0) {
+          const maxImgPerTx = 6;
+          const imagesToShow = expenseImages.slice(0, maxImgPerTx);
 
-              const maxImgWidth = imageBoxWidth - 10;
-              const maxImgHeight = 60;
-              let imgWidth = expense.image_width || img.width;
-              let imgHeightRaw = expense.image_height || img.height;
+          // Arrange in a grid: 3 columns, up to 2 rows
+          const gridCols = Math.min(3, imagesToShow.length);
+          const gridGap = 2;
+          const totalGapX = (gridCols - 1) * gridGap;
+          const thumbWidth = (imageBoxWidth - 10 - totalGapX) / gridCols;
+          const thumbHeight = 38;
 
-              const widthRatio = maxImgWidth / imgWidth;
-              const heightRatio = maxImgHeight / imgHeightRaw;
-              const ratio = Math.min(widthRatio, heightRatio);
+          for (let imgIdx = 0; imgIdx < imagesToShow.length; imgIdx++) {
+            const expImg = imagesToShow[imgIdx];
+            const gridCol = imgIdx % 3;
+            const gridRow = Math.floor(imgIdx / 3);
+            const thumbX = imageX + gridCol * (thumbWidth + gridGap);
+            const thumbY = imageY + gridRow * (thumbHeight + gridGap);
 
-              imgWidth *= ratio;
-              const adjustedImgHeight = imgHeightRaw * ratio;
+            try {
+              const { data: imageData } = await supabase.storage
+                .from('receipts')
+                .download(expImg.image_path);
 
-              let imageFormat = 'JPEG';
-              if (expense.image_mime) {
-                if (expense.image_mime.includes('png')) {
-                  imageFormat = 'PNG';
-                } else if (expense.image_mime.includes('webp')) {
-                  imageFormat = 'WEBP';
+              if (imageData) {
+                const imageUrl = URL.createObjectURL(imageData);
+                const img = new Image();
+
+                await new Promise((resolve, reject) => {
+                  img.onload = resolve;
+                  img.onerror = reject;
+                  img.src = imageUrl;
+                });
+
+                let imgWidth = expImg.image_width || img.width;
+                let imgHeightRaw = expImg.image_height || img.height;
+
+                const widthRatio = thumbWidth / imgWidth;
+                const heightRatio = thumbHeight / imgHeightRaw;
+                const ratio = Math.min(widthRatio, heightRatio);
+
+                const scaledW = imgWidth * ratio;
+                const scaledH = imgHeightRaw * ratio;
+
+                // Center the image within its grid cell
+                const offsetX = thumbX + (thumbWidth - scaledW) / 2;
+                const offsetY = thumbY + (thumbHeight - scaledH) / 2;
+
+                let imageFormat = 'JPEG';
+                if (expImg.image_mime) {
+                  if (expImg.image_mime.includes('png')) {
+                    imageFormat = 'PNG';
+                  } else if (expImg.image_mime.includes('webp')) {
+                    imageFormat = 'WEBP';
+                  }
                 }
+
+                pdf.addImage(img, imageFormat, offsetX, offsetY, scaledW, scaledH);
+
+                URL.revokeObjectURL(imageUrl);
               }
-
-              pdf.addImage(img, imageFormat, imageX, imageY, imgWidth, adjustedImgHeight);
-
-              URL.revokeObjectURL(imageUrl);
+            } catch (imageError) {
+              console.error('Error loading image:', imageError);
+              pdf.setFontSize(7);
+              pdf.setTextColor(150, 150, 150);
+              pdf.text('(error)', thumbX, thumbY + thumbHeight / 2);
+              pdf.setTextColor(0, 0, 0);
             }
-          } catch (imageError) {
-            console.error('Error loading image:', imageError);
-            pdf.setFontSize(8);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text('(Image could not be loaded)', imageX, imageY);
+          }
+
+          if (expenseImages.length > maxImgPerTx) {
+            const overflowY = imageY + (Math.ceil(imagesToShow.length / 3)) * (thumbHeight + gridGap);
+            pdf.setFontSize(7);
+            pdf.setTextColor(130, 130, 130);
+            pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, overflowY);
             pdf.setTextColor(0, 0, 0);
           }
         }
