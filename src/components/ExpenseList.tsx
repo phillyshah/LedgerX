@@ -1,40 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X } from 'lucide-react';
 import { EditExpense } from './EditExpense';
-
-interface Expense {
-  id: string;
-  expense_date: string;
-  vendor: string | null;
-  total: number;
-  currency: string;
-  category: string | null;
-  notes: string | null;
-  transcript: string | null;
-  household_id: string;
-  household_name?: string;
-  image_path: string | null;
-  image_mime: string | null;
-  image_width: number | null;
-  image_height: number | null;
-}
-
-interface Household {
-  id: string;
-  name: string;
-}
+import type { Expense, Household } from '../types/expense';
 
 interface ExpenseListProps {
-  refreshKey: number;
+  expenses: Expense[];
+  households: Household[];
+  loading: boolean;
+  onReload: () => void;
 }
 
-export function ExpenseList({ refreshKey }: ExpenseListProps) {
-  const { user } = useAuth();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [households, setHouseholds] = useState<Household[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ExpenseList({ expenses, households, loading, onReload }: ExpenseListProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   // Search & filter state
@@ -47,62 +24,18 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
   const [amountMax, setAmountMax] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    loadExpenses();
-  }, [refreshKey, user]);
-
-  const loadExpenses = async () => {
-    if (!user) return;
-    setLoading(true);
-
-    const { data: memberData } = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id);
-
-    const hh = (memberData || [])
-      .map((item) => item.households)
-      .filter(Boolean) as unknown as Household[];
-    setHouseholds(hh);
-
-    const householdMap = new Map(hh.map((h) => [h.id, h.name]));
-    const householdIds = hh.map((h) => h.id);
-
-    if (householdIds.length === 0) {
-      setExpenses([]);
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
-      .in('household_id', householdIds)
-      .order('expense_date', { ascending: false });
-
-    if (!error && data) {
-      setExpenses(
-        data.map((e) => ({
-          ...e,
-          household_name: householdMap.get(e.household_id) || 'Unknown',
-        }))
-      );
-    }
-    setLoading(false);
-  };
-
   const deleteExpense = async (id: string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
 
     const { error } = await supabase.from('expenses').delete().eq('id', id);
     if (!error) {
-      setExpenses(expenses.filter((e) => e.id !== id));
+      onReload();
     }
   };
 
   const handleExpenseUpdated = () => {
     setEditingExpense(null);
-    loadExpenses();
+    onReload();
   };
 
   const formatDate = (dateString: string) => {
@@ -158,10 +91,8 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
     const maxAmt = amountMax ? parseFloat(amountMax) : null;
 
     return expenses.filter((e) => {
-      // Household filter
       if (householdFilter !== 'all' && e.household_id !== householdFilter) return false;
 
-      // Category filter
       if (categoryFilter !== 'all') {
         if (categoryFilter === '__uncategorized__') {
           if (e.category) return false;
@@ -170,15 +101,12 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
         }
       }
 
-      // Date range
       if (dateFrom && e.expense_date < dateFrom) return false;
       if (dateTo && e.expense_date > dateTo) return false;
 
-      // Amount range
       if (minAmt !== null && e.total < minAmt) return false;
       if (maxAmt !== null && e.total > maxAmt) return false;
 
-      // Text search across vendor, category, notes
       if (query) {
         const haystack = [e.vendor, e.category, e.notes, e.household_name]
           .filter(Boolean)
@@ -276,7 +204,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
           {/* Expandable filter panel */}
           {showFilters && (
             <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {/* Household filter */}
               {households.length > 1 && (
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Household</label>
@@ -293,7 +220,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
                 </div>
               )}
 
-              {/* Category filter */}
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Category</label>
                 <select
@@ -309,7 +235,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
                 </select>
               </div>
 
-              {/* Date from */}
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">From date</label>
                 <input
@@ -320,7 +245,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
                 />
               </div>
 
-              {/* Date to */}
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">To date</label>
                 <input
@@ -331,7 +255,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
                 />
               </div>
 
-              {/* Amount min */}
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Min amount</label>
                 <input
@@ -345,7 +268,6 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
                 />
               </div>
 
-              {/* Amount max */}
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Max amount</label>
                 <input

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useExpenses } from '../hooks/useExpenses';
 import { ExpenseList } from './ExpenseList';
+import { DashboardSummary } from './DashboardSummary';
 import { AddExpense } from './AddExpense';
 import { ExportData } from './ExportData';
 import { Reports } from './Reports';
@@ -11,10 +13,11 @@ export function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReports, setShowReports] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  const { expenses, households, loading, reloadExpenses } = useExpenses();
 
   const handleExpenseAdded = () => {
-    setRefreshKey((prev) => prev + 1);
+    reloadExpenses();
   };
 
   const handleSignOut = async () => {
@@ -30,7 +33,18 @@ export function Dashboard() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-900">LedgerX</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-emerald-900 rounded-xl flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 3C5.44772 3 5 3.44772 5 4V20C5 20.5523 5.44772 21 6 21H8V3H6Z" fill="white" fillOpacity="0.9"/>
+                  <path d="M10 3V21H18C18.5523 21 19 20.5523 19 20V4C19 3.44772 18.5523 3 18 3H10Z" fill="white" fillOpacity="0.3"/>
+                  <line x1="12" y1="7" x2="17" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="11" x2="17" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                  <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900">LedgerX</h1>
+            </div>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
@@ -47,28 +61,35 @@ export function Dashboard() {
           <div className="flex gap-3">
             <button
               onClick={() => setShowAddExpense(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
               Add Transaction
             </button>
             <button
               onClick={() => setShowExport(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
             >
               <Download className="w-4 h-4" />
               Export Data
             </button>
             <button
               onClick={() => setShowReports(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
             >
               <FileText className="w-4 h-4" />
               Reports
             </button>
           </div>
 
-          <ExpenseList refreshKey={refreshKey} />
+          <DashboardSummary expenses={expenses} loading={loading} />
+
+          <ExpenseList
+            expenses={expenses}
+            households={households}
+            loading={loading}
+            onReload={reloadExpenses}
+          />
         </div>
       </main>
 
