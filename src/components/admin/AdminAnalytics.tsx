@@ -79,7 +79,7 @@ export function AdminAnalytics() {
     let query = supabase
       .from('expenses')
       .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
-      .order('expense_date', { ascending: true });
+      .order('expense_date', { ascending: false });
 
     if (dateRange === '30d') {
       const from = new Date();
@@ -147,7 +147,7 @@ export function AdminAnalytics() {
         .select('*')
         .gte('expense_date', exportStartDate)
         .lte('expense_date', exportEndDate)
-        .order('expense_date', { ascending: true });
+        .order('expense_date', { ascending: false });
 
       if (householdFilter !== 'all') {
         query = query.eq('household_id', householdFilter);
@@ -165,9 +165,9 @@ export function AdminAnalytics() {
 
       const householdMap = new Map(households.map((h) => [h.id, h.name]));
 
-      // Sort by expense_date ascending (string compare works for YYYY-MM-DD)
+      // Sort by expense_date descending (latest first)
       const sortedData = [...dataToExport].sort((a, b) =>
-        (a.expense_date || '').localeCompare(b.expense_date || '')
+        (b.expense_date || '').localeCompare(a.expense_date || '')
       );
 
       const csvContent = [

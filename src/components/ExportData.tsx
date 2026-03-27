@@ -129,7 +129,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
   const sortExpenses = (expenses: any[], householdMap: Map<string, string>) => {
     return [...expenses].sort((a, b) => {
-      const dateCompare = (a.expense_date || '').localeCompare(b.expense_date || '');
+      const dateCompare = (b.expense_date || '').localeCompare(a.expense_date || '');
       const householdCompare = (householdMap.get(a.household_id) || '').localeCompare(householdMap.get(b.household_id) || '');
       const categoryCompare = (a.category || '').localeCompare(b.category || '');
 
@@ -164,7 +164,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         .in('household_id', householdIds)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
-        .order('expense_date', { ascending: true });
+        .order('expense_date', { ascending: false });
 
       // Apply category filter if specific categories are selected
       if (!allSelected) {
