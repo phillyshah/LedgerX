@@ -137,7 +137,7 @@ export function Reports({ onClose }: ReportsProps) {
         .from('expenses')
         .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
         .in('household_id', selectedHouseholds)
-        .order('expense_date', { ascending: true });
+        .order('expense_date', { ascending: false });
 
       if (selectedCategories.length > 0) {
         const selectedCategoryNames = availableCategories
