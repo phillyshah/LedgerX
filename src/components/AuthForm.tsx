@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileText, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { HelpModal } from './HelpModal';
 
 type AuthMode = 'signin' | 'signup';
@@ -37,8 +37,14 @@ export function AuthForm() {
     <div className="min-h-screen bg-gradient-to-br from-green-900 to-green-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4">
-            <FileText className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-2xl mb-4 shadow-lg shadow-green-900/30">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 3C5.44772 3 5 3.44772 5 4V20C5 20.5523 5.44772 21 6 21H8V3H6Z" fill="white" fillOpacity="0.9"/>
+              <path d="M10 3V21H18C18.5523 21 19 20.5523 19 20V4C19 3.44772 18.5523 3 18 3H10Z" fill="white" fillOpacity="0.3"/>
+              <line x1="12" y1="7" x2="17" y2="7" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="12" y1="11" x2="17" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">LedgerX</h1>
           <p className="text-green-200">Simplified Transaction Management</p>
@@ -148,7 +154,7 @@ export function AuthForm() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-green-300/60">v2.5</p>
+          <p className="text-xs text-green-300/60">v3.0</p>
         </div>
       </div>
 

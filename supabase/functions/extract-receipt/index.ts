@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 500,
+          max_tokens: 700,
           messages: [
             {
               role: "user",
@@ -78,6 +78,10 @@ Deno.serve(async (req: Request) => {
 - transaction_date: the date in YYYY-MM-DD format
 - category: one of "airfare", "car_rental", "parking_tolls_taxi", "lodging", "personal_meals", "business_meals", "other"
 - handwritten_notes: any handwritten text detected on the receipt (null if none)
+- tax_amount: the tax amount as a number (null if not visible)
+- tip_amount: the tip/gratuity amount as a number (null if not visible)
+- payment_method: one of "cash", "credit", "debit" (null if not determinable)
+- items_summary: a brief plain-text summary of items purchased, e.g. "2 coffees, 1 sandwich". Do NOT list individual prices. For meals, just summarize the food/drink items. (null if not determinable)
 
 Category rules for meals:
 - Meals under $20 default to "personal_meals"
@@ -138,9 +142,15 @@ Return ONLY valid JSON with these exact field names. No markdown fences, no expl
       );
     }
 
-    // Ensure total_amount is a float
+    // Ensure numeric fields are floats
     if (extracted.total_amount !== null && extracted.total_amount !== undefined) {
       extracted.total_amount = parseFloat(String(extracted.total_amount));
+    }
+    if (extracted.tax_amount !== null && extracted.tax_amount !== undefined) {
+      extracted.tax_amount = parseFloat(String(extracted.tax_amount));
+    }
+    if (extracted.tip_amount !== null && extracted.tip_amount !== undefined) {
+      extracted.tip_amount = parseFloat(String(extracted.tip_amount));
     }
 
     return new Response(JSON.stringify(extracted), {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { compressImage } from '../lib/imageCompression';
-import { scanReceipt, ReceiptData } from '../lib/receiptScanner';
+import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
 import { X, Upload, Camera, Loader2, Plus } from 'lucide-react';
 
 interface Expense {
@@ -190,16 +190,15 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   };
 
   const applyReceiptData = (data: ReceiptData) => {
+    const enhanced = formatReceiptNotes(data);
     setFormData((prev) => ({
       ...prev,
       vendor: data.vendor_name || prev.vendor,
       total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
       expense_date: data.transaction_date || prev.expense_date,
       category: data.category || prev.category,
-      notes: data.handwritten_notes
-        ? prev.notes
-          ? `${prev.notes}\n${data.handwritten_notes}`
-          : data.handwritten_notes
+      notes: enhanced
+        ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
         : prev.notes,
     }));
   };
