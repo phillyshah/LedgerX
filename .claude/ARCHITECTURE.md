@@ -4,36 +4,36 @@
 
 ```
 src/
-├── App.tsx                    # Routes: AuthForm → Dashboard (user) or AdminLayout (admin)
-├── contexts/AuthContext.tsx   # Auth state, signIn/signUp/signOut, isAdmin check
-├── hooks/useExpenses.ts       # Shared expense data fetching for Dashboard
-├── types/expense.ts           # Shared Expense and Household interfaces
+├── App.tsx                    # Routes: AuthForm → Dashboard or AdminLayout
+├── contexts/AuthContext.tsx   # Auth state, signIn/signUp/signOut, isAdmin
+├── hooks/useExpenses.ts       # Shared expense fetching for Dashboard
+├── types/expense.ts
 ├── lib/
-│   ├── supabase.ts            # Supabase client instance
-│   ├── database.types.ts      # Generated Supabase types
-│   ├── receiptScanner.ts      # OCR interface + formatReceiptNotes helper
-│   └── imageCompression.ts    # Client-side image compression (2MB max)
+│   ├── supabase.ts
+│   ├── database.types.ts
+│   ├── receiptScanner.ts      # OCR client + formatReceiptNotes
+│   └── imageCompression.ts    # Canvas-based JPEG compression
 ├── components/
-│   ├── Dashboard.tsx           # Main user screen, orchestrates data flow
-│   ├── DashboardSummary.tsx    # 4 summary cards (month totals, top category, tx count)
-│   ├── ExpenseList.tsx         # Transaction list with search + filters (receives props)
-│   ├── AddExpense.tsx          # Create expense modal with receipt scan
-│   ├── EditExpense.tsx         # Edit expense modal with image management
-│   ├── Reports.tsx             # Report builder with PDF/CSV export
-│   ├── ExportData.tsx          # Data export with sorting options
-│   ├── AuthForm.tsx            # Login/signup (username-based)
-│   └── HelpModal.tsx           # User help guide
+│   ├── Dashboard.tsx           # Orchestrates data flow
+│   ├── DashboardSummary.tsx    # 4 summary cards
+│   ├── ExpenseList.tsx         # Tx list, client-side filter/search
+│   ├── AddExpense.tsx          # Create modal w/ receipt scan
+│   ├── EditExpense.tsx         # Edit modal w/ image management
+│   ├── Reports.tsx             # PDF/CSV report builder
+│   ├── ExportData.tsx
+│   ├── AuthForm.tsx
+│   ├── HelpModal.tsx
 │   └── admin/
-│       ├── AdminLayout.tsx     # Admin panel with tab navigation
-│       ├── AdminAnalytics.tsx  # Spending charts + category breakdown
+│       ├── AdminLayout.tsx
+│       ├── AdminAnalytics.tsx
 │       ├── ManageHouseholds.tsx
 │       ├── ManageCategories.tsx
 │       ├── ManageUsers.tsx
 │       └── UncategorizedTransactions.tsx
 supabase/
 ├── migrations/                 # 26 SQL migrations (RLS, schema, functions)
-└── functions/                  # Edge functions (Deno)
-    ├── extract-receipt/        # Claude Haiku OCR for receipt scanning
+└── functions/
+    ├── extract-receipt/        # OpenAI gpt-4o-mini OCR (gpt-4o fallback)
     ├── admin-create-user/
     ├── admin-delete-user/
     └── admin-change-password/
@@ -43,27 +43,28 @@ supabase/
 
 | Table | Purpose |
 |-------|---------|
-| `households` | Tenant containers for expenses |
+| `households` | Tenant containers |
 | `household_members` | User ↔ household (role: owner/member) |
-| `expenses` | Core transaction data |
-| `expense_images` | Multiple receipt images per expense (display_order) |
-| `categories` | Expense categories (global if household_id is NULL) |
-| `category_households` | Many-to-many: categories ↔ households |
+| `expenses` | Core transaction data (category is text, not FK) |
+| `expense_images` | Multiple receipts per expense (`display_order`) |
+| `categories` | Global if `household_id` is NULL |
+| `category_households` | M2M: categories ↔ households |
 | `vendor_category_map` | Auto-fill: vendor → category per household |
-| `user_roles` | Admin flag per user |
-| `user_profiles` | Username mapping (username ↔ auth.users) |
-| `exports` | Export request tracking (queued/running/completed/failed) |
+| `user_roles` | Admin flag |
+| `user_profiles` | Username ↔ auth.users |
+| `exports` | Export request tracking |
 
 ## Data Flow
 
-1. `AuthContext` checks auth state → routes to `AuthForm`, `Dashboard`, or `AdminLayout`
-2. `Dashboard` calls `useExpenses()` hook → passes data to `DashboardSummary` + `ExpenseList`
-3. `ExpenseList` does client-side filtering/search (no extra queries)
-4. `AddExpense` uploads images → calls `extract-receipt` edge function → auto-populates form
-5. Vendor-category mapping: on save, upserts to `vendor_category_map`; on add, looks up for auto-fill
+1. `AuthContext` checks auth → routes to AuthForm/Dashboard/AdminLayout
+2. `Dashboard` calls `useExpenses()` → passes data to DashboardSummary + ExpenseList
+3. `ExpenseList` filters/searches client-side (no extra queries)
+4. `AddExpense` uploads images → `extract-receipt` edge function → auto-populates form
+5. Vendor-category map: upserts on save, looks up on add for auto-fill
 
 ## Key Patterns
 
-- **RLS helper functions**: `user_households()` and `user_owned_households()` prevent infinite recursion in policies
-- **Category loading**: Query `category_households` junction table + global categories (where `household_id IS NULL`), merge and deduplicate
-- **Image dual-write**: First image metadata goes on `expenses` table (legacy) AND all images go to `expense_images` table
+- **RLS helpers**: `user_households()` and `user_owned_households()` SQL functions prevent infinite recursion
+- **Category loading**: query `category_households` junction + global categories (`household_id IS NULL`), merge & dedupe
+- **Image dual-write**: first image metadata to `expenses` (legacy) AND all images to `expense_images`
+- **OCR pipeline**: client compresses to ~300KB/800px → edge function calls OpenAI with `detail: "low"` + JSON mode

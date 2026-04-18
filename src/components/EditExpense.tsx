@@ -208,7 +208,8 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     setScanning(true);
     setScanError(null);
     try {
-      const data = await scanReceipt(file);
+      const ocrFile = await compressImage(file, 0.3, 800, 800);
+      const data = await scanReceipt(ocrFile);
       applyReceiptData(data);
     } catch (error) {
       console.error('Receipt scan error:', error);

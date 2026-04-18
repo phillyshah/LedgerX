@@ -161,7 +161,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     setScanning(true);
     setScanError(null);
     try {
-      const data = await scanReceipt(file);
+      // OpenAI uses detail:"low" → 512px internal — send a smaller copy to cut upload time
+      const ocrFile = await compressImage(file, 0.3, 800, 800);
+      const data = await scanReceipt(ocrFile);
       applyReceiptData(data);
     } catch (error) {
       console.error('Receipt scan error:', error);

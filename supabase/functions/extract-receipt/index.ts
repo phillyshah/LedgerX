@@ -7,7 +7,7 @@ const corsHeaders = {
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PROMPT = `Analyze this receipt image and extract the following fields as JSON:
+const PROMPT = `Analyze this receipt image and extract the following fields as json:
 - vendor_name: the store or business name
 - total_amount: the total amount as a number (float with decimal precision, e.g. 42.50)
 - transaction_date: the date in YYYY-MM-DD format
@@ -23,7 +23,7 @@ Category rules for meals:
 - Meals $20 or more, or with business context (e.g. mentions of clients, meetings, business), default to "business_meals"
 - Non-meal items should use the appropriate category or "other"
 
-Return ONLY valid JSON with these exact field names. No markdown fences, no explanation. If a field cannot be determined, use null.`;
+If a field cannot be determined, use null.`;
 
 async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -34,7 +34,8 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
     },
     body: JSON.stringify({
       model,
-      max_tokens: 700,
+      max_tokens: 400,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
@@ -65,8 +66,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
 }
 
 function parseExtracted(content: string) {
-  const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  const extracted = JSON.parse(cleaned);
+  const extracted = JSON.parse(content);
 
   for (const field of ["total_amount", "tax_amount", "tip_amount"]) {
     if (extracted[field] != null) {
@@ -100,16 +100,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // Build data URL for OpenAI vision
-    let mimeType = "image/jpeg";
+    let mimeType: string;
     if (image.startsWith("iVBOR")) mimeType = "image/png";
     else if (image.startsWith("R0lGO")) mimeType = "image/gif";
     else if (image.startsWith("UklGR")) mimeType = "image/webp";
+    else mimeType = "image/jpeg";
     const imageDataUrl = `data:${mimeType};base64,${image}`;
 
     // Try gpt-4o-mini first, fall back to gpt-4o on failure
     const models = ["gpt-4o-mini", "gpt-4o"];
-    let lastError = "";
-
     const errors: Record<string, string> = {};
 
     for (const model of models) {
@@ -122,7 +121,6 @@ Deno.serve(async (req: Request) => {
         });
       } catch (err) {
         errors[model] = err.message;
-        lastError = err.message;
       }
     }
 
