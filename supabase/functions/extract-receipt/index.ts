@@ -41,7 +41,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
           content: [
             {
               type: "image_url",
-              image_url: { url: imageDataUrl },
+              image_url: { url: imageDataUrl, detail: "low" },
             },
             {
               type: "text",
@@ -106,8 +106,8 @@ Deno.serve(async (req: Request) => {
     else if (image.startsWith("UklGR")) mimeType = "image/webp";
     const imageDataUrl = `data:${mimeType};base64,${image}`;
 
-    // Try gpt-4o-mini first, fall back to gpt-5 on failure
-    const models = ["gpt-4o-mini", "gpt-5"];
+    // Try gpt-4o-mini first, fall back to gpt-4o on failure
+    const models = ["gpt-4o-mini", "gpt-4o"];
     let lastError = "";
 
     for (const model of models) {
