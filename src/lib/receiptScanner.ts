@@ -60,7 +60,10 @@ export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Receipt scan failed (${response.status})`);
+    const detail = errorData.errors
+      ? Object.entries(errorData.errors).map(([m, e]) => `${m}: ${e}`).join(' | ')
+      : null;
+    throw new Error(detail || errorData.error || `Receipt scan failed (${response.status})`);
   }
 
   return response.json();
