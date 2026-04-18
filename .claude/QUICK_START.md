@@ -18,7 +18,7 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Edge functions also need `ANTHROPIC_API_KEY` set in Supabase dashboard.
+Edge functions also need `OPENAI_API_KEY` set in Supabase dashboard (Settings → Edge Functions → Secrets).
 
 ## Supabase
 
