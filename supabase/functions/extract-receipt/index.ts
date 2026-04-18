@@ -110,6 +110,8 @@ Deno.serve(async (req: Request) => {
     const models = ["gpt-4o-mini", "gpt-4o"];
     let lastError = "";
 
+    const errors: Record<string, string> = {};
+
     for (const model of models) {
       try {
         const content = await callOpenAI(openaiApiKey, model, imageDataUrl);
@@ -119,12 +121,13 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (err) {
+        errors[model] = err.message;
         lastError = err.message;
       }
     }
 
     return new Response(
-      JSON.stringify({ error: "All models failed", details: lastError }),
+      JSON.stringify({ error: "All models failed", errors }),
       { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
