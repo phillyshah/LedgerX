@@ -6,13 +6,16 @@ import { DashboardSummary } from './DashboardSummary';
 import { AddExpense } from './AddExpense';
 import { ExportData } from './ExportData';
 import { Reports } from './Reports';
-import { LogOut, Plus, Download, FileText } from 'lucide-react';
+import { LogOut, Plus, Download, FileText, Settings } from 'lucide-react';
+import { UserSettings } from './UserSettings';
+import { SpendingCharts } from './SpendingCharts';
 
 export function Dashboard() {
   const { signOut } = useAuth();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReports, setShowReports] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { expenses, households, loading, reloadExpenses } = useExpenses();
 
@@ -45,13 +48,22 @@ export function Dashboard() {
               </div>
               <h1 className="text-2xl font-bold text-slate-900">LedgerX</h1>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Sign Out</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                aria-label="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm font-medium">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -84,6 +96,8 @@ export function Dashboard() {
 
           <DashboardSummary expenses={expenses} loading={loading} />
 
+          <SpendingCharts expenses={expenses} loading={loading} />
+
           <ExpenseList
             expenses={expenses}
             households={households}
@@ -106,6 +120,10 @@ export function Dashboard() {
 
       {showReports && (
         <Reports onClose={() => setShowReports(false)} />
+      )}
+
+      {showSettings && (
+        <UserSettings onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

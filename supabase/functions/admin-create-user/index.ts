@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { userid, password, is_admin } = await req.json();
+    const { userid, password, is_admin, email: realEmail } = await req.json();
 
     if (!userid || !password) {
       return new Response(
@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const email = `${userid}@example.com`;
+    const email = realEmail || `${userid}@example.com`;
 
     const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
       email,
@@ -137,6 +137,7 @@ Deno.serve(async (req: Request) => {
           id: userId,
           username: userid,
           email: email,
+          ...(realEmail ? { real_email: realEmail } : {}),
         });
 
       if (profileInsertError) {

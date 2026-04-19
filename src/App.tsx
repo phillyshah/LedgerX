@@ -2,9 +2,10 @@ import { useAuth } from './contexts/AuthContext';
 import { AuthForm } from './components/AuthForm';
 import { Dashboard } from './components/Dashboard';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { ResetPasswordForm } from './components/ResetPasswordForm';
 
 function App() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isRecoveryMode } = useAuth();
 
   if (loading) {
     return (
@@ -16,6 +17,8 @@ function App() {
       </div>
     );
   }
+
+  if (isRecoveryMode) return <ResetPasswordForm />;
 
   if (!user) return <AuthForm />;
 
