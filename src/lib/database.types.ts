@@ -227,6 +227,29 @@ export interface Database {
           updated_at?: string;
         };
       };
+      user_profiles: {
+        Row: {
+          id: string;
+          username: string;
+          email: string;
+          real_email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          username: string;
+          email: string;
+          real_email?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          username?: string;
+          email?: string;
+          real_email?: string | null;
+          created_at?: string;
+        };
+      };
     };
   };
 }
