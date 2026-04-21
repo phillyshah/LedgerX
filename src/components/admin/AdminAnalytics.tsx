@@ -213,138 +213,146 @@ export function AdminAnalytics() {
       document.body.removeChild(csvLink);
       window.URL.revokeObjectURL(csvUrl);
 
+      // Compress image blob → { dataUrl, width, height } for correct mm sizing in jsPDF v4
+      const compressForPDF = (blob: Blob): Promise<{ dataUrl: string; width: number; height: number }> =>
+        new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(blob);
+          const src = new Image();
+          src.onload = () => {
+            const MAX = 600;
+            let { width, height } = src;
+            const r = Math.min(MAX / width, MAX / height, 1);
+            width = Math.round(width * r); height = Math.round(height * r);
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d')!.drawImage(src, 0, 0, width, height);
+            URL.revokeObjectURL(url);
+            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.65), width, height });
+          };
+          src.onerror = reject;
+          src.src = url;
+        });
+
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
-      let yPosition = margin;
-
-      pdf.setFontSize(18);
-      pdf.text('Admin Transaction Report', margin, yPosition);
-      yPosition += 10;
-
-      pdf.setFontSize(10);
-      pdf.text(`Period: ${exportStartDate} to ${exportEndDate}`, margin, yPosition);
-      yPosition += 6;
-      pdf.text(`Total Transactions: ${sortedData.length}`, margin, yPosition);
-      yPosition += 6;
       const totalAmount = sortedData.reduce((sum, e) => sum + e.total, 0);
-      pdf.text(`Total Amount: ${fmt(totalAmount)}`, margin, yPosition);
-      yPosition += 15;
+
+      // Page header — returns the y position where content starts
+      const addPageHeader = (isFirst: boolean) => {
+        pdf.setFontSize(16);
+        pdf.setFont(undefined as unknown as string, 'bold');
+        pdf.text('Admin Transaction Report', margin, margin);
+        pdf.setFontSize(9);
+        pdf.setFont(undefined as unknown as string, 'normal');
+        pdf.text(`Period: ${exportStartDate} to ${exportEndDate}`, margin, margin + 8);
+        if (isFirst) {
+          pdf.text(`Total Transactions: ${sortedData.length}   Total Amount: ${fmt(totalAmount)}`, margin, margin + 14);
+          return margin + 22;
+        }
+        return margin + 14;
+      };
+
+      // 2-column grid: 4 cells per page (2 cols × 2 rows)
+      const cols = 2;
+      const rows = 2;
+      const colGap = 6;
+      const rowGap = 4;
+      const cellWidth = (pageWidth - 2 * margin - colGap) / cols;
+      const imageBoxWidth = 42;
+      const thumbHeight = 30;
+
+      let contentStartY = addPageHeader(true);
+      const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
+
+      let txIndex = 0;
+      let firstPage = true;
 
       for (let i = 0; i < sortedData.length; i++) {
         const expense = sortedData[i];
 
-        if (yPosition > pageHeight - 40) {
+        if (txIndex >= cols * rows) {
           pdf.addPage();
-          yPosition = margin;
+          firstPage = false;
+          contentStartY = addPageHeader(false);
+          txIndex = 0;
         }
 
-        // Show pic-id as header
+        const col = txIndex % cols;
+        const row = Math.floor(txIndex / cols);
+        const xOffset = margin + col * (cellWidth + colGap);
+        const yOffset = (firstPage || txIndex > 0 ? contentStartY : addPageHeader(false)) + row * (cellHeight + rowGap);
+
+        let yPos = yOffset + 4;
+        const imageX = xOffset + cellWidth - imageBoxWidth;
+        const imageY = yOffset + 4;
+        const textWidth = cellWidth - imageBoxWidth - 4;
+
+        // Pic ID
         if (expense.pic_id) {
-          pdf.setFontSize(9);
-          pdf.setFont(undefined as unknown as string, 'bold');
-          pdf.setTextColor(100, 100, 100);
-          pdf.text(`Pic ID: ${expense.pic_id}`, margin, yPosition);
-          yPosition += 5;
+          pdf.setFontSize(8);
+          pdf.setFont(undefined as unknown as string, 'normal');
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(`Pic ID: ${expense.pic_id}`, xOffset, yPos);
+          yPos += 4;
           pdf.setTextColor(0, 0, 0);
         }
 
-        pdf.setFontSize(12);
+        // Vendor
+        pdf.setFontSize(11);
         pdf.setFont(undefined as unknown as string, 'bold');
-        pdf.text(`${expense.vendor || 'Unnamed Transaction'}`, margin, yPosition);
-        yPosition += 6;
+        const vendorLines = pdf.splitTextToSize(expense.vendor || 'Unnamed Transaction', textWidth);
+        pdf.text(vendorLines, xOffset, yPos);
+        yPos += vendorLines.length * 5.5;
 
-        pdf.setFontSize(10);
+        // Details
+        pdf.setFontSize(9);
         pdf.setFont(undefined as unknown as string, 'normal');
-        pdf.text(`Date: ${expense.expense_date}`, margin, yPosition);
-        yPosition += 5;
+        pdf.text(`Date: ${expense.expense_date}`, xOffset, yPos); yPos += 4.5;
         pdf.text(
-          `Amount: ${new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: expense.currency || 'USD',
-          }).format(expense.total)}`,
-          margin,
-          yPosition
-        );
-        yPosition += 5;
+          `Amount: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
+          xOffset, yPos
+        ); yPos += 4.5;
 
         const hhName = householdMap.get(expense.household_id);
-        if (hhName) {
-          pdf.text(`Household: ${hhName}`, margin, yPosition);
-          yPosition += 5;
-        }
-
-        if (expense.category) {
-          pdf.text(`Category: ${expense.category}`, margin, yPosition);
-          yPosition += 5;
-        }
+        if (hhName) { pdf.text(`Household: ${hhName}`, xOffset, yPos); yPos += 4.5; }
+        if (expense.category) { pdf.text(`Category: ${expense.category}`, xOffset, yPos); yPos += 4.5; }
 
         if (expense.notes) {
-          const noteLines = pdf.splitTextToSize(
-            `Notes: ${expense.notes}`,
-            pageWidth - 2 * margin
-          );
-          pdf.text(noteLines, margin, yPosition);
-          yPosition += noteLines.length * 5;
+          const maxNL = Math.max(1, Math.floor((imageY + thumbHeight - yPos) / 4.5));
+          const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, textWidth).slice(0, maxNL);
+          pdf.text(noteLines, xOffset, yPos);
         }
 
+        // Receipt thumbnail
         if (expense.image_path) {
           try {
-            const { data: imageData } = await supabase.storage
-              .from('receipts')
-              .download(expense.image_path);
-
+            const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
-              const imageUrl = URL.createObjectURL(imageData);
-              const img = new Image();
-
-              await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-                img.src = imageUrl;
-              });
-
-              const maxWidth = pageWidth - 2 * margin;
-              const maxHeight = 100;
-              let imgWidth = expense.image_width || img.width;
-              let imgHeight = expense.image_height || img.height;
-
-              const widthRatio = maxWidth / imgWidth;
-              const heightRatio = maxHeight / imgHeight;
-              const ratio = Math.min(widthRatio, heightRatio);
-
-              imgWidth *= ratio;
-              imgHeight *= ratio;
-
-              if (yPosition + imgHeight > pageHeight - margin) {
-                pdf.addPage();
-                yPosition = margin;
-              }
-
-              yPosition += 5;
-              pdf.addImage(img, 'JPEG', margin, yPosition, imgWidth, imgHeight);
-              yPosition += imgHeight + 10;
-
-              URL.revokeObjectURL(imageUrl);
+              const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
+              const aspect = px / py;
+              let renderW = imageBoxWidth;
+              let renderH = imageBoxWidth / aspect;
+              if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
+              pdf.addImage(
+                dataUrl, 'JPEG',
+                imageX + (imageBoxWidth - renderW) / 2,
+                imageY + (thumbHeight - renderH) / 2,
+                renderW, renderH
+              );
             }
-          } catch (imageError) {
-            console.error('Error loading image:', imageError);
-          }
+          } catch { /* skip missing images */ }
         }
 
-        if (i < dataToExport.length - 1) {
-          pdf.setDrawColor(200, 200, 200);
-          pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-          yPosition += 10;
-        }
+        // Cell separator
+        pdf.setDrawColor(220, 220, 220);
+        pdf.line(xOffset, yOffset + cellHeight - 2, xOffset + cellWidth, yOffset + cellHeight - 2);
+
+        txIndex += 1;
       }
 
       pdf.save(`ledgerx-admin-export-${exportStartDate}-to-${exportEndDate}.pdf`);
-
-      setShowExport(false);
-      setExportStartDate('');
-      setExportEndDate('');
     } catch (error) {
       console.error('Error exporting data:', error);
       alert('Failed to export data. Please try again.');

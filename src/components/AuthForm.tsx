@@ -262,7 +262,7 @@ export function AuthForm() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-green-300/60">v3.7</p>
+          <p className="text-xs text-green-300/60">v3.8</p>
         </div>
       </div>
 
