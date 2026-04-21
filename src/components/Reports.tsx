@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
 
 interface Household {
   id: string;
@@ -250,45 +251,16 @@ export function Reports({ onClose }: ReportsProps) {
         return margin + 20;
       };
 
-      // Helper: compress image blob for PDF embedding.
-      // Returns dataUrl + pixel dims so we can compute correct mm sizing.
-      const compressForPDF = (blob: Blob): Promise<{ dataUrl: string; width: number; height: number }> =>
-        new Promise((resolve, reject) => {
-          const url = URL.createObjectURL(blob);
-          const srcImg = new Image();
-          srcImg.onload = () => {
-            const MAX = 600;
-            let { width, height } = srcImg;
-            const r = Math.min(MAX / width, MAX / height, 1);
-            width = Math.round(width * r);
-            height = Math.round(height * r);
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            canvas.getContext('2d')!.drawImage(srcImg, 0, 0, width, height);
-            URL.revokeObjectURL(url);
-            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.65), width, height });
-          };
-          srcImg.onerror = reject;
-          srcImg.src = url;
-        });
-
-      // 2-column layout, 4 items per page, oldest first
       let contentStartY = addPageHeader();
-      const maxItemsPerPage = 4;
-      const cols = 2;
-      const rows = 2;
-      const colGap = 6;
-      const rowGap = 4;
-      const cellWidth = (pageWidth - 2 * margin - colGap) / 2;
-      const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
+      const { cols, rows, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
       const imageBoxWidth = 50;
-      const thumbHeight = cellHeight - 10; // fill the cell so receipts are legible
+      const thumbHeight = cellHeight - 10;
       let txIndex = 0;
 
       for (let i = 0; i < sortedExpenses.length; i++) {
         const expense = sortedExpenses[i];
 
-        if (txIndex >= maxItemsPerPage) {
+        if (txIndex >= maxPerPage) {
           pdf.addPage();
           contentStartY = addPageHeader();
           txIndex = 0;
@@ -336,12 +308,7 @@ export function Reports({ onClose }: ReportsProps) {
           try {
             const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
-              const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
-              const aspect = px / py;
-              let renderW = imageBoxWidth;
-              let renderH = imageBoxWidth / aspect;
-              if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
-              pdf.addImage(dataUrl, 'JPEG', imageX + (imageBoxWidth - renderW) / 2, imageY + (thumbHeight - renderH) / 2, renderW, renderH);
+              addImageToPDF(pdf, await compressForPDF(imageData), imageX, imageY, imageBoxWidth, thumbHeight);
             }
           } catch { /* skip */ }
         }

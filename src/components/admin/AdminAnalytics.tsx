@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { DollarSign, Receipt, Home, Calendar, Download, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { compressForPDF, addImageToPDF, pdfGridLayout } from '../../lib/pdfUtils';
 import { EditExpense } from '../EditExpense';
 import { SpendingCharts } from '../SpendingCharts';
 import type { Expense as ExpenseType } from '../../types/expense';
@@ -213,26 +214,6 @@ export function AdminAnalytics() {
       document.body.removeChild(csvLink);
       window.URL.revokeObjectURL(csvUrl);
 
-      // Compress image blob → { dataUrl, width, height } for correct mm sizing in jsPDF v4
-      const compressForPDF = (blob: Blob): Promise<{ dataUrl: string; width: number; height: number }> =>
-        new Promise((resolve, reject) => {
-          const url = URL.createObjectURL(blob);
-          const src = new Image();
-          src.onload = () => {
-            const MAX = 600;
-            let { width, height } = src;
-            const r = Math.min(MAX / width, MAX / height, 1);
-            width = Math.round(width * r); height = Math.round(height * r);
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            canvas.getContext('2d')!.drawImage(src, 0, 0, width, height);
-            URL.revokeObjectURL(url);
-            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.65), width, height });
-          };
-          src.onerror = reject;
-          src.src = url;
-        });
-
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -254,18 +235,9 @@ export function AdminAnalytics() {
         return margin + 14;
       };
 
-      // 2-column grid: 4 cells per page (2 cols × 2 rows)
-      const cols = 2;
-      const rows = 2;
-      const colGap = 6;
-      const rowGap = 4;
-      const cellWidth = (pageWidth - 2 * margin - colGap) / cols;
       const imageBoxWidth = 50;
-
       let contentStartY = addPageHeader(true);
-      const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
-      // Image fills nearly the full cell height so receipts are legible.
-      // Aspect-ratio clamping in the render step handles full-page docs naturally.
+      const { cols, rows, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
       const thumbHeight = cellHeight - 10;
 
       let txIndex = 0;
@@ -273,7 +245,7 @@ export function AdminAnalytics() {
       for (let i = 0; i < sortedData.length; i++) {
         const expense = sortedData[i];
 
-        if (txIndex >= cols * rows) {
+        if (txIndex >= maxPerPage) {
           pdf.addPage();
           contentStartY = addPageHeader(false);
           txIndex = 0;
@@ -330,17 +302,7 @@ export function AdminAnalytics() {
           try {
             const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
-              const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
-              const aspect = px / py;
-              let renderW = imageBoxWidth;
-              let renderH = imageBoxWidth / aspect;
-              if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
-              pdf.addImage(
-                dataUrl, 'JPEG',
-                imageX + (imageBoxWidth - renderW) / 2,
-                imageY + (thumbHeight - renderH) / 2,
-                renderW, renderH
-              );
+              addImageToPDF(pdf, await compressForPDF(imageData), imageX, imageY, imageBoxWidth, thumbHeight);
             }
           } catch { /* skip missing images */ }
         }
