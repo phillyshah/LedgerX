@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { DollarSign, Receipt, Home, Calendar, Download, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EditExpense } from '../EditExpense';
+import { SpendingCharts } from '../SpendingCharts';
+import type { Expense as ExpenseType } from '../../types/expense';
 
 interface Expense {
   id: string;
@@ -453,6 +455,8 @@ export function AdminAnalytics() {
         <StatCard icon={DollarSign} label="Total Amount" value={fmt(totalAmount)} />
         <StatCard icon={Receipt} label="Transactions" value={transactionCount.toString()} />
       </div>
+
+      <SpendingCharts expenses={filteredExpenses as unknown as ExpenseType[]} loading={loading} />
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
         <h3 className="text-lg font-semibold text-slate-900 mb-5">Transactions by Category</h3>
