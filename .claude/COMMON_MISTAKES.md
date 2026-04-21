@@ -28,6 +28,14 @@ The `expenses` table has `image_path`, `image_mime`, `image_width`, `image_heigh
 
 The `vendor_category_map` table uses `ilike` for lookups, not `eq`. The index is on `lower(vendor_name)`. Always use `ilike` when querying this table.
 
-## 5. Admin role assignment
+## 5. Edge functions with ES256 JWTs — use --no-verify-jwt
 
-`claim_admin_role()` was removed in migration `20260419000001`. Admin roles are assigned only via `admin_update_user_role()` RPC or the `admin-create-user` edge function. The `reset-admin-password` edge function (which used a hardcoded master key) was also deleted — use self-service email reset or admin-initiated `admin-change-password` instead.
+This Supabase project uses ES256 (asymmetric JWT signing). The edge function runtime's built-in JWT pre-verifier only supports HS256 and will reject ES256 tokens with `UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM` before the function code runs.
+
+**Fix**: deploy affected functions with `--no-verify-jwt` flag and verify auth inside the function code via `supabase.auth.getUser(token)` (which hits the Gotrue endpoint and handles ES256 natively).
+
+`supabase/config.toml` already sets `verify_jwt = false` for `update-user-email`. Apply the same pattern to any new edge function that authenticates users.
+
+## 6. Admin role assignment
+
+`claim_admin_role()` was removed in migration `20260419000001`. Admin roles are assigned only via `admin_update_user_role()` RPC or the `admin-create-user` edge function.
