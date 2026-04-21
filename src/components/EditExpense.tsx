@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Camera, Loader2, Plus } from 'lucide-react';
+import { X, Upload, Camera, Loader2, Plus, FileText } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -580,13 +580,15 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               )}
             </label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
-              {/* Zoomed view */}
+              {/* Zoomed view — PDFs open in new tab instead, so only render for images */}
               {zoomedImageIndex !== null && (
                 <div className="mb-4">
                   {zoomedImageIndex < visibleExistingImages.length ? (
+                    visibleExistingImages[zoomedImageIndex].image_mime !== 'application/pdf' &&
                     visibleExistingImages[zoomedImageIndex].signedUrl &&
                     renderZoomedImage(visibleExistingImages[zoomedImageIndex].signedUrl!)
                   ) : (
+                    newImages[zoomedImageIndex - visibleExistingImages.length].file.type !== 'application/pdf' &&
                     renderZoomedImage(newImages[zoomedImageIndex - visibleExistingImages.length].preview)
                   )}
                 </div>
@@ -600,9 +602,22 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                       <div
                         key={img.id}
                         className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
-                        onClick={() => { setZoomedImageIndex(index); setImageZoom(1); }}
+                        onClick={() => {
+                          if (img.image_mime === 'application/pdf' && img.signedUrl) {
+                            window.open(img.signedUrl, '_blank');
+                          } else {
+                            setZoomedImageIndex(index);
+                            setImageZoom(1);
+                          }
+                        }}
                       >
-                        {img.signedUrl ? (
+                        {img.image_mime === 'application/pdf' ? (
+                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                            <FileText className="w-8 h-8 text-red-400" />
+                            <span className="text-xs px-2 truncate w-full text-center">{img.image_path?.split('/').pop()}</span>
+                            <span className="text-xs text-slate-400">Click to open</span>
+                          </div>
+                        ) : img.signedUrl ? (
                           <img src={img.signedUrl} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
                         ) : (
                           <div className="w-full h-32 bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
@@ -629,9 +644,21 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                       <div
                         key={`new-${index}`}
                         className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
-                        onClick={() => { setZoomedImageIndex(visibleExistingImages.length + index); setImageZoom(1); }}
+                        onClick={() => {
+                          if (img.file.type !== 'application/pdf') {
+                            setZoomedImageIndex(visibleExistingImages.length + index);
+                            setImageZoom(1);
+                          }
+                        }}
                       >
-                        <img src={img.preview} alt={`New receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        {img.file.type === 'application/pdf' ? (
+                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                            <FileText className="w-8 h-8 text-red-400" />
+                            <span className="text-xs px-2 truncate w-full text-center">{img.file.name}</span>
+                          </div>
+                        ) : (
+                          <img src={img.preview} alt={`New receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        )}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); removeNewImage(index); }}

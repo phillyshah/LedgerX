@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Check, Camera, Loader2, Plus } from 'lucide-react';
+import { X, Upload, Check, Camera, Loader2, Plus, FileText } from 'lucide-react';
 
 interface Household {
   id: string;
@@ -500,7 +500,14 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {images.map((img, index) => (
                       <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-200">
-                        <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        {img.file.type === 'application/pdf' ? (
+                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                            <FileText className="w-8 h-8 text-red-400" />
+                            <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
+                          </div>
+                        ) : (
+                          <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                        )}
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
