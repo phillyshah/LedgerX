@@ -128,12 +128,15 @@ export function ExportData({ onClose }: ExportDataProps) {
   };
 
   // Helper: compress a raw image Blob down to a small JPEG for PDF embedding.
-  const compressForPDF = (blob: Blob): Promise<HTMLImageElement> =>
+  // Returns the data URL string plus pixel dimensions so callers can compute
+  // correct mm sizing without relying on HTMLImageElement.width (which jsPDF v4
+  // ignores when sizing — it uses natural pixel dimensions instead).
+  const compressForPDF = (blob: Blob): Promise<{ dataUrl: string; width: number; height: number }> =>
     new Promise((resolve, reject) => {
       const url = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
-        const MAX = 600; // max px on either side for PDF thumbnails
+        const MAX = 600;
         let { width, height } = img;
         const ratio = Math.min(MAX / width, MAX / height, 1);
         width = Math.round(width * ratio);
@@ -141,13 +144,9 @@ export function ExportData({ onClose }: ExportDataProps) {
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
         URL.revokeObjectURL(url);
-        const compressed = new Image();
-        compressed.onload = () => resolve(compressed);
-        compressed.onerror = reject;
-        compressed.src = canvas.toDataURL('image/jpeg', 0.65);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.65), width, height });
       };
       img.onerror = reject;
       img.src = url;
@@ -381,20 +380,15 @@ export function ExportData({ onClose }: ExportDataProps) {
                 .download(expImg.image_path);
 
               if (imageData) {
-                // Compress image before embedding to keep PDF size small
-                const img = await compressForPDF(imageData);
-
-                const widthRatio = thumbWidth / img.width;
-                const heightRatio = thumbHeight / img.height;
-                const ratio = Math.min(widthRatio, heightRatio);
-
-                const scaledW = img.width * ratio;
-                const scaledH = img.height * ratio;
-
-                const offsetX = thumbX + (thumbWidth - scaledW) / 2;
-                const offsetY = thumbY + (thumbHeight - scaledH) / 2;
-
-                pdf.addImage(img, 'JPEG', offsetX, offsetY, scaledW, scaledH);
+                const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
+                // Fit image inside the thumbnail box (in mm) maintaining aspect ratio
+                const aspect = px / py;
+                let renderW = thumbWidth;
+                let renderH = thumbWidth / aspect;
+                if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
+                const offsetX = thumbX + (thumbWidth - renderW) / 2;
+                const offsetY = thumbY + (thumbHeight - renderH) / 2;
+                pdf.addImage(dataUrl, 'JPEG', offsetX, offsetY, renderW, renderH);
               }
             } catch (imageError) {
               console.error('Error loading image:', imageError);

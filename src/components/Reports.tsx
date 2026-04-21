@@ -250,8 +250,9 @@ export function Reports({ onClose }: ReportsProps) {
         return margin + 20;
       };
 
-      // Helper: compress image blob for PDF embedding
-      const compressForPDF = (blob: Blob): Promise<HTMLImageElement> =>
+      // Helper: compress image blob for PDF embedding.
+      // Returns dataUrl + pixel dims so we can compute correct mm sizing.
+      const compressForPDF = (blob: Blob): Promise<{ dataUrl: string; width: number; height: number }> =>
         new Promise((resolve, reject) => {
           const url = URL.createObjectURL(blob);
           const srcImg = new Image();
@@ -265,16 +266,14 @@ export function Reports({ onClose }: ReportsProps) {
             canvas.width = width; canvas.height = height;
             canvas.getContext('2d')!.drawImage(srcImg, 0, 0, width, height);
             URL.revokeObjectURL(url);
-            const out = new Image();
-            out.onload = () => resolve(out);
-            out.onerror = reject;
-            out.src = canvas.toDataURL('image/jpeg', 0.65);
+            resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.65), width, height });
           };
           srcImg.onerror = reject;
           srcImg.src = url;
         });
 
       // 2-column layout, 4 items per page, oldest first
+      let contentStartY = addPageHeader();
       const maxItemsPerPage = 4;
       const cols = 2;
       const rows = 2;
@@ -336,14 +335,13 @@ export function Reports({ onClose }: ReportsProps) {
           try {
             const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
-              const img = await compressForPDF(imageData);
+              const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
               const thumbH = 22;
-              const wr = imageBoxWidth / img.width;
-              const hr = thumbH / img.height;
-              const ratio = Math.min(wr, hr);
-              const sw = img.width * ratio;
-              const sh = img.height * ratio;
-              pdf.addImage(img, 'JPEG', imageX + (imageBoxWidth - sw) / 2, imageY + (thumbH - sh) / 2, sw, sh);
+              const aspect = px / py;
+              let renderW = imageBoxWidth;
+              let renderH = imageBoxWidth / aspect;
+              if (renderH > thumbH) { renderH = thumbH; renderW = thumbH * aspect; }
+              pdf.addImage(dataUrl, 'JPEG', imageX + (imageBoxWidth - renderW) / 2, imageY + (thumbH - renderH) / 2, renderW, renderH);
             }
           } catch { /* skip */ }
         }
