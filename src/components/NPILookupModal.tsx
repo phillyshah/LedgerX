@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Search, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-interface NPIResult {
+export interface NPIResult {
   npi: string;
   name: string;
   credential?: string;
@@ -11,18 +11,34 @@ interface NPIResult {
   state?: string;
 }
 
+export function formatNPIInsert(r: NPIResult): string {
+  const credential = r.credential ? `, ${r.credential}` : '';
+  return `Surgeon: Dr. ${r.name}${credential}, NPI: ${r.npi}`;
+}
+
 interface NPILookupModalProps {
   onClose: () => void;
   onInsert: (text: string) => void;
+  /** Pre-fill the search box (extracted from notes). */
+  initialQuery?: string;
+  /** Pre-load results to avoid a second API round-trip. */
+  initialResults?: NPIResult[];
 }
 
-export function NPILookupModal({ onClose, onInsert }: NPILookupModalProps) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<NPIResult[]>([]);
+export function NPILookupModal({
+  onClose,
+  onInsert,
+  initialQuery = '',
+  initialResults,
+}: NPILookupModalProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<NPIResult[]>(initialResults ?? []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(!!initialResults);
   const debounceRef = useRef<number | undefined>(undefined);
+  // Track the query value that produced the current results so we don't re-search on mount.
+  const lastSearchedRef = useRef<string>(initialResults ? initialQuery : '');
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -38,8 +54,11 @@ export function NPILookupModal({ onClose, onInsert }: NPILookupModalProps) {
     if (q.length < 2) {
       setResults([]);
       setHasSearched(false);
+      lastSearchedRef.current = '';
       return;
     }
+    // Skip if this query already produced the current results (pre-loaded on open).
+    if (q === lastSearchedRef.current) return;
     debounceRef.current = window.setTimeout(() => {
       runSearch(q);
     }, 400);
@@ -58,6 +77,7 @@ export function NPILookupModal({ onClose, onInsert }: NPILookupModalProps) {
       if (fnError) throw fnError;
       setResults((data?.results ?? []) as NPIResult[]);
       setHasSearched(true);
+      lastSearchedRef.current = q;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lookup failed');
       setResults([]);
@@ -67,8 +87,7 @@ export function NPILookupModal({ onClose, onInsert }: NPILookupModalProps) {
   };
 
   const handleInsert = (r: NPIResult) => {
-    const credential = r.credential ? `, ${r.credential}` : '';
-    onInsert(`Surgeon: Dr. ${r.name}${credential}, NPI: ${r.npi}`);
+    onInsert(formatNPIInsert(r));
     onClose();
   };
 

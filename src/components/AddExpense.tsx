@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
-import { NPILookupModal } from './NPILookupModal';
+import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 
 interface Household {
   id: string;
@@ -46,6 +46,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [scanError, setScanError] = useState<string | null>(null);
   const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
   const [showNPILookup, setShowNPILookup] = useState(false);
+  const [npiInitialQuery, setNpiInitialQuery] = useState('');
+  const [npiInitialResults, setNpiInitialResults] = useState<NPIResult[] | undefined>(undefined);
+  const [npiSearching, setNpiSearching] = useState(false);
 
   useEffect(() => {
     loadOptions();
@@ -349,6 +352,48 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }
   };
 
+  // Extract a surgeon name from notes (text after "Dr" / "Dr."), auto-search NPI,
+  // then either insert directly (1 result) or open the modal (0 or multiple results).
+  const handleNPIClick = async () => {
+    const drMatch = formData.notes.match(/\bdr\.?\s+([a-zA-Z]+(?:\s+[a-zA-Z]+){0,3})/i);
+    if (!drMatch) {
+      // No "Dr" found — open blank modal.
+      setNpiInitialQuery('');
+      setNpiInitialResults(undefined);
+      setShowNPILookup(true);
+      return;
+    }
+    const extractedName = drMatch[1].trim();
+    setNpiSearching(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('lookup-npi', {
+        body: { query: extractedName },
+      });
+      if (fnError) throw fnError;
+      const results: NPIResult[] = data?.results ?? [];
+      if (results.length === 1) {
+        // Single match — insert automatically, no modal needed.
+        const text = formatNPIInsert(results[0]);
+        setFormData((prev) => ({
+          ...prev,
+          notes: prev.notes.trim() ? `${prev.notes.trimEnd()}\n${text}` : text,
+        }));
+      } else {
+        // 0 or multiple matches — open modal with pre-filled query (and results if any).
+        setNpiInitialQuery(extractedName);
+        setNpiInitialResults(results.length > 0 ? results : undefined);
+        setShowNPILookup(true);
+      }
+    } catch {
+      // On error fall back to blank modal.
+      setNpiInitialQuery(extractedName);
+      setNpiInitialResults(undefined);
+      setShowNPILookup(true);
+    } finally {
+      setNpiSearching(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await saveExpense();
@@ -487,10 +532,13 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
                 return (
                   <button
                     type="button"
-                    onClick={() => setShowNPILookup(true)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 hover:text-white hover:bg-green-600 border border-green-600 rounded-lg transition-all"
+                    onClick={handleNPIClick}
+                    disabled={npiSearching}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 hover:text-white hover:bg-green-600 border border-green-600 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Search className="w-3 h-3" />
+                    {npiSearching
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : <Search className="w-3 h-3" />}
                     Lookup NPI
                   </button>
                 );
@@ -619,12 +667,14 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       {showNPILookup && (
         <NPILookupModal
           onClose={() => setShowNPILookup(false)}
-          onInsert={(text) =>
+          initialQuery={npiInitialQuery}
+          initialResults={npiInitialResults}
+          onInsert={(text) => {
             setFormData((prev) => ({
               ...prev,
               notes: prev.notes.trim() ? `${prev.notes.trimEnd()}\n${text}` : text,
-            }))
-          }
+            }));
+          }}
         />
       )}
     </div>
