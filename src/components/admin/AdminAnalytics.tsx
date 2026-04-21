@@ -260,21 +260,21 @@ export function AdminAnalytics() {
       const colGap = 6;
       const rowGap = 4;
       const cellWidth = (pageWidth - 2 * margin - colGap) / cols;
-      const imageBoxWidth = 42;
-      const thumbHeight = 30;
+      const imageBoxWidth = 50;
 
       let contentStartY = addPageHeader(true);
       const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
+      // Image fills nearly the full cell height so receipts are legible.
+      // Aspect-ratio clamping in the render step handles full-page docs naturally.
+      const thumbHeight = cellHeight - 10;
 
       let txIndex = 0;
-      let firstPage = true;
 
       for (let i = 0; i < sortedData.length; i++) {
         const expense = sortedData[i];
 
         if (txIndex >= cols * rows) {
           pdf.addPage();
-          firstPage = false;
           contentStartY = addPageHeader(false);
           txIndex = 0;
         }
@@ -282,7 +282,7 @@ export function AdminAnalytics() {
         const col = txIndex % cols;
         const row = Math.floor(txIndex / cols);
         const xOffset = margin + col * (cellWidth + colGap);
-        const yOffset = (firstPage || txIndex > 0 ? contentStartY : addPageHeader(false)) + row * (cellHeight + rowGap);
+        const yOffset = contentStartY + row * (cellHeight + rowGap);
 
         let yPos = yOffset + 4;
         const imageX = xOffset + cellWidth - imageBoxWidth;

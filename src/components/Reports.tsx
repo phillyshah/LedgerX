@@ -281,7 +281,8 @@ export function Reports({ onClose }: ReportsProps) {
       const rowGap = 4;
       const cellWidth = (pageWidth - 2 * margin - colGap) / 2;
       const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
-      const imageBoxWidth = 48;
+      const imageBoxWidth = 50;
+      const thumbHeight = cellHeight - 10; // fill the cell so receipts are legible
       let txIndex = 0;
 
       for (let i = 0; i < sortedExpenses.length; i++) {
@@ -336,12 +337,11 @@ export function Reports({ onClose }: ReportsProps) {
             const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
               const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
-              const thumbH = 22;
               const aspect = px / py;
               let renderW = imageBoxWidth;
               let renderH = imageBoxWidth / aspect;
-              if (renderH > thumbH) { renderH = thumbH; renderW = thumbH * aspect; }
-              pdf.addImage(dataUrl, 'JPEG', imageX + (imageBoxWidth - renderW) / 2, imageY + (thumbH - renderH) / 2, renderW, renderH);
+              if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
+              pdf.addImage(dataUrl, 'JPEG', imageX + (imageBoxWidth - renderW) / 2, imageY + (thumbHeight - renderH) / 2, renderW, renderH);
             }
           } catch { /* skip */ }
         }

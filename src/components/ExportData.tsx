@@ -278,8 +278,8 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         let yPosition = yOffset + 4;
 
-        // With narrower 2-col cells, use a smaller image box
-        const imageBoxWidth = 48;
+        const imageBoxWidth = 50;
+        const thumbHeight = cellHeight - 10; // fill the cell so receipts are legible
         const imageX = xOffset + cellWidth - imageBoxWidth;
         const imageY = yOffset + 4;
         const textWidth = cellWidth - imageBoxWidth - 5;
@@ -358,51 +358,29 @@ export function ExportData({ onClose }: ExportDataProps) {
         }
 
         if (expenseImages.length > 0) {
-          // In 2-col layout show max 3 thumbnails per transaction (1 row of 3)
-          const maxImgPerTx = 3;
-          const imagesToShow = expenseImages.slice(0, maxImgPerTx);
+          // Show primary image filling the cell height for legibility
+          try {
+            const { data: imageData } = await supabase.storage
+              .from('receipts')
+              .download(expenseImages[0].image_path);
 
-          const gridCols = Math.min(3, imagesToShow.length);
-          const gridGap = 1.5;
-          const totalGapX = (gridCols - 1) * gridGap;
-          const thumbWidth = (imageBoxWidth - totalGapX) / gridCols;
-          const thumbHeight = 22; // smaller for 2-col layout
-
-          for (let imgIdx = 0; imgIdx < imagesToShow.length; imgIdx++) {
-            const expImg = imagesToShow[imgIdx];
-            const gridCol = imgIdx % 3;
-            const thumbX = imageX + gridCol * (thumbWidth + gridGap);
-            const thumbY = imageY;
-
-            try {
-              const { data: imageData } = await supabase.storage
-                .from('receipts')
-                .download(expImg.image_path);
-
-              if (imageData) {
-                const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
-                // Fit image inside the thumbnail box (in mm) maintaining aspect ratio
-                const aspect = px / py;
-                let renderW = thumbWidth;
-                let renderH = thumbWidth / aspect;
-                if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
-                const offsetX = thumbX + (thumbWidth - renderW) / 2;
-                const offsetY = thumbY + (thumbHeight - renderH) / 2;
-                pdf.addImage(dataUrl, 'JPEG', offsetX, offsetY, renderW, renderH);
-              }
-            } catch (imageError) {
-              console.error('Error loading image:', imageError);
-              pdf.setFontSize(7);
-              pdf.setTextColor(150, 150, 150);
-              pdf.text('(error)', thumbX, thumbY + thumbHeight / 2);
-              pdf.setTextColor(0, 0, 0);
+            if (imageData) {
+              const { dataUrl, width: px, height: py } = await compressForPDF(imageData);
+              const aspect = px / py;
+              let renderW = imageBoxWidth;
+              let renderH = imageBoxWidth / aspect;
+              if (renderH > thumbHeight) { renderH = thumbHeight; renderW = thumbHeight * aspect; }
+              pdf.addImage(dataUrl, 'JPEG',
+                imageX + (imageBoxWidth - renderW) / 2,
+                imageY + (thumbHeight - renderH) / 2,
+                renderW, renderH);
             }
-          }
+          } catch { /* skip */ }
 
-          if (expenseImages.length > maxImgPerTx) {
+          if (expenseImages.length > 1) {
             pdf.setFontSize(6);
             pdf.setTextColor(130, 130, 130);
-            pdf.text(`+${expenseImages.length - maxImgPerTx} more`, imageX, imageY + thumbHeight + 3);
+            pdf.text(`+${expenseImages.length - 1} more`, imageX, imageY + thumbHeight + 3);
             pdf.setTextColor(0, 0, 0);
           }
         }
