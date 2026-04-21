@@ -297,7 +297,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
         const vendorLines = pdf.splitTextToSize(`${expense.vendor || 'Unnamed Transaction'}`, textWidth);
-        pdf.text(vendorLines, margin, yPosition);
+        pdf.text(vendorLines, xOffset, yPosition);
         yPosition += vendorLines.length * 6;
 
         pdf.setFontSize(10);
