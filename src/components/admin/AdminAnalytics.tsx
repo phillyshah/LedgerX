@@ -48,10 +48,7 @@ export function AdminAnalytics() {
   const [dateRange, setDateRange] = useState<'30d' | '90d' | 'ytd' | 'custom'>('30d');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportStartDate, setExportStartDate] = useState('');
-  const [exportEndDate, setExportEndDate] = useState('');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDateModal, setShowCustomDateModal] = useState(false);
@@ -139,8 +136,26 @@ export function AdminAnalytics() {
   const fmt = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
+  // Derive start/end dates from the current dashboard date-range selection.
+  const getExportDateRange = (): { start: string; end: string } | null => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const today = new Date();
+    if (dateRange === 'custom') {
+      if (!customStartDate || !customEndDate) return null;
+      return { start: customStartDate, end: customEndDate };
+    }
+    const end = fmt(today);
+    if (dateRange === '30d') { const s = new Date(today); s.setDate(s.getDate() - 30); return { start: fmt(s), end }; }
+    if (dateRange === '90d') { const s = new Date(today); s.setDate(s.getDate() - 90); return { start: fmt(s), end }; }
+    if (dateRange === 'ytd') { return { start: `${today.getFullYear()}-01-01`, end }; }
+    return null;
+  };
+
   const handleExport = async () => {
-    if (!exportStartDate || !exportEndDate) return;
+    const range = getExportDateRange();
+    if (!range) return;
+    const { start: exportStartDate, end: exportEndDate } = range;
 
     setExporting(true);
     try {
@@ -149,7 +164,7 @@ export function AdminAnalytics() {
         .select('*')
         .gte('expense_date', exportStartDate)
         .lte('expense_date', exportEndDate)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       if (householdFilter !== 'all') {
         query = query.eq('household_id', householdFilter);
@@ -167,9 +182,9 @@ export function AdminAnalytics() {
 
       const householdMap = new Map(households.map((h) => [h.id, h.name]));
 
-      // Sort by expense_date descending (latest first)
+      // Oldest first
       const sortedData = [...dataToExport].sort((a, b) =>
-        (b.expense_date || '').localeCompare(a.expense_date || '')
+        (a.expense_date || '').localeCompare(b.expense_date || '')
       );
 
       const csvContent = [
@@ -393,11 +408,12 @@ export function AdminAnalytics() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowExport(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all flex items-center gap-2"
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            Export Report
+            {exporting ? 'Exporting...' : 'Export Report'}
           </button>
           <select
             value={householdFilter}
@@ -583,85 +599,6 @@ export function AdminAnalytics() {
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Apply
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showExport && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="p-6 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">Export Report</h2>
-                <button
-                  onClick={() => setShowExport(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-                >
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div>
-                <label htmlFor="exportStartDate" className="block text-sm font-medium text-slate-700 mb-2">
-                  Start Date
-                </label>
-                <input
-                  id="exportStartDate"
-                  type="date"
-                  value={exportStartDate}
-                  onChange={(e) => setExportStartDate(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="exportEndDate" className="block text-sm font-medium text-slate-700 mb-2">
-                  End Date
-                </label>
-                <input
-                  id="exportEndDate"
-                  type="date"
-                  value={exportEndDate}
-                  onChange={(e) => setExportEndDate(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="bg-emerald-50 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <Download className="w-5 h-5 text-emerald-700 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 mb-1">Platform-Wide Export</p>
-                    <p className="text-sm text-slate-600">
-                      Export filtered data as CSV and PDF with all receipt images. Current filters: {householdFilter === 'all' ? 'All Households' : households.find(h => h.id === householdFilter)?.name}
-                      {categoryFilter.length > 0 && `, ${categoryFilter.length} categories`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowExport(false)}
-                  className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={exporting || !exportStartDate || !exportEndDate}
-                  className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {exporting ? 'Exporting...' : 'Export'}
                 </button>
               </div>
             </div>

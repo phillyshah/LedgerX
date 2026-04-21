@@ -127,9 +127,36 @@ export function ExportData({ onClose }: ExportDataProps) {
     return `${count} categories`;
   };
 
+  // Helper: compress a raw image Blob down to a small JPEG for PDF embedding.
+  const compressForPDF = (blob: Blob): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 600; // max px on either side for PDF thumbnails
+        let { width, height } = img;
+        const ratio = Math.min(MAX / width, MAX / height, 1);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        const compressed = new Image();
+        compressed.onload = () => resolve(compressed);
+        compressed.onerror = reject;
+        compressed.src = canvas.toDataURL('image/jpeg', 0.65);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+
   const sortExpenses = (expenses: any[], householdMap: Map<string, string>) => {
     return [...expenses].sort((a, b) => {
-      const dateCompare = (b.expense_date || '').localeCompare(a.expense_date || '');
+      // Oldest first
+      const dateCompare = (a.expense_date || '').localeCompare(b.expense_date || '');
       const householdCompare = (householdMap.get(a.household_id) || '').localeCompare(householdMap.get(b.household_id) || '');
       const categoryCompare = (a.category || '').localeCompare(b.category || '');
 
@@ -164,7 +191,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         .in('household_id', householdIds)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       // Apply category filter if specific categories are selected
       if (!allSelected) {
@@ -226,11 +253,13 @@ export function ExportData({ onClose }: ExportDataProps) {
       };
 
       let contentStartY = addPageHeader();
-      const maxItemsPerPage = 2;
-      const cols = 1;
+      const maxItemsPerPage = 4;
+      const cols = 2;
       const rows = 2;
-      const cellWidth = pageWidth - 2 * margin;
-      const cellHeight = (pageHeight - margin - contentStartY) / rows;
+      const colGap = 6;
+      const rowGap = 4;
+      const cellWidth = (pageWidth - 2 * margin - colGap) / 2;
+      const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
 
       let txIndex = 0;
 
@@ -245,15 +274,16 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         const col = txIndex % cols;
         const row = Math.floor(txIndex / cols);
-        const xOffset = margin + col * cellWidth;
-        const yOffset = contentStartY + row * cellHeight;
+        const xOffset = margin + col * (cellWidth + colGap);
+        const yOffset = contentStartY + row * (cellHeight + rowGap);
 
-        let yPosition = yOffset + 5;
+        let yPosition = yOffset + 4;
 
-        const imageBoxWidth = 110;
+        // With narrower 2-col cells, use a smaller image box
+        const imageBoxWidth = 48;
         const imageX = xOffset + cellWidth - imageBoxWidth;
-        const imageY = yOffset + 5;
-        const textWidth = cellWidth - imageBoxWidth - 10;
+        const imageY = yOffset + 4;
+        const textWidth = cellWidth - imageBoxWidth - 5;
 
         if (expense.pic_id) {
           pdf.setFontSize(9);
@@ -329,22 +359,21 @@ export function ExportData({ onClose }: ExportDataProps) {
         }
 
         if (expenseImages.length > 0) {
-          const maxImgPerTx = 6;
+          // In 2-col layout show max 3 thumbnails per transaction (1 row of 3)
+          const maxImgPerTx = 3;
           const imagesToShow = expenseImages.slice(0, maxImgPerTx);
 
-          // Arrange in a grid: 3 columns, up to 2 rows
           const gridCols = Math.min(3, imagesToShow.length);
-          const gridGap = 2;
+          const gridGap = 1.5;
           const totalGapX = (gridCols - 1) * gridGap;
-          const thumbWidth = (imageBoxWidth - 10 - totalGapX) / gridCols;
-          const thumbHeight = 38;
+          const thumbWidth = (imageBoxWidth - totalGapX) / gridCols;
+          const thumbHeight = 22; // smaller for 2-col layout
 
           for (let imgIdx = 0; imgIdx < imagesToShow.length; imgIdx++) {
             const expImg = imagesToShow[imgIdx];
             const gridCol = imgIdx % 3;
-            const gridRow = Math.floor(imgIdx / 3);
             const thumbX = imageX + gridCol * (thumbWidth + gridGap);
-            const thumbY = imageY + gridRow * (thumbHeight + gridGap);
+            const thumbY = imageY;
 
             try {
               const { data: imageData } = await supabase.storage
@@ -352,41 +381,20 @@ export function ExportData({ onClose }: ExportDataProps) {
                 .download(expImg.image_path);
 
               if (imageData) {
-                const imageUrl = URL.createObjectURL(imageData);
-                const img = new Image();
+                // Compress image before embedding to keep PDF size small
+                const img = await compressForPDF(imageData);
 
-                await new Promise((resolve, reject) => {
-                  img.onload = resolve;
-                  img.onerror = reject;
-                  img.src = imageUrl;
-                });
-
-                let imgWidth = expImg.image_width || img.width;
-                let imgHeightRaw = expImg.image_height || img.height;
-
-                const widthRatio = thumbWidth / imgWidth;
-                const heightRatio = thumbHeight / imgHeightRaw;
+                const widthRatio = thumbWidth / img.width;
+                const heightRatio = thumbHeight / img.height;
                 const ratio = Math.min(widthRatio, heightRatio);
 
-                const scaledW = imgWidth * ratio;
-                const scaledH = imgHeightRaw * ratio;
+                const scaledW = img.width * ratio;
+                const scaledH = img.height * ratio;
 
-                // Center the image within its grid cell
                 const offsetX = thumbX + (thumbWidth - scaledW) / 2;
                 const offsetY = thumbY + (thumbHeight - scaledH) / 2;
 
-                let imageFormat = 'JPEG';
-                if (expImg.image_mime) {
-                  if (expImg.image_mime.includes('png')) {
-                    imageFormat = 'PNG';
-                  } else if (expImg.image_mime.includes('webp')) {
-                    imageFormat = 'WEBP';
-                  }
-                }
-
-                pdf.addImage(img, imageFormat, offsetX, offsetY, scaledW, scaledH);
-
-                URL.revokeObjectURL(imageUrl);
+                pdf.addImage(img, 'JPEG', offsetX, offsetY, scaledW, scaledH);
               }
             } catch (imageError) {
               console.error('Error loading image:', imageError);
@@ -398,13 +406,17 @@ export function ExportData({ onClose }: ExportDataProps) {
           }
 
           if (expenseImages.length > maxImgPerTx) {
-            const overflowY = imageY + (Math.ceil(imagesToShow.length / 3)) * (thumbHeight + gridGap);
-            pdf.setFontSize(7);
+            pdf.setFontSize(6);
             pdf.setTextColor(130, 130, 130);
-            pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, overflowY);
+            pdf.text(`+${expenseImages.length - maxImgPerTx} more`, imageX, imageY + thumbHeight + 3);
             pdf.setTextColor(0, 0, 0);
           }
         }
+
+        // Draw a subtle separator line at the bottom of each cell
+        const cellBottom = yOffset + cellHeight - 2;
+        pdf.setDrawColor(220, 220, 220);
+        pdf.line(xOffset, cellBottom, xOffset + cellWidth, cellBottom);
 
         txIndex += 1;
       }

@@ -88,21 +88,40 @@ export function Reports({ onClose }: ReportsProps) {
     setError(null);
 
     try {
-      // Load households
-      const { data: memberData, error: memberError } = await supabase
-        .from('household_members')
-        .select('household_id, households(id, name)')
-        .eq('user_id', user.id);
+      // Admins see all households; regular users only see their memberships.
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (memberError) {
-        console.error('Error loading households:', memberError);
-        setError('Could not load households. Please try again.');
-        return;
+      const isAdmin = rolesData?.is_admin ?? false;
+      let hh: Household[] = [];
+
+      if (isAdmin) {
+        const { data: allHH, error: hhErr } = await supabase
+          .from('households')
+          .select('id, name')
+          .order('name');
+        if (hhErr) { setError('Could not load households.'); return; }
+        hh = (allHH ?? []) as Household[];
+      } else {
+        const { data: memberData, error: memberError } = await supabase
+          .from('household_members')
+          .select('household_id, households(id, name)')
+          .eq('user_id', user.id);
+
+        if (memberError) {
+          console.error('Error loading households:', memberError);
+          setError('Could not load households. Please try again.');
+          return;
+        }
+
+        hh = (memberData || [])
+          .map((item: any) => item.households)
+          .filter(Boolean) as unknown as Household[];
       }
 
-      const hh = (memberData || [])
-        .map((item: any) => item.households)
-        .filter(Boolean) as unknown as Household[];
       setHouseholds(hh);
 
       // Load categories: global + household-specific for user's households
@@ -137,7 +156,7 @@ export function Reports({ onClose }: ReportsProps) {
         .from('expenses')
         .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
         .in('household_id', selectedHouseholds)
-        .order('expense_date', { ascending: false });
+        .order('expense_date', { ascending: true });
 
       if (selectedCategories.length > 0) {
         const selectedCategoryNames = availableCategories
@@ -187,10 +206,15 @@ export function Reports({ onClose }: ReportsProps) {
     try {
       const householdMap = new Map(households.map((h) => [h.id, h.name]));
 
+      // Oldest first
+      const sortedExpenses = [...expenses].sort((a, b) =>
+        (a.expense_date || '').localeCompare(b.expense_date || '')
+      );
+
       // CSV
       const csvContent = [
         ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
-        ...expenses.map((expense) => [
+        ...sortedExpenses.map((expense) => [
           `"${expense.id || ''}"`,
           `"${expense.expense_date}"`,
           `"${expense.vendor || ''}"`,
@@ -226,17 +250,43 @@ export function Reports({ onClose }: ReportsProps) {
         return margin + 20;
       };
 
-      let contentStartY = addPageHeader();
-      const maxItemsPerPage = 4;
-      const cols = 1;
-      const rows = 4;
-      const cellWidth = pageWidth - 2 * margin;
-      const cellHeight = (pageHeight - margin - contentStartY) / rows;
+      // Helper: compress image blob for PDF embedding
+      const compressForPDF = (blob: Blob): Promise<HTMLImageElement> =>
+        new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(blob);
+          const srcImg = new Image();
+          srcImg.onload = () => {
+            const MAX = 600;
+            let { width, height } = srcImg;
+            const r = Math.min(MAX / width, MAX / height, 1);
+            width = Math.round(width * r);
+            height = Math.round(height * r);
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d')!.drawImage(srcImg, 0, 0, width, height);
+            URL.revokeObjectURL(url);
+            const out = new Image();
+            out.onload = () => resolve(out);
+            out.onerror = reject;
+            out.src = canvas.toDataURL('image/jpeg', 0.65);
+          };
+          srcImg.onerror = reject;
+          srcImg.src = url;
+        });
 
+      // 2-column layout, 4 items per page, oldest first
+      const maxItemsPerPage = 4;
+      const cols = 2;
+      const rows = 2;
+      const colGap = 6;
+      const rowGap = 4;
+      const cellWidth = (pageWidth - 2 * margin - colGap) / 2;
+      const cellHeight = (pageHeight - margin - contentStartY - rowGap) / rows;
+      const imageBoxWidth = 48;
       let txIndex = 0;
 
-      for (let i = 0; i < expenses.length; i++) {
-        const expense = expenses[i];
+      for (let i = 0; i < sortedExpenses.length; i++) {
+        const expense = sortedExpenses[i];
 
         if (txIndex >= maxItemsPerPage) {
           pdf.addPage();
@@ -246,114 +296,61 @@ export function Reports({ onClose }: ReportsProps) {
 
         const col = txIndex % cols;
         const row = Math.floor(txIndex / cols);
-        const xOffset = margin + col * cellWidth;
-        const yOffset = contentStartY + row * cellHeight;
+        const xOffset = margin + col * (cellWidth + colGap);
+        const yOffset = contentStartY + row * (cellHeight + rowGap);
 
-        let yPosition = yOffset + 5;
-
-        // Reserve right-side space for the image (aligned with the Pic ID row)
-        const imageBoxWidth = 110;
+        let yPosition = yOffset + 4;
         const imageX = xOffset + cellWidth - imageBoxWidth;
-        const imageY = yOffset + 5;
-        const textWidth = cellWidth - imageBoxWidth - 10;
+        const imageY = yOffset + 4;
+        const textWidth = cellWidth - imageBoxWidth - 5;
 
-        if (expense.id) {
-          pdf.setFontSize(9);
-          pdf.setFont(undefined as unknown as string, 'bold');
-          pdf.setTextColor(100, 100, 100);
-          pdf.text(`Pic ID: ${expense.id}`, xOffset, yPosition);
-          yPosition += 5;
-          pdf.setTextColor(0, 0, 0);
-        }
-
-        pdf.setFontSize(12);
+        pdf.setFontSize(11);
         pdf.setFont(undefined as unknown as string, 'bold');
         const vendorLines = pdf.splitTextToSize(
-          `${expense.vendor || 'Unnamed Transaction'}`,
-          textWidth
+          `${expense.vendor || 'Unnamed Transaction'}`, textWidth
         );
         pdf.text(vendorLines, xOffset, yPosition);
-        yPosition += vendorLines.length * 6;
+        yPosition += vendorLines.length * 5.5;
 
-        pdf.setFontSize(10);
+        pdf.setFontSize(9);
         pdf.setFont(undefined as unknown as string, 'normal');
         pdf.text(`Date: ${expense.expense_date}`, xOffset, yPosition);
-        yPosition += 5;
+        yPosition += 4.5;
         pdf.text(
-          `Amount: ${new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: expense.currency || 'USD',
-          }).format(expense.total)}`,
-          xOffset,
-          yPosition
+          `Amount: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
+          xOffset, yPosition
         );
-        yPosition += 5;
+        yPosition += 4.5;
 
         const hhName = householdMap.get(expense.household_id);
-        if (hhName) {
-          pdf.text(`Household: ${hhName}`, xOffset, yPosition);
-          yPosition += 5;
-        }
-
-        if (expense.category) {
-          pdf.text(`Category: ${expense.category}`, xOffset, yPosition);
-          yPosition += 5;
-        }
+        if (hhName) { pdf.text(`Household: ${hhName}`, xOffset, yPosition); yPosition += 4.5; }
+        if (expense.category) { pdf.text(`Category: ${expense.category}`, xOffset, yPosition); yPosition += 4.5; }
 
         if (expense.notes) {
-          const noteLines = pdf.splitTextToSize(
-            `Notes: ${expense.notes}`,
-            textWidth
-          );
-          const availableForNotes = imageY - yPosition - 5;
-          const maxNoteLines = Math.floor(availableForNotes / 5);
-          const limitedNoteLines = noteLines.slice(0, Math.max(1, maxNoteLines));
-          pdf.text(limitedNoteLines, xOffset, yPosition);
-          yPosition += limitedNoteLines.length * 5;
+          const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, textWidth);
+          const maxNL = Math.max(1, Math.floor((imageY + 22 - yPosition) / 4.5));
+          pdf.text(noteLines.slice(0, maxNL), xOffset, yPosition);
         }
 
         if (expense.image_path) {
           try {
-            const { data: imageData } = await supabase.storage
-              .from('receipts')
-              .download(expense.image_path);
-
+            const { data: imageData } = await supabase.storage.from('receipts').download(expense.image_path);
             if (imageData) {
-              const imageUrl = URL.createObjectURL(imageData);
-              const img = new Image();
-
-              await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-                img.src = imageUrl;
-              });
-
-              const maxImgWidth = 100; // Fixed width for right-side placement
-              const maxImgHeight = 60; // Increased by 100% from 30
-              let imgWidth = img.width;
-              let imgHeightRaw = img.height;
-
-              const widthRatio = maxImgWidth / imgWidth;
-              const heightRatio = maxImgHeight / imgHeightRaw;
-              const ratio = Math.min(widthRatio, heightRatio);
-
-              imgWidth *= ratio;
-              const adjustedImgHeight = imgHeightRaw * ratio;
-
-              let imageFormat = 'JPEG';
-
-              pdf.addImage(img, imageFormat, imageX, imageY, imgWidth, adjustedImgHeight);
-
-              URL.revokeObjectURL(imageUrl);
+              const img = await compressForPDF(imageData);
+              const thumbH = 22;
+              const wr = imageBoxWidth / img.width;
+              const hr = thumbH / img.height;
+              const ratio = Math.min(wr, hr);
+              const sw = img.width * ratio;
+              const sh = img.height * ratio;
+              pdf.addImage(img, 'JPEG', imageX + (imageBoxWidth - sw) / 2, imageY + (thumbH - sh) / 2, sw, sh);
             }
-          } catch (imageError) {
-            console.error('Error loading image:', imageError);
-            pdf.setFontSize(8);
-            pdf.setTextColor(150, 150, 150);
-            pdf.text('(Image could not be loaded)', imageX, imageY);
-            pdf.setTextColor(0, 0, 0);
-          }
+          } catch { /* skip */ }
         }
+
+        // Cell separator
+        pdf.setDrawColor(220, 220, 220);
+        pdf.line(xOffset, yOffset + cellHeight - 2, xOffset + cellWidth, yOffset + cellHeight - 2);
 
         txIndex += 1;
       }
@@ -382,8 +379,8 @@ export function Reports({ onClose }: ReportsProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 shrink-0">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Reports
@@ -396,7 +393,7 @@ export function Reports({ onClose }: ReportsProps) {
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
               <strong className="font-semibold">Error:</strong> {error}
@@ -475,14 +472,22 @@ export function Reports({ onClose }: ReportsProps) {
             </div>
           </div>
 
-          {/* Run Report Button */}
-          <div className="flex justify-center">
+          {/* Run Report + Export buttons */}
+          <div className="flex justify-center gap-3">
             <button
               onClick={runReport}
               disabled={selectedHouseholds.length === 0 || loading}
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl transition-all shadow-sm font-medium"
             >
               {loading ? 'Running Report...' : 'Run Report'}
+            </button>
+            <button
+              onClick={exportReport}
+              disabled={exporting || expenses.length === 0}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm font-medium flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {exporting ? 'Exporting...' : 'Export PDF & CSV'}
             </button>
           </div>
 
@@ -548,16 +553,6 @@ export function Reports({ onClose }: ReportsProps) {
                 </table>
               </div>
 
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={exportReport}
-                  disabled={exporting || expenses.length === 0}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl transition-all shadow-sm font-medium flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  {exporting ? 'Exporting...' : 'Export PDF & CSV'}
-                </button>
-              </div>
             </div>
           )}
 
