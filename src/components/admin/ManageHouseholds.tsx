@@ -6,6 +6,7 @@ interface Household {
   id: string;
   name: string;
   created_at: string;
+  features_enabled?: Record<string, boolean> | null;
 }
 
 interface HouseholdMember {
@@ -126,6 +127,22 @@ export function ManageHouseholds() {
       setExpandedId(expandedId);
     }
     setAddingMember(false);
+  };
+
+  const toggleFeature = async (householdId: string, key: string, value: boolean) => {
+    const current = households.find((h) => h.id === householdId)?.features_enabled ?? {};
+    const next = { ...current, [key]: value };
+    const { error } = await supabase.rpc('admin_update_household_features', {
+      p_household_id: householdId,
+      p_features: next,
+    });
+    if (error) {
+      setMemberError(error.message);
+      return;
+    }
+    setHouseholds((prev) =>
+      prev.map((h) => (h.id === householdId ? { ...h, features_enabled: next } : h))
+    );
   };
 
   const removeMember = async (memberId: string) => {
@@ -291,6 +308,26 @@ export function ManageHouseholds() {
                     <p className="text-sm text-red-600">{memberError}</p>
                   </div>
                 )}
+
+                <div className="mb-4 bg-white border border-slate-200 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-2">Features</h4>
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <p className="text-sm text-slate-700">Surgeon NPI Lookup</p>
+                      <p className="text-xs text-slate-500">
+                        Show a "Lookup NPI" button beside Notes when adding/editing expenses in this household.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={!!household.features_enabled?.surgeon_npi_lookup}
+                      onChange={(e) =>
+                        toggleFeature(household.id, 'surgeon_npi_lookup', e.target.checked)
+                      }
+                      className="w-4 h-4 accent-emerald-600 shrink-0"
+                    />
+                  </label>
+                </div>
 
                 {loadingMembers ? (
                   <div className="py-4 text-center text-sm text-slate-500">Loading members...</div>

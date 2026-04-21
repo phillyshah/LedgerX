@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Camera, Loader2, Plus, FileText } from 'lucide-react';
+import { X, Upload, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
+import { NPILookupModal } from './NPILookupModal';
 
 interface Expense {
   id: string;
@@ -29,6 +30,7 @@ interface Category {
 interface Household {
   id: string;
   name: string;
+  features_enabled?: Record<string, boolean> | null;
 }
 
 interface ExistingImage {
@@ -74,6 +76,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const [saving, setSaving] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [showNPILookup, setShowNPILookup] = useState(false);
 
   useEffect(() => {
     loadHouseholds();
@@ -136,16 +139,16 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     if (isAdmin) {
       const { data } = await supabase
         .from('households')
-        .select('id, name')
+        .select('id, name, features_enabled')
         .order('name');
 
       if (data) {
-        setHouseholds(data);
+        setHouseholds(data as Household[]);
       }
     } else {
       const { data } = await supabase
         .from('household_members')
-        .select('household_id, households(id, name)')
+        .select('household_id, households(id, name, features_enabled)')
         .eq('user_id', user.id);
 
       if (data) {
@@ -545,9 +548,25 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-2">
-              Notes
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="notes" className="block text-sm font-medium text-slate-700">
+                Notes
+              </label>
+              {(() => {
+                const hh = households.find((h) => h.id === formData.household_id);
+                if (!hh?.features_enabled?.surgeon_npi_lookup) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowNPILookup(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 hover:text-white hover:bg-green-600 border border-green-600 rounded-lg transition-all"
+                  >
+                    <Search className="w-3 h-3" />
+                    Lookup NPI
+                  </button>
+                );
+              })()}
+            </div>
             <textarea
               id="notes"
               value={formData.notes}
@@ -743,6 +762,17 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           </div>
         </form>
       </div>
+      {showNPILookup && (
+        <NPILookupModal
+          onClose={() => setShowNPILookup(false)}
+          onInsert={(text) =>
+            setFormData((prev) => ({
+              ...prev,
+              notes: prev.notes.trim() ? `${prev.notes.trimEnd()}\n${text}` : text,
+            }))
+          }
+        />
+      )}
     </div>
   );
 }

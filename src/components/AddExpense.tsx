@@ -3,11 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
-import { X, Upload, Check, Camera, Loader2, Plus, FileText } from 'lucide-react';
+import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
+import { NPILookupModal } from './NPILookupModal';
 
 interface Household {
   id: string;
   name: string;
+  features_enabled?: Record<string, boolean> | null;
 }
 
 interface Category {
@@ -43,6 +45,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
+  const [showNPILookup, setShowNPILookup] = useState(false);
 
   useEffect(() => {
     loadOptions();
@@ -68,7 +71,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
 
     const householdRes = await supabase
       .from('household_members')
-      .select('household_id, households(id, name)')
+      .select('household_id, households(id, name, features_enabled)')
       .eq('user_id', user.id);
 
     if (householdRes.data) {
@@ -474,9 +477,25 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-2">
-              Notes
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="notes" className="block text-sm font-medium text-slate-700">
+                Notes
+              </label>
+              {(() => {
+                const hh = households.find((h) => h.id === formData.household_id);
+                if (!hh?.features_enabled?.surgeon_npi_lookup) return null;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowNPILookup(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 hover:text-white hover:bg-green-600 border border-green-600 rounded-lg transition-all"
+                  >
+                    <Search className="w-3 h-3" />
+                    Lookup NPI
+                  </button>
+                );
+              })()}
+            </div>
             <textarea
               id="notes"
               value={formData.notes}
@@ -597,6 +616,17 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           </div>
         </form>
       </div>
+      {showNPILookup && (
+        <NPILookupModal
+          onClose={() => setShowNPILookup(false)}
+          onInsert={(text) =>
+            setFormData((prev) => ({
+              ...prev,
+              notes: prev.notes.trim() ? `${prev.notes.trimEnd()}\n${text}` : text,
+            }))
+          }
+        />
+      )}
     </div>
   );
 }

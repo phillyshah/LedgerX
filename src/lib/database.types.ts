@@ -6,16 +6,19 @@ export interface Database {
           id: string;
           name: string;
           created_at: string;
+          features_enabled: Record<string, boolean>;
         };
         Insert: {
           id?: string;
           name: string;
           created_at?: string;
+          features_enabled?: Record<string, boolean>;
         };
         Update: {
           id?: string;
           name?: string;
           created_at?: string;
+          features_enabled?: Record<string, boolean>;
         };
       };
       household_members: {

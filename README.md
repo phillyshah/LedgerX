@@ -16,6 +16,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Spending Charts](#spending-charts)
 - [Exporting Your Data](#exporting-your-data)
 - [Reports](#reports)
+- [Surgeon NPI Lookup](#surgeon-npi-lookup)
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
 - [Admin Features](#admin-features)
@@ -208,6 +209,20 @@ Download your expense data in two formats from **Export Data** on the Dashboard.
 - **Date Range** — Set a custom start and end date
 
 Reports show a breakdown of matching transactions so you can spot trends and stay on budget.
+
+---
+
+## Surgeon NPI Lookup
+
+For medical-device and healthcare households, LedgerX can look up a surgeon's **NPI (National Provider Identifier)** directly from the expense form and drop it into your notes.
+
+### How it works
+
+1. An admin enables **Surgeon NPI Lookup** for your household (Admin → Manage Households → Features).
+2. When adding or editing an expense in that household, a **🔍 Lookup NPI** button appears beside the Notes field.
+3. Click it, search by name (e.g. "Smith" or "John Smith"), pick a result, and a line like `Surgeon: Dr. John Smith, MD, NPI: 1234567890` is appended to your notes.
+
+Results come from the public CMS NPPES registry. The button is hidden for households that don't have the feature enabled.
 
 ---
 
