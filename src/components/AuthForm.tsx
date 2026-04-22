@@ -4,6 +4,7 @@ import { useT } from '../hooks/useT';
 import { Eye, EyeOff, HelpCircle, ArrowLeft } from 'lucide-react';
 import { HelpModal } from './HelpModal';
 import { LANGUAGES, type Language } from '../i18n';
+import { APP_VERSION } from '../version';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -310,7 +311,7 @@ export function AuthForm() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-green-300/60">v4.2</p>
+          <p className="text-xs text-green-300/60">{APP_VERSION}</p>
         </div>
       </div>
 

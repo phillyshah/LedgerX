@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
+import { useT } from '../../hooks/useT';
 
 type Role = 'regular' | 'admin' | 'contractor';
 
@@ -24,6 +25,7 @@ interface Household {
 
 export function ManageUsers() {
   const { user: currentUser } = useAuth();
+  const { t, locale } = useT();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function ManageUsers() {
 
   const changeUserRole = async (userId: string, role: Role) => {
     if (userId === currentUser?.id) {
-      setError('You cannot change your own role');
+      setError(t('admin.cannotChangeSelfRole'));
       return;
     }
     setActionLoading(userId);
@@ -96,11 +98,11 @@ export function ManageUsers() {
 
   const deleteUser = async (userId: string) => {
     if (userId === currentUser?.id) {
-      setError('You cannot delete your own account');
+      setError(t('admin.cannotDeleteSelf'));
       return;
     }
 
-    if (!confirm('Delete this user? All their data will be moved to Uncategorized.')) return;
+    if (!confirm(t('admin.deleteConfirm'))) return;
 
     setActionLoading(userId);
     setError('');
@@ -108,7 +110,7 @@ export function ManageUsers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setError('No active session');
+        setError(t('admin.noSession'));
         return;
       }
 
@@ -129,12 +131,12 @@ export function ManageUsers() {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || 'Failed to delete user');
+        setError(result.error || t('admin.failedDelete'));
       } else {
         await loadUsers();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setError(err instanceof Error ? err.message : t('admin.failedDelete'));
     } finally {
       setActionLoading(null);
     }
@@ -148,7 +150,7 @@ export function ManageUsers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setError('No active session');
+        setError(t('admin.noSession'));
         return;
       }
 
@@ -173,7 +175,7 @@ export function ManageUsers() {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || 'Failed to create user');
+        setError(result.error || t('admin.failedCreate'));
       } else {
         setShowCreateModal(false);
         setNewUserId('');
@@ -183,7 +185,7 @@ export function ManageUsers() {
         await loadUsers();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
+      setError(err instanceof Error ? err.message : t('admin.failedCreate'));
     } finally {
       setCreating(false);
     }
@@ -205,7 +207,7 @@ export function ManageUsers() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setError('No active session');
+        setError(t('admin.noSession'));
         return;
       }
 
@@ -227,7 +229,7 @@ export function ManageUsers() {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || 'Failed to change password');
+        setError(result.error || t('admin.failedPassword'));
       } else {
         setShowPasswordModal(false);
         setSelectedUserId('');
@@ -235,7 +237,7 @@ export function ManageUsers() {
         setNewPassword('');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change password');
+      setError(err instanceof Error ? err.message : t('admin.failedPassword'));
     } finally {
       setChangingPassword(false);
     }
@@ -310,7 +312,7 @@ export function ManageUsers() {
       setSelectedUserUsername('');
       setSelectedHouseholdIds([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save households');
+      setError(err instanceof Error ? err.message : t('admin.failedSaveHouseholds'));
     } finally {
       setSavingHouseholds(false);
     }
@@ -331,20 +333,20 @@ export function ManageUsers() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
-          <p className="text-slate-500 mt-1">Manage user accounts and admin privileges.</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('admin.manageUsers')}</h2>
+          <p className="text-slate-500 mt-1">{t('admin.manageUsersSubtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl">
             <Users className="w-4 h-4 text-slate-600" />
-            <span className="text-sm font-semibold text-slate-900">{users.length} Users</span>
+            <span className="text-sm font-semibold text-slate-900">{t('admin.usersCount', { count: users.length })}</span>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all"
           >
             <UserPlus className="w-4 h-4" />
-            Create User
+            {t('admin.createUser')}
           </button>
         </div>
       </div>
@@ -358,7 +360,7 @@ export function ManageUsers() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {users.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-slate-500">No users found.</p>
+            <p className="text-slate-500">{t('admin.users.noUsers')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -379,24 +381,24 @@ export function ManageUsers() {
                       </span>
                       {isCurrentUser && (
                         <span className="inline-flex px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                          You
+                          {t('admin.you')}
                         </span>
                       )}
                       {user.is_admin && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
                           <Shield className="w-3 h-3" />
-                          Admin
+                          {t('admin.roleAdmin')}
                         </span>
                       )}
                       {user.is_contractor && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded">
                           <HardHat className="w-3 h-3" />
-                          Contractor
+                          {t('admin.roleContractor')}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Joined {new Date(user.created_at).toLocaleDateString()}
+                      {t('admin.joined', { date: new Date(user.created_at).toLocaleDateString(locale) })}
                     </p>
                   </div>
 
@@ -406,18 +408,18 @@ export function ManageUsers() {
                         <button
                           onClick={() => openHouseholdModal(user.id, user.username)}
                           className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-all"
-                          title="Assign Households"
+                          title={t('admin.assignHouseholds')}
                         >
                           <Home className="w-3.5 h-3.5" />
-                          Households
+                          {t('admin.households')}
                         </button>
                         <button
                           onClick={() => openPasswordModal(user.id, user.username)}
                           className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium rounded-lg transition-all"
-                          title="Change My Password"
+                          title={t('admin.changeMyPassword')}
                         >
                           <Key className="w-3.5 h-3.5" />
-                          Change My Password
+                          {t('admin.changeMyPassword')}
                         </button>
                       </>
                     ) : (
@@ -426,28 +428,28 @@ export function ManageUsers() {
                           onClick={() => openHouseholdModal(user.id, user.username)}
                           disabled={isLoading}
                           className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
-                          title="Assign Households"
+                          title={t('admin.assignHouseholds')}
                         >
                           <Home className="w-3.5 h-3.5" />
-                          Households
+                          {t('admin.households')}
                         </button>
                         <select
                           value={currentRole(user)}
                           disabled={isLoading}
                           onChange={(e) => changeUserRole(user.id, e.target.value as Role)}
                           className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-50"
-                          title="Role"
+                          title={t('admin.users.roleTitle')}
                         >
-                          <option value="regular">Regular</option>
-                          <option value="admin">Admin</option>
-                          <option value="contractor">Contractor</option>
+                          <option value="regular">{t('admin.roleRegularShort')}</option>
+                          <option value="admin">{t('admin.roleAdmin')}</option>
+                          <option value="contractor">{t('admin.roleContractor')}</option>
                         </select>
                         <select
                           value={user.preferred_language ?? 'en'}
                           disabled={isLoading}
                           onChange={(e) => changeUserLanguage(user.id, e.target.value as Language)}
                           className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-50"
-                          title="Language"
+                          title={t('admin.users.languageTitle')}
                         >
                           {LANGUAGES.map(l => (
                             <option key={l.code} value={l.code}>{LANG_FLAG[l.code]} {l.label}</option>
@@ -457,7 +459,7 @@ export function ManageUsers() {
                           onClick={() => openPasswordModal(user.id, user.username)}
                           disabled={isLoading}
                           className="p-2 hover:bg-blue-50 rounded-lg transition-all disabled:opacity-50"
-                          title="Change Password"
+                          title={t('admin.changePassword')}
                         >
                           <Key className="w-4 h-4 text-blue-500" />
                         </button>
@@ -483,7 +485,7 @@ export function ManageUsers() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">Create New User</h3>
+                <h3 className="text-xl font-bold text-slate-900">{t('admin.createNewUser')}</h3>
                 <button
                   onClick={() => setShowCreateModal(false)}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -496,7 +498,7 @@ export function ManageUsers() {
             <form onSubmit={createUser} className="p-6 space-y-4">
               <div>
                 <label htmlFor="newUserId" className="block text-sm font-medium text-slate-700 mb-2">
-                  User ID
+                  {t('auth.userId')}
                 </label>
                 <input
                   id="newUserId"
@@ -505,13 +507,13 @@ export function ManageUsers() {
                   onChange={(e) => setNewUserId(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                   required
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                  placeholder="johndoe"
+                  placeholder={t('admin.users.userIdPlaceholder')}
                 />
               </div>
 
               <div>
                 <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 mb-2">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <input
                   id="newPassword"
@@ -521,13 +523,13 @@ export function ManageUsers() {
                   required
                   minLength={6}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition-all"
-                  placeholder="Minimum 6 characters"
+                  placeholder={t('admin.users.passwordPlaceholder')}
                 />
               </div>
 
               <div>
                 <label htmlFor="newUserRole" className="block text-sm font-medium text-slate-700 mb-2">
-                  Role
+                  {t('admin.role')}
                 </label>
                 <select
                   id="newUserRole"
@@ -535,15 +537,15 @@ export function ManageUsers() {
                   onChange={(e) => setNewUserRole(e.target.value as Role)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 >
-                  <option value="regular">Regular User</option>
-                  <option value="admin">Admin</option>
-                  <option value="contractor">Contractor (receipt submissions only)</option>
+                  <option value="regular">{t('admin.roleRegular')}</option>
+                  <option value="admin">{t('admin.roleAdmin')}</option>
+                  <option value="contractor">{t('admin.roleContractorLong')}</option>
                 </select>
               </div>
 
               <div>
                 <label htmlFor="newUserLanguage" className="block text-sm font-medium text-slate-700 mb-2">
-                  Preferred Language
+                  {t('admin.preferredLanguage')}
                 </label>
                 <select
                   id="newUserLanguage"
@@ -563,14 +565,14 @@ export function ManageUsers() {
                   onClick={() => setShowCreateModal(false)}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {creating ? 'Creating...' : 'Create User'}
+                  {creating ? t('admin.creating') : t('admin.users.createUserBtn')}
                 </button>
               </div>
             </form>
@@ -584,7 +586,7 @@ export function ManageUsers() {
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Change Password</h3>
+                  <h3 className="text-xl font-bold text-slate-900">{t('admin.changePassword')}</h3>
                   <p className="text-sm text-slate-500 mt-1">{selectedUserUsername}</p>
                 </div>
                 <button
@@ -599,7 +601,7 @@ export function ManageUsers() {
             <form onSubmit={changePassword} className="p-6 space-y-4">
               <div>
                 <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 mb-2">
-                  New Password
+                  {t('settings.newPassword')}
                 </label>
                 <input
                   id="newPassword"
@@ -609,7 +611,7 @@ export function ManageUsers() {
                   required
                   minLength={6}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
-                  placeholder="Minimum 6 characters"
+                  placeholder={t('admin.users.passwordPlaceholder')}
                 />
               </div>
 
@@ -619,14 +621,14 @@ export function ManageUsers() {
                   onClick={() => setShowPasswordModal(false)}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={changingPassword}
                   className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {changingPassword ? 'Changing...' : 'Change Password'}
+                  {changingPassword ? t('admin.changing') : t('admin.changePassword')}
                 </button>
               </div>
             </form>
@@ -640,7 +642,7 @@ export function ManageUsers() {
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Assign Households</h3>
+                  <h3 className="text-xl font-bold text-slate-900">{t('admin.assignHouseholds')}</h3>
                   <p className="text-sm text-slate-500 mt-1">{selectedUserUsername}</p>
                 </div>
                 <button
@@ -654,12 +656,12 @@ export function ManageUsers() {
 
             <div className="p-6">
               <p className="text-sm text-slate-600 mb-4">
-                Select which households this user can access:
+                {t('admin.selectHouseholds')}
               </p>
 
               {households.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-sm">
-                  No households available. Create one first.
+                  {t('admin.noHouseholds')}
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -692,7 +694,7 @@ export function ManageUsers() {
                   onClick={() => setShowHouseholdModal(false)}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -700,7 +702,7 @@ export function ManageUsers() {
                   disabled={savingHouseholds}
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {savingHouseholds ? 'Saving...' : 'Save'}
+                  {savingHouseholds ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </div>

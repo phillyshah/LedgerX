@@ -6,6 +6,7 @@ import { compressForPDF, addImageToPDF, pdfGridLayout } from '../../lib/pdfUtils
 import { EditExpense } from '../EditExpense';
 import { SpendingCharts } from '../SpendingCharts';
 import type { Expense as ExpenseType } from '../../types/expense';
+import { useT } from '../../hooks/useT';
 
 interface Expense {
   id: string;
@@ -42,6 +43,7 @@ interface GroupedData {
 }
 
 export function AdminAnalytics() {
+  const { t, locale } = useT();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -135,7 +137,7 @@ export function AdminAnalytics() {
   const maxCategoryTotal = Math.max(...byCategory.map((c) => c.total), 1);
 
   const fmt = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(amount);
 
   // Derive start/end dates from the current dashboard date-range selection.
   const getExportDateRange = (): { start: string; end: string } | null => {
@@ -274,7 +276,7 @@ export function AdminAnalytics() {
         // Vendor
         pdf.setFontSize(11);
         pdf.setFont(undefined as unknown as string, 'bold');
-        const vendorLines = pdf.splitTextToSize(expense.vendor || 'Unnamed Transaction', textWidth);
+        const vendorLines = pdf.splitTextToSize(expense.vendor || t('admin.unnamedTx'), textWidth);
         pdf.text(vendorLines, xOffset, yPos);
         yPos += vendorLines.length * 5.5;
 
@@ -283,7 +285,7 @@ export function AdminAnalytics() {
         pdf.setFont(undefined as unknown as string, 'normal');
         pdf.text(`Date: ${expense.expense_date}`, xOffset, yPos); yPos += 4.5;
         pdf.text(
-          `Amount: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
+          `Amount: ${new Intl.NumberFormat(locale, { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
           xOffset, yPos
         ); yPos += 4.5;
 
@@ -317,7 +319,7 @@ export function AdminAnalytics() {
       pdf.save(`ledgerx-admin-export-${exportStartDate}-to-${exportEndDate}.pdf`);
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to export data. Please try again.');
+      alert(t('admin.failedExport'));
     } finally {
       setExporting(false);
     }
@@ -347,13 +349,13 @@ export function AdminAnalytics() {
   };
 
   const getDateRangeLabel = () => {
-    if (dateRange === '30d') return 'Last 30 Days';
-    if (dateRange === '90d') return 'Last 90 Days';
-    if (dateRange === 'ytd') return 'Year to Date';
+    if (dateRange === '30d') return t('admin.last30');
+    if (dateRange === '90d') return t('admin.last90');
+    if (dateRange === 'ytd') return t('admin.ytd');
     if (dateRange === 'custom' && customStartDate && customEndDate) {
       return `${customStartDate} to ${customEndDate}`;
     }
-    return 'Select Range';
+    return t('admin.selectRange');
   };
 
   if (loading) {
@@ -373,8 +375,8 @@ export function AdminAnalytics() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Analytics Dashboard</h2>
-          <p className="text-slate-500 mt-1">Platform-wide reporting and insights</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('admin.analyticsTitle')}</h2>
+          <p className="text-slate-500 mt-1">{t('admin.analyticsDesc')}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -383,14 +385,14 @@ export function AdminAnalytics() {
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            {exporting ? 'Exporting...' : 'Export Report'}
+            {exporting ? t('admin.exporting') : t('admin.exportReport')}
           </button>
           <select
             value={householdFilter}
             onChange={(e) => setHouseholdFilter(e.target.value)}
             className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           >
-            <option value="all">All Households</option>
+            <option value="all">{t('admin.allHouseholds')}</option>
             {households.map((h) => (
               <option key={h.id} value={h.id}>{h.name}</option>
             ))}
@@ -400,23 +402,23 @@ export function AdminAnalytics() {
             onChange={(e) => handleDateRangeChange(e.target.value as '30d' | '90d' | 'ytd' | 'custom')}
             className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 min-w-[140px]"
           >
-            <option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option>
-            <option value="ytd">Year to Date</option>
-            <option value="custom">{dateRange === 'custom' && customStartDate && customEndDate ? getDateRangeLabel() : 'Custom Range'}</option>
+            <option value="30d">{t('admin.last30')}</option>
+            <option value="90d">{t('admin.last90')}</option>
+            <option value="ytd">{t('admin.ytd')}</option>
+            <option value="custom">{dateRange === 'custom' && customStartDate && customEndDate ? getDateRangeLabel() : t('admin.customRange')}</option>
           </select>
         </div>
       </div>
 
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <p className="text-sm font-medium text-slate-700">Filter by Category:</p>
+          <p className="text-sm font-medium text-slate-700">{t('admin.filterByCategory')}</p>
           {categoryFilter.length > 0 && (
             <button
               onClick={() => setCategoryFilter([])}
               className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
             >
-              Clear all
+              {t('admin.clearAll')}
             </button>
           )}
         </div>
@@ -431,29 +433,29 @@ export function AdminAnalytics() {
                   : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-300'
               }`}
             >
-              {category}
+              {category === 'Uncategorized' ? t('common.uncategorized') : category}
             </button>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <StatCard icon={DollarSign} label="Total Amount" value={fmt(totalAmount)} />
-        <StatCard icon={Receipt} label="Transactions" value={transactionCount.toString()} />
+        <StatCard icon={DollarSign} label={t('admin.totalAmount')} value={fmt(totalAmount)} />
+        <StatCard icon={Receipt} label={t('admin.transactions')} value={transactionCount.toString()} />
       </div>
 
       <SpendingCharts expenses={filteredExpenses as unknown as ExpenseType[]} loading={loading} />
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
-        <h3 className="text-lg font-semibold text-slate-900 mb-5">Transactions by Category</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-5">{t('admin.byCategoryTitle')}</h3>
         {byCategory.length === 0 ? (
-          <p className="text-sm text-slate-500 py-8 text-center">No data yet</p>
+          <p className="text-sm text-slate-500 py-8 text-center">{t('admin.noDataYet')}</p>
         ) : (
           <div className="space-y-3">
             {byCategory.map((item) => (
               <div key={item.label}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-slate-700">{item.label}</span>
+                  <span className="text-sm font-medium text-slate-700">{item.label === 'Uncategorized' ? t('common.uncategorized') : item.label}</span>
                   <span className="text-sm font-semibold text-slate-900">{fmt(item.total)}</span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -462,7 +464,7 @@ export function AdminAnalytics() {
                     style={{ width: `${(item.total / maxCategoryTotal) * 100}%` }}
                   />
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{item.count} transaction{item.count !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-slate-400 mt-1">{item.count !== 1 ? t('admin.transactionCountPlural', { count: item.count }) : t('admin.transactionCount', { count: item.count })}</p>
               </div>
             ))}
           </div>
@@ -471,11 +473,11 @@ export function AdminAnalytics() {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Recent Transactions</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{t('admin.recentTransactions')}</h3>
         </div>
         {filteredExpenses.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-slate-500">No transactions found.</p>
+            <p className="text-slate-500">{t('admin.noTransactionsFound')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -487,15 +489,15 @@ export function AdminAnalytics() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <p className="font-medium text-slate-900">{expense.vendor || 'Unnamed'}</p>
+                    <p className="font-medium text-slate-900">{expense.vendor || t('admin.unnamed')}</p>
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
-                      {expense.category || 'Uncategorized'}
+                      {expense.category || t('common.uncategorized')}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()}
+                      {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString(locale)}
                     </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Home className="w-3 h-3" />
@@ -515,7 +517,7 @@ export function AdminAnalytics() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">Custom Date Range</h2>
+                <h2 className="text-2xl font-bold text-slate-900">{t('admin.customDateRange')}</h2>
                 <button
                   onClick={() => setShowCustomDateModal(false)}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -528,7 +530,7 @@ export function AdminAnalytics() {
             <div className="p-6 space-y-6">
               <div>
                 <label htmlFor="customStartDate" className="block text-sm font-medium text-slate-700 mb-2">
-                  Start Date
+                  {t('admin.startDate')}
                 </label>
                 <input
                   id="customStartDate"
@@ -542,7 +544,7 @@ export function AdminAnalytics() {
 
               <div>
                 <label htmlFor="customEndDate" className="block text-sm font-medium text-slate-700 mb-2">
-                  End Date
+                  {t('admin.endDate')}
                 </label>
                 <input
                   id="customEndDate"
@@ -560,7 +562,7 @@ export function AdminAnalytics() {
                   onClick={() => setShowCustomDateModal(false)}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -568,7 +570,7 @@ export function AdminAnalytics() {
                   disabled={!customStartDate || !customEndDate}
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Apply
+                  {t('admin.apply')}
                 </button>
               </div>
             </div>

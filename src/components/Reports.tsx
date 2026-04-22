@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
+import { useT } from '../hooks/useT';
 
 interface Household {
   id: string;
@@ -35,6 +36,7 @@ interface ReportsProps {
 export function Reports({ onClose }: ReportsProps) {
   console.log('Reports component rendered');
   const { user } = useAuth();
+  const { t, locale } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);
@@ -104,7 +106,7 @@ export function Reports({ onClose }: ReportsProps) {
           .from('households')
           .select('id, name')
           .order('name');
-        if (hhErr) { setError('Could not load households.'); return; }
+        if (hhErr) { setError(t('reports.failedLoadHouseholds')); return; }
         hh = (allHH ?? []) as Household[];
       } else {
         const { data: memberData, error: memberError } = await supabase
@@ -114,7 +116,7 @@ export function Reports({ onClose }: ReportsProps) {
 
         if (memberError) {
           console.error('Error loading households:', memberError);
-          setError('Could not load households. Please try again.');
+          setError(t('reports.failedLoadHouseholdsRetry'));
           return;
         }
 
@@ -134,14 +136,14 @@ export function Reports({ onClose }: ReportsProps) {
 
       if (catError) {
         console.error('Error loading categories:', catError);
-        setError('Could not load categories. Please try again.');
+        setError(t('reports.failedLoadCategories'));
         return;
       }
 
       setAllCategories(catData || []);
     } catch (error) {
       console.error('Unexpected error in loadOptions:', error);
-      setError('Something went wrong while loading report filters.');
+      setError(t('reports.failedLoadOptions'));
     }
   };
 
@@ -186,14 +188,14 @@ export function Reports({ onClose }: ReportsProps) {
       } else {
         if (error) {
           console.error('Error running report:', error);
-          setError('Failed to run report. Please try again.');
+          setError(t('reports.failedRun'));
         }
         setExpenses([]);
         setTotalAmount(0);
       }
     } catch (error) {
       console.error('Unexpected error running report:', error);
-      setError('Unexpected error running report.');
+      setError(t('reports.unexpectedRun'));
       setExpenses([]);
       setTotalAmount(0);
     } finally {
@@ -279,7 +281,7 @@ export function Reports({ onClose }: ReportsProps) {
         pdf.setFontSize(11);
         pdf.setFont(undefined as unknown as string, 'bold');
         const vendorLines = pdf.splitTextToSize(
-          `${expense.vendor || 'Unnamed Transaction'}`, textWidth
+          `${expense.vendor || t('admin.unnamedTx')}`, textWidth
         );
         pdf.text(vendorLines, xOffset, yPosition);
         yPosition += vendorLines.length * 5.5;
@@ -289,7 +291,7 @@ export function Reports({ onClose }: ReportsProps) {
         pdf.text(`Date: ${expense.expense_date}`, xOffset, yPosition);
         yPosition += 4.5;
         pdf.text(
-          `Amount: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
+          `Amount: ${new Intl.NumberFormat(locale, { style: 'currency', currency: expense.currency || 'USD' }).format(expense.total)}`,
           xOffset, yPosition
         );
         yPosition += 4.5;
@@ -324,7 +326,7 @@ export function Reports({ onClose }: ReportsProps) {
 
     } catch (error) {
       console.error('Error exporting report:', error);
-      alert('Failed to export report. Please try again.');
+      alert(t('reports.failedExport'));
     } finally {
       setExporting(false);
     }
@@ -348,7 +350,7 @@ export function Reports({ onClose }: ReportsProps) {
         <div className="flex items-center justify-between p-6 border-b border-slate-200 shrink-0">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Reports
+            {t('reports.title')}
           </h2>
           <button
             onClick={onClose}
@@ -361,7 +363,7 @@ export function Reports({ onClose }: ReportsProps) {
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-              <strong className="font-semibold">Error:</strong> {error}
+              <strong className="font-semibold">{t('reports.error')}</strong> {error}
             </div>
           )}
           {/* Filters */}
@@ -370,7 +372,7 @@ export function Reports({ onClose }: ReportsProps) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
                 <Home className="w-4 h-4" />
-                Households
+                {t('reports.households')}
               </label>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {households.map((h: Household) => (
@@ -391,7 +393,7 @@ export function Reports({ onClose }: ReportsProps) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
                 <Tag className="w-4 h-4" />
-                Categories
+                {t('reports.categories')}
               </label>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {availableCategories.map((c: Category) => (
@@ -412,7 +414,7 @@ export function Reports({ onClose }: ReportsProps) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                Start Date
+                {t('reports.startDate')}
               </label>
               <input
                 type="date"
@@ -426,7 +428,7 @@ export function Reports({ onClose }: ReportsProps) {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                End Date
+                {t('reports.endDate')}
               </label>
               <input
                 type="date"
@@ -444,7 +446,7 @@ export function Reports({ onClose }: ReportsProps) {
               disabled={selectedHouseholds.length === 0 || loading}
               className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl transition-all shadow-sm font-medium"
             >
-              {loading ? 'Running Report...' : 'Run Report'}
+              {loading ? t('reports.running') : t('reports.runReport')}
             </button>
             <button
               onClick={exportReport}
@@ -452,7 +454,7 @@ export function Reports({ onClose }: ReportsProps) {
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm font-medium flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              {exporting ? 'Exporting...' : 'Export PDF & CSV'}
+              {exporting ? t('reports.exporting') : t('reports.exportPdfCsv')}
             </button>
           </div>
 
@@ -461,11 +463,11 @@ export function Reports({ onClose }: ReportsProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-900">
-                  Results ({expenses.length} transactions)
+                  {t('reports.resultsCount', { count: expenses.length })}
                 </h3>
                 <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
                   <DollarSign className="w-5 h-5" />
-                  Total: ${totalAmount.toFixed(2)}
+                  {t('reports.totalLabel', { amount: `$${totalAmount.toFixed(2)}` })}
                 </div>
               </div>
 
@@ -473,25 +475,25 @@ export function Reports({ onClose }: ReportsProps) {
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Vendor</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Household</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Receipt</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colDate')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colVendor')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colCategory')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colHousehold')}</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colAmount')}</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colReceipt')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
                     {expenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()}
+                          {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString(locale)}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {expense.vendor || 'N/A'}
+                          {expense.vendor || t('reports.na')}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-900">
-                          {expense.category || 'Uncategorized'}
+                          {expense.category || t('reports.uncategorized')}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-900">
                           {expense.household_name}
@@ -504,7 +506,7 @@ export function Reports({ onClose }: ReportsProps) {
                             <button
                               onClick={() => setViewingImage(expense.image_path)}
                               className="p-1 hover:bg-slate-100 rounded"
-                              title="View Receipt"
+                              title={t('reports.viewReceipt')}
                             >
                               <FileText className="w-4 h-4 text-slate-600" />
                             </button>
@@ -523,7 +525,7 @@ export function Reports({ onClose }: ReportsProps) {
 
           {expenses.length === 0 && !loading && (
             <div className="text-center py-8 text-slate-500">
-              No transactions found for the selected filters.
+              {t('reports.noneFound')}
             </div>
           )}
         </div>
@@ -533,7 +535,7 @@ export function Reports({ onClose }: ReportsProps) {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
             <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">Receipt Image</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{t('reports.receiptImage')}</h3>
               <button
                 onClick={() => setViewingImage(null)}
                 className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
@@ -547,7 +549,7 @@ export function Reports({ onClose }: ReportsProps) {
                   type="button"
                   onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
                   className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
-                  title="Zoom in"
+                  title={t('reports.zoomIn')}
                 >
                   +
                 </button>
@@ -555,7 +557,7 @@ export function Reports({ onClose }: ReportsProps) {
                   type="button"
                   onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
                   className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
-                  title="Zoom out"
+                  title={t('reports.zoomOut')}
                 >
                   −
                 </button>
@@ -563,9 +565,9 @@ export function Reports({ onClose }: ReportsProps) {
                   type="button"
                   onClick={() => setImageZoom(1)}
                   className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg"
-                  title="Reset zoom"
+                  title={t('reports.resetZoom')}
                 >
-                  reset
+                  {t('reports.reset')}
                 </button>
               </div>
               {imageUrl ? (
@@ -594,7 +596,7 @@ export function Reports({ onClose }: ReportsProps) {
                   />
                 </div>
               ) : (
-                <div className="text-slate-500">Loading image...</div>
+                <div className="text-slate-500">{t('reports.loadingImage')}</div>
               )}
             </div>
           </div>

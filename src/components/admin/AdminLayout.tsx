@@ -1,28 +1,33 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useT } from '../../hooks/useT';
 import { ManageHouseholds } from './ManageHouseholds';
 import { ManageCategories } from './ManageCategories';
 import { AdminAnalytics } from './AdminAnalytics';
 import { UncategorizedTransactions } from './UncategorizedTransactions';
 import { ManageUsers } from './ManageUsers';
 import { Reports } from '../Reports';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X } from 'lucide-react';
+import { HelpModal } from '../HelpModal';
+import { APP_VERSION } from '../../version';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle } from 'lucide-react';
 
 type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'reports';
 
-const navItems: { key: AdminView; label: string; icon: typeof BarChart3 }[] = [
-  { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { key: 'households', label: 'Households', icon: Home },
-  { key: 'categories', label: 'Categories', icon: Tag },
-  { key: 'uncategorized', label: 'Uncategorized', icon: AlertCircle },
-  { key: 'users', label: 'Users', icon: Users },
-  { key: 'reports', label: 'Reports', icon: FileText },
-];
-
 export function AdminLayout() {
   const { signOut } = useAuth();
+  const { t } = useT();
   const [activeView, setActiveView] = useState<AdminView>('analytics');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
+  const navItems: { key: AdminView; label: string; icon: typeof BarChart3 }[] = [
+    { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
+    { key: 'households', label: t('admin.manageHouseholds'), icon: Home },
+    { key: 'categories', label: t('admin.manageCategories'), icon: Tag },
+    { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle },
+    { key: 'users', label: t('admin.manageUsers'), icon: Users },
+    { key: 'reports', label: t('reports.title'), icon: FileText },
+  ];
 
   const handleViewChange = (view: AdminView) => {
     setActiveView(view);
@@ -52,9 +57,17 @@ export function AdminLayout() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowHelp(true)}
+              className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
+              title={t('common.help')}
+              aria-label={t('common.help')}
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+            <button
               onClick={handleSignOut}
               className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
-              title="Sign Out"
+              title={t('common.signOut')}
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -89,14 +102,17 @@ export function AdminLayout() {
 
       <aside className="hidden lg:flex w-64 bg-gradient-to-b from-emerald-900 to-emerald-950 flex-col shrink-0">
         <div className="p-6 border-b border-emerald-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-700 rounded-xl flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-emerald-700 rounded-xl flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-white font-bold text-lg leading-tight">LedgerX</h1>
+                <p className="text-emerald-300 text-xs font-medium">Admin Panel</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-white font-bold text-lg leading-tight">LedgerX</h1>
-              <p className="text-emerald-300 text-xs font-medium">Admin Panel</p>
-            </div>
+            <span className="text-[10px] text-emerald-400 font-medium">{APP_VERSION}</span>
           </div>
         </div>
 
@@ -117,13 +133,20 @@ export function AdminLayout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-emerald-800">
+        <div className="p-4 border-t border-emerald-800 space-y-1">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
+          >
+            <HelpCircle className="w-4.5 h-4.5" />
+            {t('common.help')}
+          </button>
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
           >
             <LogOut className="w-4.5 h-4.5" />
-            Sign Out
+            {t('common.signOut')}
           </button>
         </div>
       </aside>
@@ -138,6 +161,8 @@ export function AdminLayout() {
           {activeView === 'reports' && <Reports onClose={() => setActiveView('analytics')} />}
         </div>
       </main>
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

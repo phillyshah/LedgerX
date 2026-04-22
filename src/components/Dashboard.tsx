@@ -7,9 +7,11 @@ import { DashboardSummary } from './DashboardSummary';
 import { AddExpense } from './AddExpense';
 import { ExportData } from './ExportData';
 import { Reports } from './Reports';
-import { LogOut, Plus, Download, FileText, Settings } from 'lucide-react';
+import { LogOut, Plus, Download, FileText, Settings, HelpCircle } from 'lucide-react';
 import { UserSettings } from './UserSettings';
 import { SpendingCharts } from './SpendingCharts';
+import { HelpModal } from './HelpModal';
+import { APP_VERSION } from '../version';
 
 export function Dashboard() {
   const { signOut, isContractor } = useAuth();
@@ -18,6 +20,7 @@ export function Dashboard() {
   const [showExport, setShowExport] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const { expenses, households, loading, reloadExpenses } = useExpenses();
 
@@ -49,11 +52,23 @@ export function Dashboard() {
   );
 
   const HeaderActions = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1 sm:gap-2">
+      <span className="hidden md:inline text-xs text-slate-400 font-medium pr-2 border-r border-slate-200 mr-1">
+        {APP_VERSION}
+      </span>
+      <button
+        onClick={() => setShowHelp(true)}
+        className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+        aria-label={t('common.help')}
+        title={t('common.help')}
+      >
+        <HelpCircle className="w-4 h-4" />
+      </button>
       <button
         onClick={() => setShowSettings(true)}
         className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
         aria-label={t('common.settings')}
+        title={t('common.settings')}
       >
         <Settings className="w-4 h-4" />
       </button>
@@ -103,6 +118,7 @@ export function Dashboard() {
           <AddExpense onClose={() => setShowAddExpense(false)} onSaved={handleExpenseAdded} />
         )}
         {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       </div>
     );
   }
@@ -175,6 +191,10 @@ export function Dashboard() {
 
       {showSettings && (
         <UserSettings onClose={() => setShowSettings(false)} />
+      )}
+
+      {showHelp && (
+        <HelpModal onClose={() => setShowHelp(false)} />
       )}
     </div>
   );

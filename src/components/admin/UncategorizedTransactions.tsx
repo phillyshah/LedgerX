@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { AlertCircle, Home, Tag, Check, X, Edit } from 'lucide-react';
 import { EditExpense } from '../EditExpense';
+import { useT } from '../../hooks/useT';
 
 interface UncategorizedExpense {
   id: string;
@@ -38,6 +39,7 @@ interface Category {
 }
 
 export function UncategorizedTransactions() {
+  const { t, locale } = useT();
   const [expenses, setExpenses] = useState<UncategorizedExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -144,9 +146,9 @@ export function UncategorizedTransactions() {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">Uncategorized Transactions</h2>
+        <h2 className="text-2xl font-bold text-slate-900">{t('admin.uncat.title')}</h2>
         <p className="text-slate-500 mt-1">
-          Transactions with missing households or invalid categories. Re-allocate them to restore proper organization.
+          {t('admin.uncat.subtitleLong')}
         </p>
       </div>
 
@@ -159,8 +161,8 @@ export function UncategorizedTransactions() {
       {expenses.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
           <AlertCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">All Clean!</h3>
-          <p className="text-slate-500">No uncategorized transactions found. Everything is properly organized.</p>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('admin.uncat.allClean')}</h3>
+          <p className="text-slate-500">{t('admin.uncat.allCleanDesc')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -186,10 +188,10 @@ export function UncategorizedTransactions() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <h3 className="font-semibold text-slate-900 text-lg">
-                            {expense.vendor || 'Unknown Vendor'}
+                            {expense.vendor || t('admin.uncat.unknownVendor')}
                           </h3>
                           <p className="text-sm text-slate-500 mt-0.5">
-                            {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString()} • Created by {expense.creator_email}
+                            {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString(locale)} • {t('admin.uncat.createdBy', { email: expense.creator_email })}
                           </p>
                         </div>
                         <div className="text-right">
@@ -203,13 +205,13 @@ export function UncategorizedTransactions() {
                         {expense.is_orphaned_household && (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-medium rounded-full border border-red-200">
                             <Home className="w-3 h-3" />
-                            No Household
+                            {t('admin.uncat.noHousehold')}
                           </span>
                         )}
                         {expense.is_invalid_category && (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
                             <Tag className="w-3 h-3" />
-                            Invalid Category: {expense.category}
+                            {t('admin.uncat.invalidCategory', { category: expense.category ?? '' })}
                           </span>
                         )}
                         {!expense.is_orphaned_household && expense.household_name && (
@@ -229,7 +231,7 @@ export function UncategorizedTransactions() {
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                                Household
+                                {t('admin.uncat.household')}
                               </label>
                               <select
                                 value={selectedHousehold}
@@ -239,7 +241,7 @@ export function UncategorizedTransactions() {
                                 }}
                                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                               >
-                                <option value="">Select Household</option>
+                                <option value="">{t('admin.uncat.selectHousehold')}</option>
                                 {households.map((h) => (
                                   <option key={h.id} value={h.id}>
                                     {h.name}
@@ -249,14 +251,14 @@ export function UncategorizedTransactions() {
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                                Category
+                                {t('admin.uncat.category')}
                               </label>
                               <select
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                               >
-                                <option value="">Select Category</option>
+                                <option value="">{t('admin.uncat.selectCategory')}</option>
                                 {filteredCategories.map((c) => (
                                   <option key={c.id} value={c.name}>
                                     {c.name}
@@ -272,7 +274,7 @@ export function UncategorizedTransactions() {
                               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <Check className="w-4 h-4" />
-                              {saving ? 'Saving...' : 'Save Changes'}
+                              {saving ? t('admin.uncat.saving') : t('admin.uncat.saveChanges')}
                             </button>
                             <button
                               onClick={cancelEdit}
@@ -289,14 +291,14 @@ export function UncategorizedTransactions() {
                             onClick={() => startEdit(expense)}
                             className="flex-1 sm:flex-initial px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-all"
                           >
-                            Re-allocate
+                            {t('admin.uncat.reallocate')}
                           </button>
                           <button
                             onClick={() => openFullEdit(expense)}
                             className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all"
                           >
                             <Edit className="w-4 h-4" />
-                            Full Edit
+                            {t('admin.uncat.fullEdit')}
                           </button>
                         </div>
                       )}

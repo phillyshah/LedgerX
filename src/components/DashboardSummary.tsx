@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DollarSign, Calendar, Tag, Hash, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Expense } from '../types/expense';
+import { useT } from '../hooks/useT';
 
 interface DashboardSummaryProps {
   expenses: Expense[];
@@ -8,6 +9,7 @@ interface DashboardSummaryProps {
 }
 
 export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
+  const { t, locale } = useT();
   const stats = useMemo(() => {
     const now = new Date();
     const curYear = now.getFullYear();
@@ -22,7 +24,7 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
     const lastMonthStart = `${lmYear}-${String(lmMonth + 1).padStart(2, '0')}-01`;
     const lastMonthEnd = `${lmYear}-${String(lmMonth + 1).padStart(2, '0')}-31`;
 
-    const lastMonthName = lastMonthDate.toLocaleDateString('en-US', { month: 'long' });
+    const lastMonthName = lastMonthDate.toLocaleDateString(locale, { month: 'long' });
 
     const currentMonthExpenses = expenses.filter(
       (e) => e.expense_date >= currentMonthStart && e.expense_date <= currentMonthEnd
@@ -38,7 +40,7 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
     // Top category this month
     const categoryMap = new Map<string, number>();
     currentMonthExpenses.forEach((e) => {
-      const cat = e.category || 'Uncategorized';
+      const cat = e.category || t('common.uncategorized');
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + e.total);
     });
 
@@ -66,10 +68,10 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
       topCategoryTotal,
       percentChange,
     };
-  }, [expenses]);
+  }, [expenses, locale, t]);
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(n);
 
   if (loading) {
     return (
@@ -88,7 +90,7 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
 
   const cards = [
     {
-      label: 'This Month',
+      label: t('summary.thisMonth'),
       value: fmt(stats.currentMonthTotal),
       icon: DollarSign,
       iconBg: 'bg-emerald-50',
@@ -97,14 +99,14 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
         stats.percentChange !== null ? (
           <span className={`inline-flex items-center gap-0.5 ${stats.percentChange <= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {stats.percentChange <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-            {Math.abs(stats.percentChange).toFixed(0)}% vs last month
+            {t('summary.vsLastMonth', { pct: Math.abs(stats.percentChange).toFixed(0) })}
           </span>
         ) : (
-          <span>First month tracking</span>
+          <span>{t('summary.firstMonth')}</span>
         ),
     },
     {
-      label: 'Last Month',
+      label: t('summary.lastMonth'),
       value: fmt(stats.lastMonthTotal),
       icon: Calendar,
       iconBg: 'bg-slate-100',
@@ -112,20 +114,20 @@ export function DashboardSummary({ expenses, loading }: DashboardSummaryProps) {
       secondary: <span>{stats.lastMonthName}</span>,
     },
     {
-      label: 'Top Category',
+      label: t('summary.topCategory'),
       value: stats.topCategory,
       icon: Tag,
       iconBg: 'bg-violet-50',
       iconColor: 'text-violet-600',
-      secondary: stats.topCategoryTotal > 0 ? <span>{fmt(stats.topCategoryTotal)}</span> : <span>No data</span>,
+      secondary: stats.topCategoryTotal > 0 ? <span>{fmt(stats.topCategoryTotal)}</span> : <span>{t('summary.noData')}</span>,
     },
     {
-      label: 'Transactions',
+      label: t('summary.transactionsLabel'),
       value: String(stats.transactionCount),
       icon: Hash,
       iconBg: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      secondary: <span>this month</span>,
+      secondary: <span>{t('summary.thisMonthSmall')}</span>,
     },
   ];
 

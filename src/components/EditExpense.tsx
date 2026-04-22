@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../hooks/useT';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
 import { X, Upload, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
@@ -56,6 +57,7 @@ interface EditExpenseProps {
 
 export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const { user } = useAuth();
+  const { t } = useT();
   const [categories, setCategories] = useState<Category[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [formData, setFormData] = useState({
@@ -219,7 +221,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       applyReceiptData(data);
     } catch (error) {
       console.error('Receipt scan error:', error);
-      setScanError(error instanceof Error ? error.message : 'Failed to scan receipt');
+      setScanError(error instanceof Error ? error.message : t('addExpense.failedScan'));
     } finally {
       setScanning(false);
     }
@@ -249,7 +251,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         }
       } catch (error) {
         console.error('Error processing file:', error);
-        alert('Failed to process file. Please try another file.');
+        alert(t('addExpense.failedFile'));
       }
     }
 
@@ -411,7 +413,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       onSuccess();
     } catch (error) {
       console.error('Error updating expense:', error);
-      alert('Failed to update transaction. Please try again.');
+      alert(t('editExpense.failedUpdate'));
     } finally {
       setSaving(false);
     }
@@ -424,7 +426,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           type="button"
           onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
           className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-          title="Zoom in"
+          title={t('editExpense.zoomIn')}
         >
           +
         </button>
@@ -432,7 +434,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           type="button"
           onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
           className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-          title="Zoom out"
+          title={t('editExpense.zoomOut')}
         >
           −
         </button>
@@ -440,9 +442,9 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           type="button"
           onClick={() => { setZoomedImageIndex(null); setImageZoom(1); }}
           className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
-          title="Close zoom"
+          title={t('editExpense.closeZoom')}
         >
-          close
+          {t('editExpense.close')}
         </button>
       </div>
       <div
@@ -477,7 +479,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-2xl shadow-xl min-h-screen sm:min-h-0 sm:max-h-[90vh] sm:my-4 overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-slate-200 p-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Edit Transaction</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{t('editExpense.title')}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -490,7 +492,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label htmlFor="household" className="block text-sm font-medium text-slate-700 mb-2">
-              Household
+              {t('addExpense.household')}
             </label>
             <select
               id="household"
@@ -499,7 +501,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             >
-              <option value="">Select a household</option>
+              <option value="">{t('addExpense.selectHousehold')}</option>
               {households.map((h) => (
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
@@ -509,7 +511,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="expense_date" className="block text-sm font-medium text-slate-700 mb-2">
-                Date
+                {t('addExpense.date')}
               </label>
               <input
                 id="expense_date"
@@ -522,7 +524,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
             </div>
             <div>
               <label htmlFor="total" className="block text-sm font-medium text-slate-700 mb-2">
-                Amount
+                {t('addExpense.amount')}
               </label>
               <input
                 id="total"
@@ -537,7 +539,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
             </div>
             <div>
               <label htmlFor="currency" className="block text-sm font-medium text-slate-700 mb-2">
-                Currency
+                {t('editExpense.currency')}
               </label>
               <select
                 id="currency"
@@ -557,21 +559,21 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
 
           <div>
             <label htmlFor="vendor" className="block text-sm font-medium text-slate-700 mb-2">
-              Vendor
+              {t('addExpense.vendor')}
             </label>
             <input
               id="vendor"
               type="text"
               value={formData.vendor}
               onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-              placeholder="Whole Foods, Amazon, etc."
+              placeholder={t('addExpense.vendorPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             />
           </div>
 
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-slate-700 mb-2">
-              Category
+              {t('addExpense.category')}
             </label>
             <select
               id="category"
@@ -579,7 +581,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             >
-              <option value="">Select a category</option>
+              <option value="">{t('addExpense.selectCategory')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
@@ -589,7 +591,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label htmlFor="notes" className="block text-sm font-medium text-slate-700">
-                Notes
+                {t('addExpense.notes')}
               </label>
               {(() => {
                 const hh = households.find((h) => h.id === formData.household_id);
@@ -604,7 +606,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     {npiSearching
                       ? <Loader2 className="w-3 h-3 animate-spin" />
                       : <Search className="w-3 h-3" />}
-                    Lookup NPI
+                    {t('addExpense.lookupNPI')}
                   </button>
                 );
               })()}
@@ -614,30 +616,30 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              placeholder="Additional details..."
+              placeholder={t('addExpense.notesPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
             />
           </div>
 
           <div>
             <label htmlFor="transcript" className="block text-sm font-medium text-slate-700 mb-2">
-              Transcript
+              {t('editExpense.transcript')}
             </label>
             <textarea
               id="transcript"
               value={formData.transcript}
               onChange={(e) => setFormData({ ...formData, transcript: e.target.value })}
               rows={3}
-              placeholder="Receipt transcript or extracted text..."
+              placeholder={t('editExpense.transcriptPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Receipt Images
+              {t('addExpense.receiptImages')}
               {totalImages > 0 && (
-                <span className="ml-2 text-slate-400 font-normal">({totalImages} attached)</span>
+                <span className="ml-2 text-slate-400 font-normal">{t('addExpense.attached', { count: totalImages })}</span>
               )}
             </label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
@@ -676,13 +678,13 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                           <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
                             <FileText className="w-8 h-8 text-red-400" />
                             <span className="text-xs px-2 truncate w-full text-center">{img.image_path?.split('/').pop()}</span>
-                            <span className="text-xs text-slate-400">Click to open</span>
+                            <span className="text-xs text-slate-400">{t('editExpense.clickToOpen')}</span>
                           </div>
                         ) : img.signedUrl ? (
                           <img src={img.signedUrl} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
                         ) : (
                           <div className="w-full h-32 bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
-                            Loading...
+                            {t('editExpense.loadingImage')}
                           </div>
                         )}
                         <button
@@ -694,7 +696,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                         </button>
                         {index === 0 && newImages.length === 0 && (
                           <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-slate-900/70 text-white text-xs rounded-md">
-                            Primary
+                            {t('addExpense.primary')}
                           </span>
                         )}
                       </div>
@@ -728,7 +730,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                           <X className="w-3.5 h-3.5" />
                         </button>
                         <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-emerald-600/70 text-white text-xs rounded-md">
-                          New
+                          {t('editExpense.newBadge')}
                         </span>
                       </div>
                     ))}
@@ -736,7 +738,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                     {/* Add more button */}
                     <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
                       <Plus className="w-6 h-6 text-slate-400" />
-                      <span className="text-xs text-slate-400 mt-1">Add more</span>
+                      <span className="text-xs text-slate-400 mt-1">{t('addExpense.addMore')}</span>
                       <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleNewImageChange} className="hidden" />
                     </label>
                   </div>
@@ -744,7 +746,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                   {scanning && (
                     <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Scanning receipt...
+                      {t('addExpense.scanning')}
                     </div>
                   )}
                   {scanError && (
@@ -758,7 +760,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                         }}
                         className="ml-2 text-red-700 underline font-medium"
                       >
-                        Retry
+                        {t('common.retry')}
                       </button>
                     </div>
                   )}
@@ -769,7 +771,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                       className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
                     >
                       <Camera className="w-4 h-4" />
-                      Scan Receipt
+                      {t('editExpense.scanReceipt')}
                     </button>
                   )}
                 </div>
@@ -778,8 +780,8 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                   <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mb-2">
                     <Upload className="w-5 h-5 text-slate-400" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">Upload receipts</p>
-                  <p className="text-xs text-slate-400">PNG, JPG, PDF — select multiple files</p>
+                  <p className="text-sm font-medium text-slate-600">{t('addExpense.uploadReceipts')}</p>
+                  <p className="text-xs text-slate-400">{t('editExpense.uploadHint')}</p>
                   <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleNewImageChange} className="hidden" />
                 </label>
               )}
@@ -792,14 +794,14 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               onClick={onClose}
               className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? t('common.saving') : t('editExpense.saveChanges')}
             </button>
           </div>
         </form>

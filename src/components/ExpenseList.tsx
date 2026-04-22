@@ -331,14 +331,14 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     <button
                       onClick={() => setEditingExpense(expense)}
                       className="p-1.5 hover:bg-slate-100 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
-                      title="Edit"
+                      title={t('common.edit')}
                     >
                       <Edit2 className="w-4 h-4 text-slate-500" />
                     </button>
                     <button
                       onClick={() => deleteExpense(expense.id)}
                       className="p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
-                      title="Delete"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
                     </button>

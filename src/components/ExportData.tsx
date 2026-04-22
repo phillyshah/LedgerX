@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { X, Download, ChevronDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
+import { useT } from '../hooks/useT';
 
 interface Household {
   id: string;
@@ -28,6 +29,7 @@ interface ExportDataProps {
 
 export function ExportData({ onClose }: ExportDataProps) {
   const { user } = useAuth();
+  const { t, locale } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHousehold, setSelectedHousehold] = useState<string>('all');
   const [allCategories, setAllCategories] = useState<Category[]>([]);
@@ -118,14 +120,14 @@ export function ExportData({ onClose }: ExportDataProps) {
   const allSelected = selectedCategories.length === 0;
 
   const getCategoryDropdownLabel = () => {
-    if (allSelected) return 'All Categories';
-    if (selectedCategories.length === 1 && selectedCategories[0] === '__none__') return 'None selected';
+    if (allSelected) return t('export.allCategoriesLabel');
+    if (selectedCategories.length === 1 && selectedCategories[0] === '__none__') return t('export.noneSelected');
     const count = selectedCategories.filter((c) => c !== '__none__').length;
     if (count === 1) {
       const cat = availableCategories.find((c) => c.id === selectedCategories[0]);
-      return cat ? cat.name : '1 category';
+      return cat ? cat.name : t('export.oneCategory');
     }
-    return `${count} categories`;
+    return t('export.nCategories', { count });
   };
 
 
@@ -266,7 +268,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
-        const vendorLines = pdf.splitTextToSize(`${expense.vendor || 'Unnamed Transaction'}`, textWidth);
+        const vendorLines = pdf.splitTextToSize(`${expense.vendor || t('admin.unnamedTx')}`, textWidth);
         pdf.text(vendorLines, xOffset, yPosition);
         yPosition += vendorLines.length * 6;
 
@@ -275,7 +277,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         pdf.text(`Date: ${expense.expense_date}`, xOffset, yPosition);
         yPosition += 5;
         pdf.text(
-          `Amount: ${new Intl.NumberFormat('en-US', {
+          `Amount: ${new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: expense.currency || 'USD',
           }).format(expense.total)}`,
@@ -370,7 +372,7 @@ export function ExportData({ onClose }: ExportDataProps) {
       onClose();
     } catch (error) {
       console.error('Error exporting data:', error);
-      alert('Failed to export data. Please try again.');
+      alert(t('admin.failedExport'));
     } finally {
       setExporting(false);
     }
@@ -381,7 +383,7 @@ export function ExportData({ onClose }: ExportDataProps) {
       <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-md shadow-xl min-h-screen sm:min-h-0 sm:my-4">
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Export Data</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{t('export.title')}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -394,7 +396,7 @@ export function ExportData({ onClose }: ExportDataProps) {
         <form onSubmit={handleExport} className="p-6 space-y-6">
           <div>
             <label htmlFor="exportHousehold" className="block text-sm font-medium text-slate-700 mb-2">
-              Household
+              {t('export.household')}
             </label>
             <select
               id="exportHousehold"
@@ -402,7 +404,7 @@ export function ExportData({ onClose }: ExportDataProps) {
               onChange={(e) => setSelectedHousehold(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             >
-              <option value="all">All Households</option>
+              <option value="all">{t('export.allHouseholds')}</option>
               {households.map((h) => (
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
@@ -412,7 +414,7 @@ export function ExportData({ onClose }: ExportDataProps) {
           {/* Category Filter Dropdown */}
           <div ref={categoryDropdownRef} className="relative">
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Categories
+              {t('export.categories')}
             </label>
             <button
               type="button"
@@ -432,7 +434,7 @@ export function ExportData({ onClose }: ExportDataProps) {
                     onClick={selectAllCategories}
                     className="text-xs text-slate-600 hover:text-slate-900 font-medium"
                   >
-                    Select All
+                    {t('export.selectAll')}
                   </button>
                   <span className="text-slate-300">|</span>
                   <button
@@ -440,7 +442,7 @@ export function ExportData({ onClose }: ExportDataProps) {
                     onClick={deselectAllCategories}
                     className="text-xs text-slate-600 hover:text-slate-900 font-medium"
                   >
-                    Deselect All
+                    {t('export.deselectAll')}
                   </button>
                 </div>
                 {availableCategories.map((c) => (
@@ -467,7 +469,7 @@ export function ExportData({ onClose }: ExportDataProps) {
                   </label>
                 ))}
                 {availableCategories.length === 0 && (
-                  <p className="px-4 py-3 text-sm text-slate-400">No categories available</p>
+                  <p className="px-4 py-3 text-sm text-slate-400">{t('export.noCategoriesAvailable')}</p>
                 )}
               </div>
             )}
@@ -475,7 +477,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
           <div>
             <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 mb-2">
-              Start Date
+              {t('export.startDate')}
             </label>
             <input
               id="startDate"
@@ -489,7 +491,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
           <div>
             <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 mb-2">
-              End Date
+              {t('export.endDate')}
             </label>
             <input
               id="endDate"
@@ -504,7 +506,7 @@ export function ExportData({ onClose }: ExportDataProps) {
           {/* Sort By Dropdown */}
           <div>
             <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
-              Sort By
+              {t('export.sortBy')}
             </label>
             <select
               id="sortBy"
@@ -512,9 +514,9 @@ export function ExportData({ onClose }: ExportDataProps) {
               onChange={(e) => setSortBy(e.target.value as SortBy)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             >
-              <option value="date">Date</option>
-              <option value="household">Household, then Date</option>
-              <option value="category">Category, then Household, then Date</option>
+              <option value="date">{t('export.sortDate')}</option>
+              <option value="household">{t('export.sortHousehold')}</option>
+              <option value="category">{t('export.sortCategory')}</option>
             </select>
           </div>
 
@@ -522,9 +524,9 @@ export function ExportData({ onClose }: ExportDataProps) {
             <div className="flex items-start gap-3">
               <Download className="w-5 h-5 text-slate-600 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-slate-900 mb-1">CSV & PDF Export</p>
+                <p className="text-sm font-medium text-slate-900 mb-1">{t('export.csvPdfTitle')}</p>
                 <p className="text-sm text-slate-600">
-                  Your data will be exported as a CSV file and a PDF with all receipt images included.
+                  {t('export.csvPdfHelp')}
                 </p>
               </div>
             </div>
@@ -536,14 +538,14 @@ export function ExportData({ onClose }: ExportDataProps) {
               onClick={onClose}
               className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={exporting}
               className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {exporting ? 'Exporting...' : 'Export'}
+              {exporting ? t('export.exporting') : t('export.exportBtn')}
             </button>
           </div>
         </form>

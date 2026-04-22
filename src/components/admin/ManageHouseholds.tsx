@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, X, UserPlus, Trash2 } from 'lucide-react';
+import { useT } from '../../hooks/useT';
 
 interface Household {
   id: string;
@@ -22,6 +23,7 @@ interface User {
 }
 
 export function ManageHouseholds() {
+  const { t, locale } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -153,7 +155,7 @@ export function ManageHouseholds() {
   };
 
   const deleteHousehold = async (householdId: string) => {
-    if (!confirm('Delete this household? All expenses will be moved to Uncategorized.')) return;
+    if (!confirm(t('admin.hh.deleteConfirm'))) return;
 
     setDeleteError('');
 
@@ -162,7 +164,7 @@ export function ManageHouseholds() {
 
       if (error) {
         console.error('Error deleting household:', error);
-        setDeleteError(`Failed to delete household: ${error.message}`);
+        setDeleteError(t('admin.hh.failedDelete', { message: error.message }));
         return;
       }
 
@@ -171,7 +173,7 @@ export function ManageHouseholds() {
       await loadHouseholds();
     } catch (err) {
       console.error('Unexpected error deleting household:', err);
-      setDeleteError('An unexpected error occurred while deleting the household.');
+      setDeleteError(t('admin.hh.unexpectedDelete'));
     }
   };
 
@@ -190,15 +192,15 @@ export function ManageHouseholds() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Households</h2>
-          <p className="text-slate-500 mt-1">Create and manage households and their members.</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('admin.manageHouseholds')}</h2>
+          <p className="text-slate-500 mt-1">{t('admin.hh.subtitleLong')}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          New Household
+          {t('admin.hh.newHousehold')}
         </button>
       </div>
 
@@ -216,7 +218,7 @@ export function ManageHouseholds() {
       {showCreate && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">Create Household</h3>
+            <h3 className="font-semibold text-slate-900">{t('admin.hh.createHousehold')}</h3>
             <button onClick={() => setShowCreate(false)} className="p-1 hover:bg-slate-100 rounded-lg">
               <X className="w-4 h-4 text-slate-500" />
             </button>
@@ -226,7 +228,7 @@ export function ManageHouseholds() {
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Household name"
+              placeholder={t('admin.hh.householdNamePlaceholder')}
               required
               className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
             />
@@ -235,7 +237,7 @@ export function ManageHouseholds() {
               disabled={creating}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50"
             >
-              {creating ? 'Creating...' : 'Create'}
+              {creating ? t('admin.hh.creating') : t('admin.hh.create')}
             </button>
           </form>
         </div>
@@ -244,7 +246,7 @@ export function ManageHouseholds() {
       <div className="space-y-3">
         {households.length === 0 && (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-            <p className="text-slate-500">No households yet. Create one to get started.</p>
+            <p className="text-slate-500">{t('admin.hh.noHouseholds')}</p>
           </div>
         )}
 
@@ -258,11 +260,11 @@ export function ManageHouseholds() {
                 <div>
                   <h3 className="font-semibold text-slate-900">{household.name}</h3>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    Created {new Date(household.created_at).toLocaleDateString()}
+                    {t('admin.hh.created', { date: new Date(household.created_at).toLocaleDateString(locale) })}
                   </p>
                 </div>
                 <span className="text-sm text-slate-400 font-medium">
-                  {expandedId === household.id ? 'Collapse' : 'Manage'}
+                  {expandedId === household.id ? t('admin.hh.collapse') : t('admin.hh.manage')}
                 </span>
               </button>
               <button
@@ -284,7 +286,7 @@ export function ManageHouseholds() {
                       required
                       className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent appearance-none"
                     >
-                      <option value="">Select a user to add</option>
+                      <option value="">{t('admin.hh.selectUser')}</option>
                       {allUsers
                         .filter((user) => !members.some((m) => m.user_id === user.id))
                         .map((user) => (
@@ -299,7 +301,7 @@ export function ManageHouseholds() {
                     disabled={addingMember}
                     className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
                   >
-                    {addingMember ? 'Adding...' : 'Add'}
+                    {addingMember ? t('admin.hh.adding') : t('admin.hh.add')}
                   </button>
                 </form>
 
@@ -310,12 +312,12 @@ export function ManageHouseholds() {
                 )}
 
                 <div className="mb-4 bg-white border border-slate-200 rounded-xl p-4">
-                  <h4 className="text-sm font-semibold text-slate-900 mb-2">Features</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 mb-2">{t('admin.hh.features')}</h4>
                   <label className="flex items-center justify-between gap-3 cursor-pointer">
                     <div>
-                      <p className="text-sm text-slate-700">Surgeon NPI Lookup</p>
+                      <p className="text-sm text-slate-700">{t('admin.hh.surgeonNPI')}</p>
                       <p className="text-xs text-slate-500">
-                        Show a "Lookup NPI" button beside Notes when adding/editing expenses in this household.
+                        {t('admin.hh.surgeonNPIHelp')}
                       </p>
                     </div>
                     <input
@@ -330,9 +332,9 @@ export function ManageHouseholds() {
                 </div>
 
                 {loadingMembers ? (
-                  <div className="py-4 text-center text-sm text-slate-500">Loading members...</div>
+                  <div className="py-4 text-center text-sm text-slate-500">{t('admin.hh.loadingMembers')}</div>
                 ) : members.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-slate-500">No members assigned yet.</p>
+                  <p className="py-4 text-center text-sm text-slate-500">{t('admin.hh.noMembers')}</p>
                 ) : (
                   <div className="space-y-2">
                     {members.map((member) => (

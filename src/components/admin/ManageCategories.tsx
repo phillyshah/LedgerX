@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Plus, X, Trash2, Edit2, Check, Home, Globe } from 'lucide-react';
+import { useT } from '../../hooks/useT';
 
 interface Category {
   id: string;
@@ -20,6 +21,7 @@ interface Household {
 }
 
 export function ManageCategories() {
+  const { t } = useT();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryHouseholds, setCategoryHouseholds] = useState<CategoryHousehold[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -82,7 +84,7 @@ export function ManageCategories() {
       .insert({ name: newName.trim() });
 
     if (insertError) {
-      setError(insertError.message.includes('duplicate') ? 'Category already exists' : insertError.message);
+      setError(insertError.message.includes('duplicate') ? t('admin.cat.duplicate') : insertError.message);
     } else {
       setNewName('');
       setShowAdd(false);
@@ -114,7 +116,7 @@ export function ManageCategories() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm('Delete this category? Expenses using this category will be moved to Uncategorized.')) return;
+    if (!confirm(t('admin.cat.deleteConfirm'))) return;
 
     await supabase.from('categories').delete().eq('id', id);
     await loadCategories();
@@ -148,7 +150,7 @@ export function ManageCategories() {
       setShowAssignModal(false);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to assign category');
+      setError(err instanceof Error ? err.message : t('admin.cat.failedAssign'));
     } finally {
       setAssigning(false);
     }
@@ -187,15 +189,15 @@ export function ManageCategories() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Categories</h2>
-          <p className="text-slate-500 mt-1">Manage expense categories available to all users.</p>
+          <h2 className="text-2xl font-bold text-slate-900">{t('admin.manageCategories')}</h2>
+          <p className="text-slate-500 mt-1">{t('admin.cat.subtitle')}</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          New Category
+          {t('admin.cat.newCategory')}
         </button>
       </div>
 
@@ -208,7 +210,7 @@ export function ManageCategories() {
       {showAdd && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">Add Category</h3>
+            <h3 className="font-semibold text-slate-900">{t('admin.cat.addCategory')}</h3>
             <button onClick={() => setShowAdd(false)} className="p-1 hover:bg-slate-100 rounded-lg">
               <X className="w-4 h-4 text-slate-500" />
             </button>
@@ -218,7 +220,7 @@ export function ManageCategories() {
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Category name"
+              placeholder={t('admin.cat.categoryNamePlaceholder')}
               required
               className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
             />
@@ -227,7 +229,7 @@ export function ManageCategories() {
               disabled={adding}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50"
             >
-              {adding ? 'Adding...' : 'Add'}
+              {adding ? t('admin.cat.adding') : t('admin.cat.add')}
             </button>
           </form>
         </div>
@@ -236,7 +238,7 @@ export function ManageCategories() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {categories.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-slate-500">No categories yet. Add one to get started.</p>
+            <p className="text-slate-500">{t('admin.cat.noneYet')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -271,7 +273,7 @@ export function ManageCategories() {
                           name === 'Global' ? (
                             <span key="global" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">
                               <Globe className="w-3 h-3" />
-                              Global
+                              {t('admin.cat.globalBadge')}
                             </span>
                           ) : (
                             <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">
@@ -286,7 +288,7 @@ export function ManageCategories() {
                       <button
                         onClick={() => openAssignModal(category)}
                         className="p-2 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Assign to Household"
+                        title={t('admin.cat.assignToHousehold')}
                       >
                         <Home className="w-4 h-4 text-blue-600" />
                       </button>
@@ -317,7 +319,7 @@ export function ManageCategories() {
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Assign Category</h3>
+                  <h3 className="text-xl font-bold text-slate-900">{t('admin.cat.assignCategory')}</h3>
                   <p className="text-sm text-slate-500 mt-1">{selectedCategoryName}</p>
                 </div>
                 <button
@@ -331,7 +333,7 @@ export function ManageCategories() {
 
             <div className="p-6">
               <p className="text-sm text-slate-600 mb-4">
-                Select which households can use this category. Leave all unchecked to make it available globally:
+                {t('admin.cat.assignHelp')}
               </p>
 
               <div className="space-y-2">
@@ -358,7 +360,7 @@ export function ManageCategories() {
                 <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-slate-600" />
-                    <p className="text-sm text-slate-700 font-medium">This category will be available to all households</p>
+                    <p className="text-sm text-slate-700 font-medium">{t('admin.cat.assignedToAll')}</p>
                   </div>
                 </div>
               )}
@@ -375,7 +377,7 @@ export function ManageCategories() {
                   onClick={() => setShowAssignModal(false)}
                   className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -383,7 +385,7 @@ export function ManageCategories() {
                   disabled={assigning}
                   className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {assigning ? 'Saving...' : 'Save'}
+                  {assigning ? t('admin.cat.assigning') : t('admin.cat.save')}
                 </button>
               </div>
             </div>
