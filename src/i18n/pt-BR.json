@@ -75,5 +75,8 @@
   "admin.roleAdmin": "Administrador",
   "admin.roleContractor": "Prestador",
   "admin.createUser": "Criar Usuário",
-  "admin.creating": "Criando..."
+  "admin.creating": "Criando...",
+
+  "help.title": "Ajuda e Guia do Usuário",
+  "help.footer": "Pressione {esc} ou clique fora para fechar"
 }

@@ -27,6 +27,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 ---
 
 ## Getting Started
+<!-- roles: contractor, member, admin -->
 
 LedgerX is built for households and small teams that want a shared, organized way to track expenses. Whether you're splitting costs with roommates, logging business receipts, or managing a family budget, LedgerX keeps everything in one place.
 
@@ -43,6 +44,7 @@ LedgerX is built for households and small teams that want a shared, organized wa
 ---
 
 ## Signing In
+<!-- roles: contractor, member, admin -->
 
 1. Open the app at **ledger.phillyshah.com** in your browser.
 2. Enter your **username** and **password**.
@@ -57,6 +59,7 @@ If you've added an email to your account (in Settings), click **Forgot password?
 ---
 
 ## Dashboard Overview
+<!-- roles: member, admin -->
 
 After signing in you'll land on your **Dashboard** — your home base.
 
@@ -84,6 +87,7 @@ If you belong to multiple households, use the **household selector** to switch b
 ---
 
 ## Adding a Transaction
+<!-- roles: contractor, member, admin -->
 
 1. Tap **Add Transaction** from the Dashboard.
 2. Fill in the details:
@@ -101,6 +105,7 @@ If you belong to multiple households, use the **household selector** to switch b
 ---
 
 ## Receipt Scanning & OCR
+<!-- roles: contractor, member, admin -->
 
 LedgerX can read your receipt and fill in the form automatically.
 
@@ -125,6 +130,7 @@ LedgerX can read your receipt and fill in the form automatically.
 ---
 
 ## Viewing Editing & Searching Transactions
+<!-- roles: contractor, member, admin -->
 
 The **Expense List** shows all transactions for your selected household, newest first.
 
@@ -154,6 +160,7 @@ Use the filter controls to narrow by:
 ---
 
 ## Uploading Receipts
+<!-- roles: contractor, member, admin -->
 
 You can attach receipts when adding or editing any transaction.
 
@@ -167,6 +174,7 @@ You can attach receipts when adding or editing any transaction.
 ---
 
 ## Spending Charts
+<!-- roles: member, admin -->
 
 Your dashboard includes two charts that update automatically as you add transactions:
 
@@ -178,6 +186,7 @@ Charts respond to your **household selection** — switch households at the top 
 ---
 
 ## Exporting Your Data
+<!-- roles: member, admin -->
 
 Download your expense data in two formats from **Export Data** on the Dashboard.
 
@@ -201,6 +210,7 @@ Download your expense data in two formats from **Export Data** on the Dashboard.
 ---
 
 ## Reports
+<!-- roles: member, admin -->
 
 **Reports** let you analyze spending with flexible filters:
 
@@ -213,6 +223,7 @@ Reports show a breakdown of matching transactions so you can spot trends and sta
 ---
 
 ## Surgeon NPI Lookup
+<!-- roles: contractor, member, admin -->
 
 For medical-device and healthcare households, LedgerX can look up a surgeon's **NPI (National Provider Identifier)** directly from the expense form and drop it into your notes.
 
@@ -227,6 +238,7 @@ Results come from the public CMS NPPES registry. The button is hidden for househ
 ---
 
 ## Account Settings
+<!-- roles: contractor, member, admin -->
 
 Access **Settings** from the menu on your Dashboard.
 
@@ -247,6 +259,7 @@ Adding an email to your account unlocks **self-service password reset** — so y
 ---
 
 ## Managing Households
+<!-- roles: member, admin -->
 
 LedgerX supports **multiple households** per user — useful if you:
 
@@ -265,6 +278,7 @@ Your admin can add you to additional households. Each household has its own tran
 ---
 
 ## Admin Features
+<!-- roles: admin -->
 
 Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 
@@ -302,6 +316,7 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 ---
 
 ## FAQ & Troubleshooting
+<!-- roles: contractor, member, admin -->
 
 **Q: I forgot my password and can't log in.**
 A: If you've added an email to your account, use **Forgot password?** on the login screen. Otherwise, ask your admin to reset it from Admin → Manage Users.

@@ -75,5 +75,8 @@
   "admin.roleAdmin": "Admin",
   "admin.roleContractor": "Contractor",
   "admin.createUser": "Create User",
-  "admin.creating": "Creating..."
+  "admin.creating": "Creating...",
+
+  "help.title": "Help & User Guide",
+  "help.footer": "Press {esc} or click outside to close"
 }

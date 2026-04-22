@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, ChevronRight, ChevronDown } from 'lucide-react';
-import readmeRaw from '../../README.md?raw';
+import readmeEnRaw from '../../README.md?raw';
+import readmePtRaw from '../../README.pt-BR.md?raw';
+import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../hooks/useT';
 
 interface HelpModalProps {
   onClose: () => void;
 }
 
+type Role = 'contractor' | 'member' | 'admin';
+
 interface Section {
   title: string;
   content: string;
+  roles: Role[] | null; // null = no tag, always show
 }
 
 function parseReadme(raw: string): Section[] {
@@ -17,20 +23,32 @@ function parseReadme(raw: string): Section[] {
   let currentTitle = '';
   let currentLines: string[] = [];
 
+  const flush = () => {
+    if (!currentTitle) return;
+    const body = currentLines.join('\n');
+    const roleMatch = body.match(/<!--\s*roles:\s*([^>]+?)\s*-->/);
+    let roles: Role[] | null = null;
+    let cleaned = body;
+    if (roleMatch) {
+      roles = roleMatch[1]
+        .split(',')
+        .map(r => r.trim().toLowerCase())
+        .filter((r): r is Role => r === 'contractor' || r === 'member' || r === 'admin');
+      cleaned = body.replace(roleMatch[0], '');
+    }
+    sections.push({ title: currentTitle, content: cleaned.trim(), roles });
+  };
+
   for (const line of lines) {
     if (line.startsWith('## ')) {
-      if (currentTitle) {
-        sections.push({ title: currentTitle, content: currentLines.join('\n').trim() });
-      }
+      flush();
       currentTitle = line.replace('## ', '');
       currentLines = [];
     } else if (currentTitle) {
       currentLines.push(line);
     }
   }
-  if (currentTitle) {
-    sections.push({ title: currentTitle, content: currentLines.join('\n').trim() });
-  }
+  flush();
   return sections;
 }
 
@@ -43,13 +61,11 @@ function renderContent(content: string) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Skip empty lines
     if (line.trim() === '' || line.trim() === '---') {
       i++;
       continue;
     }
 
-    // Sub-heading (###)
     if (line.startsWith('### ')) {
       blocks.push(
         <h4 key={key++} className="text-sm font-semibold text-green-100 mt-4 mb-2">
@@ -60,10 +76,9 @@ function renderContent(content: string) {
       continue;
     }
 
-    // Table
     if (line.includes('|') && lines[i + 1]?.includes('---')) {
       const headers = line.split('|').filter(c => c.trim()).map(c => c.trim());
-      i += 2; // skip header and separator
+      i += 2;
       const rows: string[][] = [];
       while (i < lines.length && lines[i].includes('|')) {
         rows.push(lines[i].split('|').filter(c => c.trim()).map(c => c.trim()));
@@ -98,7 +113,6 @@ function renderContent(content: string) {
       continue;
     }
 
-    // Code block
     if (line.startsWith('```')) {
       const codeLines: string[] = [];
       i++;
@@ -106,7 +120,7 @@ function renderContent(content: string) {
         codeLines.push(lines[i]);
         i++;
       }
-      i++; // skip closing ```
+      i++;
       blocks.push(
         <pre key={key++} className="bg-green-950 rounded-lg p-3 my-2 text-xs text-green-300 overflow-x-auto">
           <code>{codeLines.join('\n')}</code>
@@ -115,7 +129,6 @@ function renderContent(content: string) {
       continue;
     }
 
-    // Blockquote
     if (line.startsWith('> ')) {
       const quoteLines: string[] = [];
       while (i < lines.length && lines[i].startsWith('> ')) {
@@ -130,7 +143,6 @@ function renderContent(content: string) {
       continue;
     }
 
-    // List items
     if (line.match(/^[-*]\s/) || line.match(/^\d+\.\s/)) {
       const listItems: string[] = [];
       while (i < lines.length && (lines[i].match(/^[-*]\s/) || lines[i].match(/^\d+\.\s/))) {
@@ -150,7 +162,6 @@ function renderContent(content: string) {
       continue;
     }
 
-    // Regular paragraph
     blocks.push(
       <p key={key++} className="text-xs text-green-300 my-1.5">
         {formatInline(line)}
@@ -163,18 +174,14 @@ function renderContent(content: string) {
 }
 
 function formatInline(text: string): React.ReactNode {
-  // Split on bold (**text**) and inline code (`text`)
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let partKey = 0;
 
   while (remaining.length > 0) {
-    // Check for bold
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-    // Check for inline code
     const codeMatch = remaining.match(/`(.+?)`/);
 
-    // Find which comes first
     const boldIdx = boldMatch?.index ?? Infinity;
     const codeIdx = codeMatch?.index ?? Infinity;
 
@@ -206,8 +213,16 @@ function formatInline(text: string): React.ReactNode {
 }
 
 export function HelpModal({ onClose }: HelpModalProps) {
-  const [sections] = useState<Section[]>(() => parseReadme(readmeRaw));
+  const { isAdmin, isContractor, preferredLanguage } = useAuth();
+  const { t } = useT();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const currentRole: Role = isContractor ? 'contractor' : isAdmin ? 'admin' : 'member';
+
+  const sections = useMemo(() => {
+    const raw = preferredLanguage === 'pt-BR' ? readmePtRaw : readmeEnRaw;
+    return parseReadme(raw);
+  }, [preferredLanguage]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -221,18 +236,30 @@ export function HelpModal({ onClose }: HelpModalProps) {
     setExpandedIdx(expandedIdx === idx ? null : idx);
   };
 
-  // Filter out developer-focused sections for end users
-  const userSections = sections.filter(
-    s => !['Tech Stack', 'Developer Setup', 'License', 'Table of Contents'].includes(s.title)
-  );
+  // Hide developer/meta sections, then filter by role tag.
+  const hiddenTitles = [
+    'Tech Stack',
+    'Developer Setup',
+    'License',
+    'Table of Contents',
+    'Sumário',
+    'Licença',
+  ];
+  const userSections = sections.filter(s => {
+    if (hiddenTitles.includes(s.title)) return false;
+    if (s.roles === null) return true; // untagged -> show to all
+    return s.roles.includes(currentRole);
+  });
+
+  const footerText = t('help.footer', { esc: '__ESC__' });
+  const [footerBefore, footerAfter] = footerText.split('__ESC__');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg max-h-[85vh] bg-green-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-green-700">
-          <h2 className="text-lg font-bold text-white">Help & User Guide</h2>
+          <h2 className="text-lg font-bold text-white">{t('help.title')}</h2>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-green-700 rounded-lg transition-colors"
@@ -242,7 +269,6 @@ export function HelpModal({ onClose }: HelpModalProps) {
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1">
           {userSections.map((section, idx) => (
             <div key={idx} className="border border-green-700/50 rounded-xl overflow-hidden">
@@ -266,10 +292,11 @@ export function HelpModal({ onClose }: HelpModalProps) {
           ))}
         </div>
 
-        {/* Footer */}
         <div className="px-5 py-3 border-t border-green-700 text-center">
           <p className="text-xs text-green-400">
-            Press <kbd className="bg-green-950 px-1.5 py-0.5 rounded text-green-300">Esc</kbd> or click outside to close
+            {footerBefore}
+            <kbd className="bg-green-950 px-1.5 py-0.5 rounded text-green-300">Esc</kbd>
+            {footerAfter}
           </p>
         </div>
       </div>
