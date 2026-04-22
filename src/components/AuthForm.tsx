@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../hooks/useT';
 import { Eye, EyeOff, HelpCircle, ArrowLeft } from 'lucide-react';
 import { HelpModal } from './HelpModal';
+import { LANGUAGES, type Language } from '../i18n';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -17,7 +19,9 @@ export function AuthForm() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotUsername, setForgotUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
-  const { signIn, signUp, requestPasswordReset } = useAuth();
+  const { signIn, signUp, requestPasswordReset, preferredLanguage, setPreferredLanguage } = useAuth();
+  const [signupLanguage, setSignupLanguage] = useState<Language>(preferredLanguage);
+  const { t } = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,12 +30,12 @@ export function AuthForm() {
 
     try {
       if (mode === 'signup') {
-        await signUp(username, password, email || undefined);
+        await signUp(username, password, email || undefined, signupLanguage);
       } else {
         await signIn(username, password);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('auth.error.generic'));
     } finally {
       setLoading(false);
     }
@@ -46,15 +50,21 @@ export function AuthForm() {
     try {
       const result = await requestPasswordReset(forgotUsername);
       if (result.noEmail) {
-        setResetMessage('No email on file for this account. Contact an admin to reset your password.');
+        setResetMessage(t('auth.resetNoEmail'));
       } else {
-        setResetMessage('If an account with that username has an email on file, a reset link has been sent.');
+        setResetMessage(t('auth.resetSent'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('auth.error.generic'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const onHeaderLanguageChange = (lang: Language) => {
+    // Pre-auth language switch — no user yet, just update state + localStorage.
+    void setPreferredLanguage(lang);
+    setSignupLanguage(lang);
   };
 
   return (
@@ -70,8 +80,8 @@ export function AuthForm() {
               <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">LedgerX</h1>
-          <p className="text-green-200">Simplified Transaction Management</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('auth.title')}</h1>
+          <p className="text-green-200">{t('auth.tagline')}</p>
         </div>
 
         <div className="bg-green-800 rounded-3xl shadow-xl p-8">
@@ -83,15 +93,15 @@ export function AuthForm() {
                 className="flex items-center gap-2 text-green-300 hover:text-white mb-4 transition-all text-sm"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Sign In
+                {t('auth.backToSignIn')}
               </button>
-              <h2 className="text-xl font-bold text-white mb-2">Reset Password</h2>
-              <p className="text-sm text-green-300 mb-6">Enter your username and we'll send a reset link to the email on file.</p>
+              <h2 className="text-xl font-bold text-white mb-2">{t('auth.resetPassword')}</h2>
+              <p className="text-sm text-green-300 mb-6">{t('auth.resetPrompt')}</p>
 
               <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div>
                   <label htmlFor="forgot-username" className="block text-sm font-medium text-green-100 mb-2">
-                    Username
+                    {t('auth.userId')}
                   </label>
                   <input
                     id="forgot-username"
@@ -100,7 +110,7 @@ export function AuthForm() {
                     onChange={(e) => setForgotUsername(e.target.value)}
                     required
                     className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
-                    placeholder="your_userid"
+                    placeholder={t('auth.userIdPlaceholder')}
                   />
                 </div>
 
@@ -121,7 +131,7 @@ export function AuthForm() {
                   disabled={loading}
                   className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  {loading ? 'Please wait...' : 'Send Reset Link'}
+                  {loading ? t('common.loading') : t('auth.sendResetLink')}
                 </button>
               </form>
             </>
@@ -137,7 +147,7 @@ export function AuthForm() {
                       : 'text-green-300 hover:text-white'
                   }`}
                 >
-                  Sign In
+                  {t('auth.signIn')}
                 </button>
                 <button
                   type="button"
@@ -148,14 +158,14 @@ export function AuthForm() {
                       : 'text-green-300 hover:text-white'
                   }`}
                 >
-                  Sign Up
+                  {t('auth.signUp')}
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="username" className="block text-sm font-medium text-green-100 mb-2">
-                    User ID
+                    {t('auth.userId')}
                   </label>
                   <input
                     id="username"
@@ -166,32 +176,50 @@ export function AuthForm() {
                     autoComplete="username"
                     pattern="[a-zA-Z0-9_]{3,20}"
                     className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
-                    placeholder="your_userid"
+                    placeholder={t('auth.userIdPlaceholder')}
                   />
-                  <p className="text-xs text-green-300 mt-1">3-20 characters, letters, numbers, and underscores only</p>
+                  <p className="text-xs text-green-300 mt-1">{t('auth.userIdHelp')}</p>
                 </div>
 
                 {mode === 'signup' && (
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-2">
-                      Email <span className="text-green-400 font-normal">(optional)</span>
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
-                      placeholder="you@example.com"
-                    />
-                    <p className="text-xs text-green-300 mt-1">Enables password reset if you forget your password</p>
-                  </div>
+                  <>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-2">
+                        {t('auth.email')} <span className="text-green-400 font-normal">({t('common.optional')})</span>
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                        className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
+                        placeholder={t('auth.emailPlaceholder')}
+                      />
+                      <p className="text-xs text-green-300 mt-1">{t('auth.emailHelp')}</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="language" className="block text-sm font-medium text-green-100 mb-2">
+                        {t('common.language')}
+                      </label>
+                      <select
+                        id="language"
+                        value={signupLanguage}
+                        onChange={(e) => onHeaderLanguageChange(e.target.value as Language)}
+                        className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900"
+                      >
+                        {LANGUAGES.map(l => (
+                          <option key={l.code} value={l.code}>{l.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
                 )}
 
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-green-100 mb-2">
-                    Password
+                    {t('auth.password')}
                   </label>
                   <div className="relative">
                     <input
@@ -209,7 +237,7 @@ export function AuthForm() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-green-50 rounded-lg transition-all"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4 text-slate-600" />
@@ -231,7 +259,7 @@ export function AuthForm() {
                   disabled={loading}
                   className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  {loading ? 'Please wait...' : mode === 'signup' ? 'Sign Up' : 'Sign In'}
+                  {loading ? t('common.loading') : mode === 'signup' ? t('auth.signUp') : t('auth.signIn')}
                 </button>
 
                 {mode === 'signin' && (
@@ -241,11 +269,31 @@ export function AuthForm() {
                       onClick={() => { setShowForgotPassword(true); setError(''); }}
                       className="text-sm text-green-300 hover:text-white transition-all"
                     >
-                      Forgot password?
+                      {t('auth.forgotPassword')}
                     </button>
                   </div>
                 )}
               </form>
+
+              {/* Pre-auth language switcher (sign-in panel) */}
+              {mode === 'signin' && (
+                <div className="mt-5 flex justify-center gap-2 text-xs">
+                  {LANGUAGES.map(l => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => onHeaderLanguageChange(l.code)}
+                      className={`px-2 py-1 rounded-md transition-all ${
+                        preferredLanguage === l.code
+                          ? 'bg-green-600 text-white'
+                          : 'text-green-300 hover:text-white'
+                      }`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
@@ -257,12 +305,12 @@ export function AuthForm() {
             className="inline-flex items-center gap-2 px-4 py-2 text-sm text-green-200 hover:text-white hover:bg-green-700/50 rounded-xl transition-all"
           >
             <HelpCircle className="w-4 h-4" />
-            Need help getting started?
+            {t('auth.needHelp')}
           </button>
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-green-300/60">v4.0</p>
+          <p className="text-xs text-green-300/60">v4.1</p>
         </div>
       </div>
 

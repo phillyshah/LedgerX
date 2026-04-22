@@ -13,6 +13,8 @@ export interface Expense {
   image_mime: string | null;
   image_width: number | null;
   image_height: number | null;
+  created_by: string | null;
+  submitter_username?: string;
 }
 
 export interface Household {

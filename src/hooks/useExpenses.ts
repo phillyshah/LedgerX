@@ -34,15 +34,32 @@ export function useExpenses(refreshKey?: number) {
 
     const { data, error } = await supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
+      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height, created_by')
       .in('household_id', householdIds)
       .order('expense_date', { ascending: false });
 
     if (!error && data) {
+      // Resolve submitter usernames in a single round-trip. We avoid a PostgREST
+      // implicit join because expenses.created_by may not carry a PostgREST-
+      // visible FK constraint in every environment.
+      const submitterIds = [...new Set(
+        data.map((e) => e.created_by).filter((v): v is string => !!v)
+      )];
+
+      let usernameMap = new Map<string, string>();
+      if (submitterIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, username')
+          .in('id', submitterIds);
+        usernameMap = new Map((profiles || []).map((p) => [p.id, p.username]));
+      }
+
       setExpenses(
         data.map((e) => ({
           ...e,
           household_name: householdMap.get(e.household_id) || 'Unknown',
+          submitter_username: e.created_by ? usernameMap.get(e.created_by) : undefined,
         }))
       );
     }

@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, Languages } from 'lucide-react';
+import { useT } from '../hooks/useT';
+import { LANGUAGES, type Language } from '../i18n';
 
 interface UserSettingsProps {
   onClose: () => void;
 }
 
 export function UserSettings({ onClose }: UserSettingsProps) {
-  const { user } = useAuth();
+  const { user, preferredLanguage, setPreferredLanguage } = useAuth();
+  const { t } = useT();
   const [username, setUsername] = useState('');
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
@@ -110,7 +113,7 @@ export function UserSettings({ onClose }: UserSettingsProps) {
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Settings</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{t('settings.title')}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -126,6 +129,23 @@ export function UserSettings({ onClose }: UserSettingsProps) {
           </div>
         ) : (
           <div className="p-6 space-y-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Languages className="w-5 h-5 text-slate-600" />
+                <h3 className="text-lg font-semibold text-slate-900">{t('settings.language')}</h3>
+              </div>
+              <select
+                value={preferredLanguage}
+                onChange={(e) => void setPreferredLanguage(e.target.value as Language)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              >
+                {LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-2">{t('settings.languageHelp')}</p>
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-slate-600" />

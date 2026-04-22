@@ -143,18 +143,21 @@ export interface Database {
           id: string;
           user_id: string;
           is_admin: boolean;
+          is_contractor: boolean;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
           is_admin?: boolean;
+          is_contractor?: boolean;
           created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
           is_admin?: boolean;
+          is_contractor?: boolean;
           created_at?: string;
         };
       };
@@ -236,6 +239,7 @@ export interface Database {
           username: string;
           email: string;
           real_email: string | null;
+          preferred_language: 'en' | 'pt-BR';
           created_at: string;
         };
         Insert: {
@@ -243,6 +247,7 @@ export interface Database {
           username: string;
           email: string;
           real_email?: string | null;
+          preferred_language?: 'en' | 'pt-BR';
           created_at?: string;
         };
         Update: {
@@ -250,6 +255,7 @@ export interface Database {
           username?: string;
           email?: string;
           real_email?: string | null;
+          preferred_language?: 'en' | 'pt-BR';
           created_at?: string;
         };
       };

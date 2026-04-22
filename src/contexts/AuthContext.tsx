@@ -1,14 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isLanguage, type Language } from '../i18n';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isContractor: boolean;
+  preferredLanguage: Language;
+  setPreferredLanguage: (lang: Language) => Promise<void>;
   isRecoveryMode: boolean;
-  signUp: (username: string, password: string, realEmail?: string) => Promise<void>;
+  signUp: (username: string, password: string, realEmail?: string, preferredLanguage?: Language) => Promise<void>;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   requestPasswordReset: (username: string) => Promise<{ sent: boolean; noEmail: boolean }>;
@@ -17,21 +21,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const LANG_STORAGE_KEY = 'ledgerx.preferredLanguage';
+
+function readStoredLanguage(): Language {
+  try {
+    const v = localStorage.getItem(LANG_STORAGE_KEY);
+    return isLanguage(v) ? v : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isContractor, setIsContractor] = useState(false);
+  const [preferredLanguage, setPreferredLanguageState] = useState<Language>(readStoredLanguage());
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
-  const checkAdminStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('is_admin')
-      .eq('user_id', userId)
-      .maybeSingle();
+  const hydrateUserMeta = async (userId: string) => {
+    const [{ data: roleData }, { data: profileData }] = await Promise.all([
+      supabase.from('user_roles').select('is_admin, is_contractor').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_profiles').select('preferred_language').eq('id', userId).maybeSingle(),
+    ]);
 
-    setIsAdmin(data?.is_admin === true);
+    setIsAdmin(roleData?.is_admin === true);
+    setIsContractor(roleData?.is_contractor === true);
+
+    const lang = profileData?.preferred_language;
+    if (isLanguage(lang)) {
+      setPreferredLanguageState(lang);
+      try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch { /* ignore */ }
+    }
   };
 
   useEffect(() => {
@@ -39,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkAdminStatus(session.user.id).then(() => setLoading(false));
+        hydrateUserMeta(session.user.id).then(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -54,9 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await checkAdminStatus(session.user.id);
+          await hydrateUserMeta(session.user.id);
         } else {
           setIsAdmin(false);
+          setIsContractor(false);
         }
       })();
     });
@@ -64,19 +88,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (username: string, password: string, realEmail?: string) => {
+  const setPreferredLanguage = async (lang: Language) => {
+    setPreferredLanguageState(lang);
+    try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch { /* ignore */ }
+    if (user) {
+      await supabase.from('user_profiles').update({ preferred_language: lang }).eq('id', user.id);
+    }
+  };
+
+  const signUp = async (username: string, password: string, realEmail?: string, lang?: Language) => {
     const email = `${username}@ledgerx.local`;
+    const language = lang ?? preferredLanguage;
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           username,
+          preferred_language: language,
           ...(realEmail ? { real_email: realEmail } : {}),
         }
       }
     });
     if (error) throw error;
+    setPreferredLanguageState(language);
+    try { localStorage.setItem(LANG_STORAGE_KEY, language); } catch { /* ignore */ }
   };
 
   const signIn = async (username: string, password: string) => {
@@ -117,12 +153,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    setIsContractor(false);
     setIsRecoveryMode(false);
   };
 
   return (
     <AuthContext.Provider value={{
-      user, session, loading, isAdmin, isRecoveryMode,
+      user, session, loading,
+      isAdmin, isContractor,
+      preferredLanguage, setPreferredLanguage,
+      isRecoveryMode,
       signUp, signIn, signOut, requestPasswordReset, resetPassword,
     }}>
       {children}

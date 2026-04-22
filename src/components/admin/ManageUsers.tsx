@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Shield, ShieldOff, Trash2, Users, UserPlus, X, Key, Home } from 'lucide-react';
+import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { LANGUAGES, type Language } from '../../i18n';
+
+type Role = 'regular' | 'admin' | 'contractor';
 
 interface User {
   id: string;
   username: string;
   created_at: string;
   is_admin?: boolean;
+  is_contractor?: boolean;
+  preferred_language?: Language;
 }
+
+const LANG_FLAG: Record<Language, string> = { 'en': '🇺🇸', 'pt-BR': '🇧🇷' };
 
 interface Household {
   id: string;
@@ -24,7 +31,8 @@ export function ManageUsers() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newUserId, setNewUserId] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserIsAdmin, setNewUserIsAdmin] = useState(false);
+  const [newUserRole, setNewUserRole] = useState<Role>('regular');
+  const [newUserLanguage, setNewUserLanguage] = useState<Language>('en');
   const [creating, setCreating] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -47,49 +55,44 @@ export function ManageUsers() {
     const { data: usersData } = await supabase.rpc('admin_list_users');
 
     if (usersData) {
-      const { data: rolesData } = await supabase.from('user_roles').select('user_id, is_admin');
-
-      const rolesMap = new Map((rolesData || []).map((r) => [r.user_id, r.is_admin]));
-
-      setUsers(
-        usersData.map((u: User) => ({
-          ...u,
-          is_admin: rolesMap.get(u.id) || false,
-        }))
-      );
+      // admin_list_users now returns is_admin / is_contractor / preferred_language directly.
+      setUsers(usersData as User[]);
     }
 
     setLoading(false);
   };
 
-  const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
+  const changeUserRole = async (userId: string, role: Role) => {
     if (userId === currentUser?.id) {
-      setError('You cannot change your own admin status');
+      setError('You cannot change your own role');
       return;
     }
-
-    const confirmMsg = currentStatus
-      ? 'Remove admin privileges from this user?'
-      : 'Grant admin privileges to this user?';
-
-    if (!confirm(confirmMsg)) return;
-
     setActionLoading(userId);
     setError('');
-
     const { error: updateError } = await supabase.rpc('admin_update_user_role', {
       p_user_id: userId,
-      p_is_admin: !currentStatus,
+      p_is_admin: role === 'admin',
+      p_is_contractor: role === 'contractor',
     });
-
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      await loadUsers();
-    }
-
+    if (updateError) setError(updateError.message);
+    else await loadUsers();
     setActionLoading(null);
   };
+
+  const changeUserLanguage = async (userId: string, lang: Language) => {
+    setActionLoading(userId);
+    setError('');
+    const { error: updateError } = await supabase.rpc('admin_update_user_language', {
+      p_user_id: userId,
+      p_language: lang,
+    });
+    if (updateError) setError(updateError.message);
+    else await loadUsers();
+    setActionLoading(null);
+  };
+
+  const currentRole = (u: User): Role =>
+    u.is_admin ? 'admin' : u.is_contractor ? 'contractor' : 'regular';
 
   const deleteUser = async (userId: string) => {
     if (userId === currentUser?.id) {
@@ -160,7 +163,9 @@ export function ManageUsers() {
           body: JSON.stringify({
             userid: newUserId,
             password: newUserPassword,
-            is_admin: newUserIsAdmin,
+            is_admin: newUserRole === 'admin',
+            is_contractor: newUserRole === 'contractor',
+            preferred_language: newUserLanguage,
           }),
         }
       );
@@ -173,7 +178,8 @@ export function ManageUsers() {
         setShowCreateModal(false);
         setNewUserId('');
         setNewUserPassword('');
-        setNewUserIsAdmin(false);
+        setNewUserRole('regular');
+        setNewUserLanguage('en');
         await loadUsers();
       }
     } catch (err) {
@@ -366,8 +372,11 @@ export function ManageUsers() {
                   className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-all"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-slate-900 truncate">{user.username}</p>
+                      <span title={user.preferred_language === 'pt-BR' ? 'Português (Brasil)' : 'English'}>
+                        {LANG_FLAG[user.preferred_language ?? 'en']}
+                      </span>
                       {isCurrentUser && (
                         <span className="inline-flex px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                           You
@@ -377,6 +386,12 @@ export function ManageUsers() {
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
                           <Shield className="w-3 h-3" />
                           Admin
+                        </span>
+                      )}
+                      {user.is_contractor && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+                          <HardHat className="w-3 h-3" />
+                          Contractor
                         </span>
                       )}
                     </div>
@@ -416,27 +431,28 @@ export function ManageUsers() {
                           <Home className="w-3.5 h-3.5" />
                           Households
                         </button>
-                        <button
-                          onClick={() => toggleAdminStatus(user.id, user.is_admin || false)}
+                        <select
+                          value={currentRole(user)}
                           disabled={isLoading}
-                          className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all disabled:opacity-50 ${
-                            user.is_admin
-                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                          }`}
+                          onChange={(e) => changeUserRole(user.id, e.target.value as Role)}
+                          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-50"
+                          title="Role"
                         >
-                          {user.is_admin ? (
-                            <>
-                              <ShieldOff className="w-3.5 h-3.5" />
-                              Remove Admin
-                            </>
-                          ) : (
-                            <>
-                              <Shield className="w-3.5 h-3.5" />
-                              Make Admin
-                            </>
-                          )}
-                        </button>
+                          <option value="regular">Regular</option>
+                          <option value="admin">Admin</option>
+                          <option value="contractor">Contractor</option>
+                        </select>
+                        <select
+                          value={user.preferred_language ?? 'en'}
+                          disabled={isLoading}
+                          onChange={(e) => changeUserLanguage(user.id, e.target.value as Language)}
+                          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600 disabled:opacity-50"
+                          title="Language"
+                        >
+                          {LANGUAGES.map(l => (
+                            <option key={l.code} value={l.code}>{LANG_FLAG[l.code]} {l.label}</option>
+                          ))}
+                        </select>
                         <button
                           onClick={() => openPasswordModal(user.id, user.username)}
                           disabled={isLoading}
@@ -509,17 +525,36 @@ export function ManageUsers() {
                 />
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                <input
-                  id="newIsAdmin"
-                  type="checkbox"
-                  checked={newUserIsAdmin}
-                  onChange={(e) => setNewUserIsAdmin(e.target.checked)}
-                  className="w-4 h-4 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-600"
-                />
-                <label htmlFor="newIsAdmin" className="text-sm font-medium text-slate-700 cursor-pointer">
-                  Grant admin privileges
+              <div>
+                <label htmlFor="newUserRole" className="block text-sm font-medium text-slate-700 mb-2">
+                  Role
                 </label>
+                <select
+                  id="newUserRole"
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as Role)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  <option value="regular">Regular User</option>
+                  <option value="admin">Admin</option>
+                  <option value="contractor">Contractor (receipt submissions only)</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="newUserLanguage" className="block text-sm font-medium text-slate-700 mb-2">
+                  Preferred Language
+                </label>
+                <select
+                  id="newUserLanguage"
+                  value={newUserLanguage}
+                  onChange={(e) => setNewUserLanguage(e.target.value as Language)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                >
+                  {LANGUAGES.map(l => (
+                    <option key={l.code} value={l.code}>{LANG_FLAG[l.code]} {l.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-4">
