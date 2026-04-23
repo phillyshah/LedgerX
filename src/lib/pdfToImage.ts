@@ -6,14 +6,29 @@
  * in a lazy chunk that downloads when a contractor actually uploads a
  * PDF invoice or receipt. The main bundle stays slim.
  */
-export async function pdfFirstPageToJpeg(pdfFile: File, maxDim = 1600): Promise<File> {
-  const pdfjs = await import('pdfjs-dist');
-  // Vite + pdfjs-dist v4: use the ESM worker via ?url so Vite bundles it.
-  // The worker URL only needs to be set once per session.
+// Cached Blob URL for the pdfjs worker. We fetch the worker file once, wrap it
+// in a Blob with an explicit `application/javascript` MIME type, and use the
+// resulting blob: URL as the worker source. This sidesteps hosts (like nginx
+// without a types entry for .mjs) that serve ES modules with the wrong MIME
+// and trigger "Failed to fetch dynamically imported module" in the browser.
+let cachedWorkerBlobUrl: string | null = null;
+
+async function getWorkerBlobUrl(): Promise<string> {
+  if (cachedWorkerBlobUrl) return cachedWorkerBlobUrl;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore - worker module resolution handled by Vite
   const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  const res = await fetch(workerUrl);
+  if (!res.ok) throw new Error(`Failed to load PDF worker: ${res.status}`);
+  const code = await res.text();
+  const blob = new Blob([code], { type: 'application/javascript' });
+  cachedWorkerBlobUrl = URL.createObjectURL(blob);
+  return cachedWorkerBlobUrl;
+}
+
+export async function pdfFirstPageToJpeg(pdfFile: File, maxDim = 1600): Promise<File> {
+  const pdfjs = await import('pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc = await getWorkerBlobUrl();
 
   const buf = await pdfFile.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data: buf }).promise;
