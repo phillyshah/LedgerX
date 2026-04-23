@@ -1,4 +1,5 @@
 import type { InvoiceOCRData } from '../types/invoice';
+import { pdfFirstPageToJpeg } from './pdfToImage';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -25,7 +26,11 @@ function fileToBase64(file: File): Promise<string> {
  * Returns structured invoice data that can auto-populate form fields.
  */
 export async function scanInvoice(imageFile: File): Promise<InvoiceOCRData> {
-  const base64 = await fileToBase64(imageFile);
+  // OpenAI Vision only accepts png/jpeg/gif/webp. Render PDFs to JPEG first.
+  const fileForOCR = imageFile.type === 'application/pdf'
+    ? await pdfFirstPageToJpeg(imageFile)
+    : imageFile;
+  const base64 = await fileToBase64(fileForOCR);
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/extract-invoice`, {
     method: 'POST',

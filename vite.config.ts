@@ -58,6 +58,13 @@ export default defineConfig({
             return 'vendor-pdf';
           }
 
+          // pdfjs-dist — only loaded when a contractor scans a PDF invoice/receipt.
+          // Dynamically imported from src/lib/pdfToImage.ts; keeping it in its own
+          // chunk avoids shipping the ~300KB parser to users who never scan a PDF.
+          if (id.includes('/pdfjs-dist/')) {
+            return 'vendor-pdfjs';
+          }
+
           // Everything else — including React core and lucide-react.
           // IMPORTANT: Do NOT split React into its own chunk. Libraries like
           // lucide-react reference React.forwardRef at module init; if React
