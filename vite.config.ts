@@ -18,13 +18,15 @@ export default defineConfig({
          * the right vendor chunk rather than being re-bundled into app chunks.
          *
          * Groupings (each becomes a separately-cacheable file):
-         *  vendor-react   — React + ReactDOM (rarely changes, ~45 KB gzip)
          *  vendor-recharts — Recharts + its entire dep tree: redux toolkit,
          *                    react-redux, victory-vendor, immer, reselect, etc.
          *                    (only loaded by Dashboard / AdminAnalytics)
          *  vendor-supabase — @supabase/* client (stable API surface, ~34 KB gzip)
-         *  vendor          — everything else in node_modules (lucide-react,
-         *                    jspdf helpers, etc.)
+         *  vendor-pdf     — jsPDF + html2canvas + fflate (only loaded on PDF export)
+         *  vendor         — React + ReactDOM + lucide-react + everything else.
+         *                   React is intentionally NOT split out: lucide-react
+         *                   and other consumers call React.forwardRef at module
+         *                   init, and a separate chunk breaks initialization order.
          */
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
@@ -46,11 +48,6 @@ export default defineConfig({
             return 'vendor-recharts';
           }
 
-          // React core
-          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
-            return 'vendor-react';
-          }
-
           // Supabase client
           if (id.includes('/@supabase/')) {
             return 'vendor-supabase';
@@ -61,7 +58,13 @@ export default defineConfig({
             return 'vendor-pdf';
           }
 
-          // Everything else (lucide-react, etc.)
+          // Everything else — including React core and lucide-react.
+          // IMPORTANT: Do NOT split React into its own chunk. Libraries like
+          // lucide-react reference React.forwardRef at module init; if React
+          // lives in a sibling chunk, Rollup's live bindings can evaluate
+          // the consumer before React's namespace is populated, crashing the
+          // app with "Cannot read properties of undefined (reading 'forwardRef')".
+          // Keep React adjacent to its consumers.
           return 'vendor';
         },
       },
