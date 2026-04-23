@@ -20,6 +20,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
 - [Admin Features](#admin-features)
+- [Contractor Role](#contractor-role)
 - [FAQ & Troubleshooting](#faq--troubleshooting)
 - [Tech Stack](#tech-stack)
 - [Developer Setup](#developer-setup)
@@ -312,6 +313,40 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 
 - Review all transactions missing a category
 - Assign categories in bulk from one view
+
+### Contractor Invoices
+<!-- roles: admin -->
+
+- View all invoices submitted by contractor users
+- Filter by status (Pending / Approved / Paid / Rejected), property, and property type
+- Click any invoice to see full details and attached documents
+- **Approve** a pending invoice to indicate it has been reviewed
+- **Mark Paid** to record that payment was issued (timestamp recorded)
+- **Reject** with a required note — the contractor sees the reason on their dashboard
+- Set a property type (Residential, Commercial, Vacation Rental, Other) on each household under **Manage Households** to enable property-type filtering
+
+---
+
+## Contractor Role
+<!-- roles: contractor -->
+
+Contractors see a simplified dashboard with two actions:
+
+1. **Add Transaction** — submit a receipt as usual
+2. **Submit Invoice** — upload a PDF or image of your invoice
+
+**How invoice submission works:**
+1. Tap **Submit Invoice**
+2. Upload your invoice PDF or JPG — fields are filled in automatically via OCR
+3. Review and correct any extracted details (invoice #, amount, service period, etc.)
+4. Select the property the work was performed at
+5. Tap **Submit Invoice** to send it to your admin
+
+**Invoice statuses:**
+- 🟡 **Pending** — submitted, awaiting admin review
+- 🔵 **Approved** — admin reviewed it; payment is being arranged
+- 🟢 **Paid** — payment has been issued
+- 🔴 **Rejected** — rejected with a note explaining why (shown on your dashboard)
 
 ---
 

@@ -311,6 +311,40 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 - Revise todas as transações sem categoria
 - Atribua categorias em lote a partir de uma única tela
 
+### Notas Fiscais de Prestadores
+<!-- roles: admin -->
+
+- Visualize todas as notas fiscais enviadas por prestadores de serviços
+- Filtre por status (Pendente / Aprovada / Paga / Rejeitada), propriedade e tipo de propriedade
+- Clique em qualquer nota para ver os detalhes completos e documentos anexados
+- **Aprovar** uma nota pendente para indicar que foi revisada
+- **Marcar como Paga** para registrar que o pagamento foi efetuado (com registro de data e hora)
+- **Rejeitar** com uma observação obrigatória — o prestador verá o motivo no seu painel
+- Defina o tipo de propriedade (Residencial, Comercial, Aluguel de Temporada, Outro) em cada residência em **Gerenciar Residências** para ativar o filtro por tipo
+
+---
+
+## Função de Prestador
+<!-- roles: contractor -->
+
+Prestadores veem um painel simplificado com duas ações:
+
+1. **Adicionar Transação** — enviar um recibo normalmente
+2. **Enviar Nota Fiscal** — enviar um PDF ou imagem da sua nota fiscal
+
+**Como enviar uma nota fiscal:**
+1. Toque em **Enviar Nota Fiscal**
+2. Envie o PDF ou JPG da nota fiscal — os campos são preenchidos automaticamente via OCR
+3. Revise e corrija os detalhes extraídos (nº da nota, valor, período de serviço, etc.)
+4. Selecione a propriedade onde o serviço foi realizado
+5. Toque em **Enviar Nota Fiscal** para encaminhar ao seu administrador
+
+**Status das notas fiscais:**
+- 🟡 **Pendente** — enviada, aguardando revisão do administrador
+- 🔵 **Aprovada** — revisada pelo administrador; pagamento em andamento
+- 🟢 **Paga** — pagamento efetuado
+- 🔴 **Rejeitada** — rejeitada com uma observação explicando o motivo (exibida no seu painel)
+
 ---
 
 ## FAQ e Solução de Problemas

@@ -1,0 +1,578 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useT } from '../hooks/useT';
+import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageCompression';
+import { scanInvoice } from '../lib/invoiceScanner';
+import { X, Upload, Check, Loader2, Plus, FileText } from 'lucide-react';
+
+interface Household {
+  id: string;
+  name: string;
+}
+
+interface ImageItem {
+  file: File;
+  preview: string;
+}
+
+interface InvoiceFormProps {
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
+  const { user } = useAuth();
+  const { t, locale } = useT();
+
+  const [households, setHouseholds] = useState<Household[]>([]);
+  const [formData, setFormData] = useState({
+    household_id: '',
+    invoice_number: '',
+    amount: '',
+    currency: 'USD',
+    description: '',
+    service_date_start: today(),
+    service_date_end: today(),
+    due_date: '',
+  });
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadHouseholds();
+  }, [user]);
+
+  const loadHouseholds = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('household_members')
+      .select('household_id, households(id, name)')
+      .eq('user_id', user.id);
+
+    if (data) {
+      const hh = data.map((item) => item.households).filter(Boolean) as unknown as Household[];
+      setHouseholds(hh);
+      if (hh.length === 1) {
+        setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
+      }
+    }
+  };
+
+  const applyOCRData = (data: Awaited<ReturnType<typeof scanInvoice>>) => {
+    setFormData((prev) => ({
+      ...prev,
+      invoice_number: data.invoice_number || prev.invoice_number,
+      amount: data.total_amount != null ? data.total_amount.toFixed(2) : prev.amount,
+      currency: data.currency || prev.currency,
+      description: data.description || prev.description,
+      service_date_start: data.service_date_start || data.invoice_date || prev.service_date_start,
+      service_date_end: data.service_date_end || data.invoice_date || prev.service_date_end,
+      due_date: data.due_date || prev.due_date,
+    }));
+  };
+
+  const handleScanInvoice = async (file: File) => {
+    setScanning(true);
+    setScanError(null);
+    try {
+      // Compress images before sending (PDFs passed as-is since we can't easily compress them)
+      const fileToScan = file.type.startsWith('image/') ? await compressImage(file, 0.3, 800, 800) : file;
+      const data = await scanInvoice(fileToScan);
+      applyOCRData(data);
+    } catch (error) {
+      console.error('Invoice scan error:', error);
+      setScanError(error instanceof Error ? error.message : t('invoice.failedScan'));
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of Array.from(files)) {
+      try {
+        let fileToUse = file;
+        if (file.type.startsWith('image/')) {
+          fileToUse = await compressImage(file, 2);
+        }
+        const preview = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(fileToUse);
+        });
+
+        setImages((prev) => {
+          const isFirst = prev.length === 0;
+          // Auto-scan first file when it's added
+          if (isFirst) {
+            handleScanInvoice(fileToUse);
+          }
+          return [...prev, { file: fileToUse, preview }];
+        });
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert(t('invoice.failedFile'));
+      }
+    }
+
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) setScanError(null);
+      return updated;
+    });
+  };
+
+  const validate = (): boolean => {
+    if (formData.service_date_end < formData.service_date_start) {
+      setDateError(t('invoice.dateServiceEndBeforeStart'));
+      return false;
+    }
+    setDateError(null);
+    return true;
+  };
+
+  const saveInvoice = async (): Promise<boolean> => {
+    if (!user || !formData.household_id) return false;
+    if (!validate()) return false;
+
+    setSaving(true);
+    try {
+      // Upload first image to receipts bucket (backward-compat slot on main row)
+      let imagePath: string | null = null;
+      let imageMime: string | null = null;
+      let imageWidth: number | null = null;
+      let imageHeight: number | null = null;
+
+      if (images.length > 0) {
+        const firstImg = images[0];
+        const fileExt = firstImg.file.name.split('.').pop();
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('receipts')
+          .upload(fileName, firstImg.file);
+
+        if (!uploadError) {
+          imagePath = fileName;
+          imageMime = firstImg.file.type;
+
+          if (firstImg.file.type.startsWith('image/')) {
+            const img = new Image();
+            img.src = firstImg.preview;
+            await new Promise((resolve) => {
+              img.onload = () => {
+                imageWidth = img.width;
+                imageHeight = img.height;
+                resolve(null);
+              };
+            });
+          }
+        }
+      }
+
+      // Insert main invoice row
+      const { data: invoiceData, error } = await supabase
+        .from('contractor_invoices')
+        .insert({
+          created_by: user.id,
+          household_id: formData.household_id,
+          invoice_number: formData.invoice_number,
+          amount: parseFloat(formData.amount) || 0,
+          currency: formData.currency,
+          description: formData.description,
+          service_date_start: formData.service_date_start,
+          service_date_end: formData.service_date_end,
+          due_date: formData.due_date || null,
+          image_path: imagePath,
+          image_mime: imageMime,
+          image_width: imageWidth,
+          image_height: imageHeight,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // Dual-write all images to invoice_images table
+      for (let i = 0; i < images.length; i++) {
+        const imgItem = images[i];
+        let uploadedPath: string;
+
+        if (i === 0 && imagePath) {
+          uploadedPath = imagePath;
+        } else {
+          const fileExt = imgItem.file.name.split('.').pop();
+          const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(fileName, imgItem.file);
+
+          if (uploadError) {
+            console.error('Error uploading invoice image:', uploadError);
+            continue;
+          }
+          uploadedPath = fileName;
+        }
+
+        let w: number | null = null;
+        let h: number | null = null;
+        if (imgItem.file.type.startsWith('image/')) {
+          const img = new Image();
+          img.src = imgItem.preview;
+          await new Promise((resolve) => {
+            img.onload = () => {
+              w = img.width;
+              h = img.height;
+              resolve(null);
+            };
+          });
+        }
+
+        await supabase.from('invoice_images').insert({
+          invoice_id: invoiceData.id,
+          image_path: uploadedPath,
+          image_mime: imgItem.file.type,
+          image_width: w,
+          image_height: h,
+          display_order: i,
+        });
+      }
+
+      onSaved();
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+      return true;
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      alert(t('invoice.failedSave'));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData((prev) => ({
+      household_id: prev.household_id,
+      invoice_number: '',
+      amount: '',
+      currency: 'USD',
+      description: '',
+      service_date_start: today(),
+      service_date_end: today(),
+      due_date: '',
+    }));
+    setImages([]);
+    setScanError(null);
+    setDateError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const success = await saveInvoice();
+    if (success) {
+      resetForm();
+      onClose();
+    }
+  };
+
+  // Format a date string safely — never new Date(string) directly
+  const fmtDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(locale, {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-2xl shadow-xl min-h-screen sm:min-h-0 sm:max-h-[90vh] sm:my-4 overflow-y-auto">
+
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-slate-200 p-6 rounded-t-2xl z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">{t('invoice.formTitle')}</h2>
+            <div className="flex items-center gap-3">
+              {justSaved && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-green-600">
+                  <Check className="w-4 h-4" />
+                  {t('invoice.saved')}
+                </span>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 mt-1">{t('invoice.formSubtitle')}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+          {/* Property / Household */}
+          <div>
+            <label htmlFor="inv-household" className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.household')}
+            </label>
+            <select
+              id="inv-household"
+              value={formData.household_id}
+              onChange={(e) => setFormData({ ...formData, household_id: e.target.value })}
+              required
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            >
+              <option value="">{t('invoice.selectHousehold')}</option>
+              {households.map((h) => (
+                <option key={h.id} value={h.id}>{h.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Invoice # + Currency */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="inv-number" className="block text-sm font-medium text-slate-700 mb-2">
+                {t('invoice.invoiceNumber')}
+              </label>
+              <input
+                id="inv-number"
+                type="text"
+                value={formData.invoice_number}
+                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                required
+                placeholder={t('invoice.invoiceNumberPlaceholder')}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all font-mono"
+              />
+            </div>
+            <div>
+              <label htmlFor="inv-currency" className="block text-sm font-medium text-slate-700 mb-2">
+                {t('invoice.currency')}
+              </label>
+              <select
+                id="inv-currency"
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+              >
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="CAD">CAD</option>
+                <option value="BRL">BRL</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label htmlFor="inv-amount" className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.amount')}
+            </label>
+            <input
+              id="inv-amount"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              required
+              placeholder="0.00"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label htmlFor="inv-description" className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.description')}
+            </label>
+            <textarea
+              id="inv-description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              required
+              rows={3}
+              placeholder={t('invoice.descriptionPlaceholder')}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
+            />
+          </div>
+
+          {/* Service Period */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.servicePeriod')}
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="inv-start" className="block text-xs text-slate-500 mb-1">
+                  {t('invoice.serviceStart')}
+                </label>
+                <input
+                  id="inv-start"
+                  type="date"
+                  value={formData.service_date_start}
+                  onChange={(e) => {
+                    setFormData({ ...formData, service_date_start: e.target.value });
+                    setDateError(null);
+                  }}
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                />
+              </div>
+              <div>
+                <label htmlFor="inv-end" className="block text-xs text-slate-500 mb-1">
+                  {t('invoice.serviceEnd')}
+                </label>
+                <input
+                  id="inv-end"
+                  type="date"
+                  value={formData.service_date_end}
+                  onChange={(e) => {
+                    setFormData({ ...formData, service_date_end: e.target.value });
+                    setDateError(null);
+                  }}
+                  required
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+            {dateError && (
+              <p className="mt-2 text-sm text-red-600">{dateError}</p>
+            )}
+          </div>
+
+          {/* Due Date (optional) */}
+          <div>
+            <label htmlFor="inv-due" className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.dueDateOptional')}
+            </label>
+            <input
+              id="inv-due"
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* File Upload */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.attachments')}
+              {images.length > 0 && (
+                <span className="ml-2 text-slate-400 font-normal">
+                  ({images.length} {images.length === 1 ? t('invoice.attachedOne') : t('invoice.attachedMany')})
+                </span>
+              )}
+            </label>
+
+            <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
+              {images.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {images.map((img, index) => (
+                      <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-200">
+                        {img.file.type === 'application/pdf' ? (
+                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                            <FileText className="w-8 h-8 text-red-400" />
+                            <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
+                          </div>
+                        ) : (
+                          <img src={img.preview} alt={`Invoice ${index + 1}`} className="w-full h-32 object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1.5 right-1.5 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-slate-900/70 text-white text-xs rounded-md">
+                            {t('invoice.primaryBadge')}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
+                      <Plus className="w-6 h-6 text-slate-400" />
+                      <span className="text-xs text-slate-400 mt-1">{t('invoice.addMore')}</span>
+                      <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleImageChange} className="hidden" />
+                    </label>
+                  </div>
+
+                  {scanning && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('invoice.scanning')}
+                    </div>
+                  )}
+
+                  {scanError && (
+                    <div className="text-sm text-red-600 bg-red-50 rounded-lg py-2 px-3 flex items-center justify-between">
+                      <span>{scanError}</span>
+                      <button
+                        type="button"
+                        onClick={() => images.length > 0 && handleScanInvoice(images[0].file)}
+                        className="ml-2 text-red-700 underline font-medium"
+                      >
+                        {t('common.retry')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <label className="flex flex-col items-center cursor-pointer py-2">
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mb-2">
+                    <Upload className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">{t('invoice.uploadLabel')}</p>
+                  <p className="text-xs text-slate-400">{t('invoice.uploadHint')}</p>
+                  <input type="file" accept="image/*,.pdf,application/pdf" multiple onChange={handleImageChange} className="hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="py-3 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-3 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? t('invoice.submitting') : t('invoice.submit')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

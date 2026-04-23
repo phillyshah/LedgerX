@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useExpenses } from '../hooks/useExpenses';
+import { useInvoices } from '../hooks/useInvoices';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
 import { AddExpense } from './AddExpense';
+import { InvoiceForm } from './InvoiceForm';
+import { InvoiceList } from './InvoiceList';
 import { ExportData } from './ExportData';
 import { Reports } from './Reports';
 import { LogOut, Plus, Download, FileText, Settings, HelpCircle } from 'lucide-react';
@@ -17,12 +20,14 @@ export function Dashboard() {
   const { signOut, isContractor } = useAuth();
   const { t } = useT();
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const { expenses, households, loading, reloadExpenses } = useExpenses();
+  const { invoices, loading: invoicesLoading, reloadInvoices } = useInvoices();
 
   const handleExpenseAdded = () => {
     reloadExpenses();
@@ -94,28 +99,55 @@ export function Dashboard() {
         </header>
 
         <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
-          <button
-            onClick={() => setShowAddExpense(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm font-semibold text-base active:scale-[0.99]"
-          >
-            <Plus className="w-5 h-5" />
-            {t('dashboard.addTransaction')}
-          </button>
+          {/* Action buttons */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setShowAddExpense(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm font-semibold text-base active:scale-[0.99]"
+            >
+              <Plus className="w-5 h-5" />
+              {t('dashboard.addTransaction')}
+            </button>
+            <button
+              onClick={() => setShowInvoiceForm(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl transition-all shadow-sm font-semibold text-base active:scale-[0.99]"
+            >
+              <FileText className="w-5 h-5" />
+              {t('invoice.submitInvoice')}
+            </button>
+          </div>
 
           <p className="text-sm text-slate-500 text-center">{t('dashboard.contractorTagline')}</p>
 
-          <ExpenseList
-            expenses={expenses}
-            households={households}
-            loading={loading}
-            onReload={reloadExpenses}
-            ownSubmissionsOnly
-            hideFilters
-          />
+          {/* Invoice section */}
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 mb-3">{t('invoice.myInvoices')}</h2>
+            <InvoiceList
+              invoices={invoices}
+              loading={invoicesLoading}
+              onReload={reloadInvoices}
+            />
+          </section>
+
+          {/* Receipt submissions */}
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 mb-3">{t('dashboard.yourSubmissions')}</h2>
+            <ExpenseList
+              expenses={expenses}
+              households={households}
+              loading={loading}
+              onReload={reloadExpenses}
+              ownSubmissionsOnly
+              hideFilters
+            />
+          </section>
         </main>
 
         {showAddExpense && (
           <AddExpense onClose={() => setShowAddExpense(false)} onSaved={handleExpenseAdded} />
+        )}
+        {showInvoiceForm && (
+          <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={reloadInvoices} />
         )}
         {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}

@@ -1,0 +1,125 @@
+import { useT } from '../hooks/useT';
+import type { ContractorInvoice, InvoiceStatus } from '../types/invoice';
+
+interface InvoiceListProps {
+  invoices: ContractorInvoice[];
+  loading: boolean;
+  onReload: () => void;
+}
+
+function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
+  const styles: Record<InvoiceStatus, string> = {
+    pending:  'bg-yellow-100 text-yellow-800',
+    approved: 'bg-blue-100 text-blue-800',
+    paid:     'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-800',
+  };
+  const labels: Record<InvoiceStatus, string> = {
+    pending:  t('invoice.statusPending'),
+    approved: t('invoice.statusApproved'),
+    paid:     t('invoice.statusPaid'),
+    rejected: t('invoice.statusRejected'),
+  };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
+
+export function InvoiceList({ invoices, loading, onReload: _onReload }: InvoiceListProps) {
+  const { t, locale } = useT();
+
+  // Safe date parsing — never new Date(dateString) directly
+  const fmtDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(locale, {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  };
+
+  const fmtCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 animate-pulse">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2 flex-1">
+                <div className="h-4 w-24 bg-slate-200 rounded" />
+                <div className="h-3 w-40 bg-slate-100 rounded" />
+              </div>
+              <div className="h-6 w-16 bg-slate-200 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (invoices.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+        <p className="text-slate-500 text-sm">{t('invoice.noInvoicesYet')}</p>
+        <p className="text-slate-400 text-xs mt-1">{t('invoice.noInvoicesHint')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {invoices.map((inv) => (
+        <div
+          key={inv.id}
+          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-semibold text-slate-900 text-sm">
+                  {inv.invoice_number}
+                </span>
+                {inv.household_name && inv.household_name !== '—' && (
+                  <span className="text-xs text-slate-500 truncate">{inv.household_name}</span>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-500 mt-1">
+                {fmtDate(inv.service_date_start)}
+                {inv.service_date_end !== inv.service_date_start && (
+                  <> – {fmtDate(inv.service_date_end)}</>
+                )}
+              </p>
+
+              {inv.description && (
+                <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{inv.description}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <span className="font-semibold text-slate-900 text-sm">
+                {fmtCurrency(inv.amount, inv.currency)}
+              </span>
+              <StatusBadge status={inv.status} t={t} />
+            </div>
+          </div>
+
+          {/* Admin notes shown when rejected */}
+          {inv.status === 'rejected' && inv.admin_notes && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-xs font-semibold text-amber-800 mb-0.5">{t('invoice.adminNotes')}</p>
+              <p className="text-xs text-amber-700">{inv.admin_notes}</p>
+            </div>
+          )}
+
+          {/* Submitted date */}
+          <p className="text-xs text-slate-400 mt-3">
+            {t('invoice.submittedOn')} {fmtDate(inv.created_at.split('T')[0])}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}

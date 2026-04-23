@@ -8,6 +8,7 @@ interface Household {
   name: string;
   created_at: string;
   features_enabled?: Record<string, boolean> | null;
+  property_type?: string | null;
 }
 
 interface HouseholdMember {
@@ -129,6 +130,20 @@ export function ManageHouseholds() {
       setExpandedId(expandedId);
     }
     setAddingMember(false);
+  };
+
+  const updatePropertyType = async (householdId: string, value: string | null) => {
+    const { error } = await supabase.rpc('admin_set_property_type', {
+      p_household_id: householdId,
+      p_type: value || null,
+    });
+    if (error) {
+      setMemberError(error.message);
+      return;
+    }
+    setHouseholds((prev) =>
+      prev.map((h) => (h.id === householdId ? { ...h, property_type: value } : h))
+    );
   };
 
   const toggleFeature = async (householdId: string, key: string, value: boolean) => {
@@ -310,6 +325,21 @@ export function ManageHouseholds() {
                     <p className="text-sm text-red-600">{memberError}</p>
                   </div>
                 )}
+
+                <div className="mb-4 bg-white border border-slate-200 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-2">{t('admin.hh.propertyType')}</h4>
+                  <select
+                    value={household.property_type ?? ''}
+                    onChange={(e) => updatePropertyType(household.id, e.target.value || null)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                  >
+                    <option value="">{t('admin.hh.propertyTypeNone')}</option>
+                    <option value="Residential">{t('admin.hh.propertyTypeResidential')}</option>
+                    <option value="Commercial">{t('admin.hh.propertyTypeCommercial')}</option>
+                    <option value="Vacation Rental">{t('admin.hh.propertyTypeVacation')}</option>
+                    <option value="Other">{t('admin.hh.propertyTypeOther')}</option>
+                  </select>
+                </div>
 
                 <div className="mb-4 bg-white border border-slate-200 rounded-xl p-4">
                   <h4 className="text-sm font-semibold text-slate-900 mb-2">{t('admin.hh.features')}</h4>

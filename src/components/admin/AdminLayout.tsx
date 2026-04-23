@@ -6,12 +6,13 @@ import { ManageCategories } from './ManageCategories';
 import { AdminAnalytics } from './AdminAnalytics';
 import { UncategorizedTransactions } from './UncategorizedTransactions';
 import { ManageUsers } from './ManageUsers';
+import { AdminInvoices } from './AdminInvoices';
 import { Reports } from '../Reports';
 import { HelpModal } from '../HelpModal';
 import { APP_VERSION } from '../../version';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle } from 'lucide-react';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat } from 'lucide-react';
 
-type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'reports';
+type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
 
 export function AdminLayout() {
   const { signOut } = useAuth();
@@ -26,6 +27,7 @@ export function AdminLayout() {
     { key: 'categories', label: t('admin.manageCategories'), icon: Tag },
     { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle },
     { key: 'users', label: t('admin.manageUsers'), icon: Users },
+    { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
 
@@ -158,6 +160,7 @@ export function AdminLayout() {
           {activeView === 'categories' && <ManageCategories />}
           {activeView === 'uncategorized' && <UncategorizedTransactions />}
           {activeView === 'users' && <ManageUsers />}
+          {activeView === 'invoices' && <AdminInvoices />}
           {activeView === 'reports' && <Reports onClose={() => setActiveView('analytics')} />}
         </div>
       </main>
