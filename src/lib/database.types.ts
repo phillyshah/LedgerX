@@ -63,6 +63,7 @@ export interface Database {
           pic_id: string | null;
           created_at: string;
           updated_at: string;
+          paid_at: string | null;
         };
         Insert: {
           id?: string;
@@ -82,6 +83,7 @@ export interface Database {
           pic_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          paid_at?: string | null;
         };
         Update: {
           id?: string;
@@ -101,6 +103,7 @@ export interface Database {
           pic_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          paid_at?: string | null;
         };
       };
       exports: {

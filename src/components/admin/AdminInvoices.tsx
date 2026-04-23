@@ -2,23 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { X, ChevronDown, ChevronUp, FileText, Check } from 'lucide-react';
-import type { ContractorInvoice, InvoiceStatus, InvoiceImage, PropertyType } from '../../types/invoice';
-import { PROPERTY_TYPES } from '../../types/invoice';
+import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
 
 interface HouseholdOption {
   id: string;
   name: string;
-  property_type: string | null;
 }
 
 interface AdminInvoiceRow extends ContractorInvoice {
   household_name: string;
-  property_type: PropertyType | null;
   submitter_username: string;
 }
 
 type StatusFilter = InvoiceStatus | 'all';
-type PropertyTypeFilter = PropertyType | 'all';
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
   const styles: Record<InvoiceStatus, string> = {
@@ -50,7 +46,6 @@ export function AdminInvoices() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
-  const [propertyTypeFilter, setPropertyTypeFilter] = useState<PropertyTypeFilter>('all');
 
   // Action modal
   const [actionModal, setActionModal] = useState<{
@@ -78,7 +73,7 @@ export function AdminInvoices() {
     setLoading(true);
 
     const [hhRes, invRes, usersRes] = await Promise.all([
-      supabase.from('households').select('id, name, property_type').order('name'),
+      supabase.from('households').select('id, name').order('name'),
       supabase.from('contractor_invoices').select('*').order('created_at', { ascending: false }),
       supabase.rpc('admin_list_users'),
     ]);
@@ -86,7 +81,6 @@ export function AdminInvoices() {
     const hhData: HouseholdOption[] = (hhRes.data || []).map((h: HouseholdOption) => ({
       id: h.id,
       name: h.name,
-      property_type: h.property_type,
     }));
     setHouseholds(hhData);
 
@@ -100,7 +94,6 @@ export function AdminInvoices() {
       return {
         ...inv,
         household_name: hh?.name ?? '—',
-        property_type: (hh?.property_type as PropertyType | null) ?? null,
         submitter_username: usernameMap.get(inv.created_by) ?? 'Unknown',
       };
     });
@@ -114,7 +107,6 @@ export function AdminInvoices() {
     let result = invoices.filter((inv) => {
       if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
       if (householdFilter !== 'all' && inv.household_id !== householdFilter) return false;
-      if (propertyTypeFilter !== 'all' && inv.property_type !== propertyTypeFilter) return false;
       return true;
     });
 
@@ -124,7 +116,7 @@ export function AdminInvoices() {
     });
 
     return result;
-  }, [invoices, statusFilter, householdFilter, propertyTypeFilter, sortDir]);
+  }, [invoices, statusFilter, householdFilter, sortDir]);
 
   // Safe date formatting — never new Date(str) directly
   const fmtDate = (dateStr: string) => {
@@ -249,18 +241,6 @@ export function AdminInvoices() {
           ))}
         </select>
 
-        {/* Property Type */}
-        <select
-          value={propertyTypeFilter}
-          onChange={(e) => setPropertyTypeFilter(e.target.value as PropertyTypeFilter)}
-          className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
-        >
-          <option value="all">{t('adminInvoices.allPropertyTypes')}</option>
-          {PROPERTY_TYPES.map((pt) => (
-            <option key={pt} value={pt}>{pt}</option>
-          ))}
-        </select>
-
         {/* Sort toggle */}
         <button
           onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
@@ -306,11 +286,6 @@ export function AdminInvoices() {
                     <div className="flex items-center flex-wrap gap-2">
                       <span className="font-mono font-semibold text-slate-900 text-sm">{inv.invoice_number}</span>
                       <span className="text-xs text-slate-500">@{inv.submitter_username}</span>
-                      {inv.property_type && (
-                        <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
-                          {inv.property_type}
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {inv.household_name} · {fmtDate(inv.service_date_start)}
@@ -444,7 +419,6 @@ export function AdminInvoices() {
                   { label: t('adminInvoices.detailInvoiceNumber'), value: <span className="font-mono">{detailInvoice.invoice_number}</span> },
                   { label: t('adminInvoices.detailContractor'), value: `@${detailInvoice.submitter_username}` },
                   { label: t('adminInvoices.detailProperty'), value: detailInvoice.household_name },
-                  { label: t('adminInvoices.detailPropertyType'), value: detailInvoice.property_type ?? <span className="text-slate-400">—</span> },
                   { label: t('adminInvoices.detailAmount'), value: fmtCurrency(detailInvoice.amount, detailInvoice.currency) },
                   { label: t('adminInvoices.detailStatus'), value: <StatusBadge status={detailInvoice.status} t={t} /> },
                   { label: t('adminInvoices.detailServicePeriod'), value: `${fmtDate(detailInvoice.service_date_start)} – ${fmtDate(detailInvoice.service_date_end)}` },

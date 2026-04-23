@@ -15,6 +15,7 @@ export interface Expense {
   image_height: number | null;
   created_by: string | null;
   submitter_username?: string;
+  paid_at?: string | null;
 }
 
 export interface Household {

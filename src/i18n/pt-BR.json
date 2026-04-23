@@ -82,6 +82,7 @@
   "expenses.unnamed": "Sem nome",
   "expenses.confirmDelete": "Tem certeza que deseja excluir esta transação?",
   "expenses.submittedBy": "enviado por",
+  "expenses.paidBadge": "Pago",
 
   "addExpense.title": "Adicionar Transação",
   "addExpense.subtitle": "Registre transações em sequência. O formulário permanece aberto após cada salvamento.",
@@ -257,6 +258,8 @@
   "admin.endDate": "Data Final",
   "admin.apply": "Aplicar",
   "admin.unnamed": "Sem nome",
+  "admin.markPaid": "Marcar como pago",
+  "admin.markUnpaid": "Desfazer marcação de pago",
   "admin.unnamedTx": "Transação Sem Nome",
   "admin.failedExport": "Falha ao exportar dados. Tente novamente.",
 

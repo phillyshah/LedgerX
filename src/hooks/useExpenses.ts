@@ -34,7 +34,7 @@ export function useExpenses(refreshKey?: number) {
 
     const { data, error } = await supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height, created_by')
+      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height, created_by, paid_at')
       .in('household_id', householdIds)
       .order('expense_date', { ascending: false });
 

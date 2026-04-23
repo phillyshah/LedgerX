@@ -367,6 +367,11 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                       @{expense.submitter_username}
                     </span>
                   )}
+                  {expense.paid_at && (
+                    <span className="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full whitespace-nowrap">
+                      {t('expenses.paidBadge')}
+                    </span>
+                  )}
                   {expense.notes && (
                     <p className="line-clamp-1 hidden sm:block text-slate-400">{expense.notes}</p>
                   )}

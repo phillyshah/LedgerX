@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { DollarSign, Receipt, Home, Calendar, Download, X } from 'lucide-react';
+import { DollarSign, Receipt, Home, Calendar, Download, X, CheckCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout } from '../../lib/pdfUtils';
 import { EditExpense } from '../EditExpense';
@@ -23,6 +23,8 @@ interface Expense {
   image_mime: string | null;
   image_width: number | null;
   image_height: number | null;
+  created_by: string | null;
+  paid_at: string | null;
 }
 
 interface Household {
@@ -56,6 +58,7 @@ export function AdminAnalytics() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDateModal, setShowCustomDateModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -80,7 +83,7 @@ export function AdminAnalytics() {
 
     let query = supabase
       .from('expenses')
-      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height')
+      .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height, created_by, paid_at')
       .order('expense_date', { ascending: false });
 
     if (dateRange === '30d') {
@@ -113,6 +116,22 @@ export function AdminAnalytics() {
     }
 
     setLoading(false);
+  };
+
+  const markExpensePaid = async (expense: Expense, paid: boolean) => {
+    setMarkingPaidId(expense.id);
+    const { error } = await supabase.rpc('admin_mark_expense_paid', {
+      p_expense_id: expense.id,
+      p_paid: paid,
+    });
+    if (!error) {
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === expense.id ? { ...e, paid_at: paid ? new Date().toISOString() : null } : e
+        )
+      );
+    }
+    setMarkingPaidId(null);
   };
 
   const displayCategories = householdFilter === 'all'
@@ -485,14 +504,19 @@ export function AdminAnalytics() {
               <div
                 key={expense.id}
                 onClick={() => setEditingExpense(expense)}
-                className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-all cursor-pointer"
+                className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-all cursor-pointer"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium text-slate-900">{expense.vendor || t('admin.unnamed')}</p>
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
                       {expense.category || t('common.uncategorized')}
                     </span>
+                    {expense.paid_at && (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                        {t('expenses.paidBadge')}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -505,7 +529,21 @@ export function AdminAnalytics() {
                     </span>
                   </div>
                 </div>
-                <p className="font-semibold text-slate-900">{fmt(expense.total)}</p>
+                <div className="flex items-center gap-3 shrink-0">
+                  <p className="font-semibold text-slate-900">{fmt(expense.total)}</p>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); markExpensePaid(expense, !expense.paid_at); }}
+                    disabled={markingPaidId === expense.id}
+                    title={expense.paid_at ? t('admin.markUnpaid') : t('admin.markPaid')}
+                    className={`p-1.5 rounded-lg transition-all disabled:opacity-50 ${
+                      expense.paid_at
+                        ? 'text-green-600 hover:bg-green-50'
+                        : 'text-slate-400 hover:text-green-600 hover:bg-green-50'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

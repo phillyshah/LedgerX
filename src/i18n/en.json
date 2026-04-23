@@ -82,6 +82,7 @@
   "expenses.unnamed": "Unnamed",
   "expenses.confirmDelete": "Are you sure you want to delete this transaction?",
   "expenses.submittedBy": "submitted by",
+  "expenses.paidBadge": "Paid",
 
   "addExpense.title": "Add Transaction",
   "addExpense.subtitle": "Enter transactions continuously. The form stays open after each save.",
@@ -257,6 +258,8 @@
   "admin.endDate": "End Date",
   "admin.apply": "Apply",
   "admin.unnamed": "Unnamed",
+  "admin.markPaid": "Mark as paid",
+  "admin.markUnpaid": "Mark as unpaid",
   "admin.unnamedTx": "Unnamed Transaction",
   "admin.failedExport": "Failed to export data. Please try again.",
 
