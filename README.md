@@ -318,12 +318,18 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 <!-- roles: admin -->
 
 - View all invoices submitted by contractor users
-- Filter by status (Pending / Approved / Paid / Rejected), property, and property type
+- Filter by status (Pending / Approved / Paid / Rejected) and property
 - Click any invoice to see full details and attached documents
 - **Approve** a pending invoice to indicate it has been reviewed
 - **Mark Paid** to record that payment was issued (timestamp recorded)
 - **Reject** with a required note — the contractor sees the reason on their dashboard
-- Set a property type (Residential, Commercial, Vacation Rental, Other) on each household under **Manage Households** to enable property-type filtering
+
+### Mark Expenses as Paid
+<!-- roles: admin -->
+
+- In **Analytics → Recent Transactions**, each expense row shows a circle-check (✓) button
+- Click it to toggle the paid status — the button turns green and a **Paid** badge appears on the expense
+- The badge is visible to the user who submitted the expense, so they always know whether their receipt has been paid
 
 ---
 
@@ -347,6 +353,8 @@ Contractors see a simplified dashboard with two actions:
 - 🔵 **Approved** — admin reviewed it; payment is being arranged
 - 🟢 **Paid** — payment has been issued
 - 🔴 **Rejected** — rejected with a note explaining why (shown on your dashboard)
+
+> **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
 
 ---
 

@@ -7,7 +7,7 @@ export interface Expense {
   category: string | null;
   notes: string | null;
   transcript: string | null;
-  household_id: string;
+  household_id: string | null;
   household_name?: string;
   image_path: string | null;
   image_mime: string | null;

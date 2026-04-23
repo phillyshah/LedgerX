@@ -58,7 +58,7 @@ export function useExpenses(refreshKey?: number) {
       setExpenses(
         data.map((e) => ({
           ...e,
-          household_name: householdMap.get(e.household_id) || 'Unknown',
+          household_name: householdMap.get(e.household_id ?? '') || 'Unknown',
           submitter_username: e.created_by ? usernameMap.get(e.created_by) : undefined,
         }))
       );

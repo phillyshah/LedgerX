@@ -46,7 +46,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [justSaved, setJustSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
+  const [_categoryAutoFilled, setCategoryAutoFilled] = useState(false);
   const [showNPILookup, setShowNPILookup] = useState(false);
   const [npiInitialQuery, setNpiInitialQuery] = useState('');
   const [npiInitialResults, setNpiInitialResults] = useState<NPIResult[] | undefined>(undefined);

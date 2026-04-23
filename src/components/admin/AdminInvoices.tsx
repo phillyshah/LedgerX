@@ -154,7 +154,7 @@ export function AdminInvoices() {
     const { error } = await supabase.rpc('admin_update_invoice_status', {
       p_invoice_id:  actionModal.invoice.id,
       p_status:      statusMap[actionModal.action],
-      p_admin_notes: actionNotes.trim() || null,
+      p_admin_notes: actionNotes.trim() || undefined,
     });
 
     if (error) {

@@ -315,12 +315,18 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 <!-- roles: admin -->
 
 - Visualize todas as notas fiscais enviadas por prestadores de serviços
-- Filtre por status (Pendente / Aprovada / Paga / Rejeitada), propriedade e tipo de propriedade
+- Filtre por status (Pendente / Aprovada / Paga / Rejeitada) e propriedade
 - Clique em qualquer nota para ver os detalhes completos e documentos anexados
 - **Aprovar** uma nota pendente para indicar que foi revisada
 - **Marcar como Paga** para registrar que o pagamento foi efetuado (com registro de data e hora)
 - **Rejeitar** com uma observação obrigatória — o prestador verá o motivo no seu painel
-- Defina o tipo de propriedade (Residencial, Comercial, Aluguel de Temporada, Outro) em cada residência em **Gerenciar Residências** para ativar o filtro por tipo
+
+### Marcar Despesas como Pagas
+<!-- roles: admin -->
+
+- Em **Análises → Transações Recentes**, cada linha de despesa exibe um botão de círculo com check (✓)
+- Clique nele para alternar o status de pagamento — o botão fica verde e um emblema **Pago** aparece na despesa
+- O emblema é visível para o usuário que enviou a despesa, para que ele saiba se o recibo foi pago
 
 ---
 
@@ -344,6 +350,8 @@ Prestadores veem um painel simplificado com duas ações:
 - 🔵 **Aprovada** — revisada pelo administrador; pagamento em andamento
 - 🟢 **Paga** — pagamento efetuado
 - 🔴 **Rejeitada** — rejeitada com uma observação explicando o motivo (exibida no seu painel)
+
+> **Dica:** Os recibos de despesas comuns que você envia também recebem um emblema verde **Pago** assim que o administrador os marcar como pagos — assim você sabe o status de cada recibo enviado.
 
 ---
 

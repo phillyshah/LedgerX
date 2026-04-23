@@ -16,7 +16,7 @@ interface Expense {
   category: string | null;
   notes: string | null;
   transcript: string | null;
-  household_id: string;
+  household_id: string | null;
   image_path: string | null;
   image_mime: string | null;
   image_width: number | null;
@@ -496,7 +496,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
             </label>
             <select
               id="household"
-              value={formData.household_id}
+              value={formData.household_id ?? ''}
               onChange={(e) => setFormData({ ...formData, household_id: e.target.value, category: '' })}
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"

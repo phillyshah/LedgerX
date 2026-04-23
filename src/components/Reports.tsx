@@ -14,6 +14,7 @@ interface Household {
 interface Category {
   id: string;
   name: string;
+  household_id: string | null;
 }
 
 interface Expense {
@@ -24,7 +25,7 @@ interface Expense {
   currency: string;
   category: string | null;
   notes: string | null;
-  household_id: string;
+  household_id: string | null;
   household_name?: string;
   image_path: string | null;
 }
@@ -224,7 +225,7 @@ export function Reports({ onClose }: ReportsProps) {
           `"${expense.total}"`,
           `"${expense.currency || 'USD'}"`,
           `"${expense.category || ''}"`,
-          `"${householdMap.get(expense.household_id) || ''}"`,
+          `"${householdMap.get(expense.household_id ?? '') || ''}"`,
           `"${expense.notes || ''}"`,
         ].join(','))
       ].join('\n');
@@ -254,7 +255,7 @@ export function Reports({ onClose }: ReportsProps) {
       };
 
       let contentStartY = addPageHeader();
-      const { cols, rows, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
+      const { cols, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
       const imageBoxWidth = 50;
       const thumbHeight = cellHeight - 10;
       let txIndex = 0;
@@ -296,7 +297,7 @@ export function Reports({ onClose }: ReportsProps) {
         );
         yPosition += 4.5;
 
-        const hhName = householdMap.get(expense.household_id);
+        const hhName = householdMap.get(expense.household_id ?? '');
         if (hhName) { pdf.text(`Household: ${hhName}`, xOffset, yPosition); yPosition += 4.5; }
         if (expense.category) { pdf.text(`Category: ${expense.category}`, xOffset, yPosition); yPosition += 4.5; }
 

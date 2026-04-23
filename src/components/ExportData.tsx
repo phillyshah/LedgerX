@@ -231,7 +231,7 @@ export function ExportData({ onClose }: ExportDataProps) {
       };
 
       let contentStartY = addPageHeader();
-      const { cols, rows, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
+      const { cols, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
 
       let txIndex = 0;
 

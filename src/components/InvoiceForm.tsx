@@ -28,7 +28,7 @@ const today = () => {
 
 export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const { user } = useAuth();
-  const { t, locale } = useT();
+  const { t } = useT();
 
   const [households, setHouseholds] = useState<Household[]>([]);
   const [formData, setFormData] = useState({
@@ -293,13 +293,6 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
     }
   };
 
-  // Format a date string safely — never new Date(string) directly
-  const fmtDate = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString(locale, {
-      year: 'numeric', month: 'short', day: 'numeric',
-    });
-  };
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">

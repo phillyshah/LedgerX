@@ -6,7 +6,6 @@ import type { ContractorInvoice } from '../types/invoice';
 interface Household {
   id: string;
   name: string;
-  property_type: string | null;
 }
 
 export function useInvoices(refreshKey?: number) {
@@ -22,7 +21,7 @@ export function useInvoices(refreshKey?: number) {
     // Load households the contractor is a member of (for household_name join)
     const { data: memberData } = await supabase
       .from('household_members')
-      .select('household_id, households(id, name, property_type)')
+      .select('household_id, households(id, name)')
       .eq('user_id', user.id);
 
     const hh = (memberData || [])
@@ -35,11 +34,7 @@ export function useInvoices(refreshKey?: number) {
     // Load this contractor's invoices (RLS scopes to own)
     const { data, error } = await supabase
       .from('contractor_invoices')
-      .select(
-        'id, invoice_number, created_by, household_id, amount, currency, description, ' +
-        'service_date_start, service_date_end, due_date, status, admin_notes, ' +
-        'image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at'
-      )
+      .select('id, invoice_number, created_by, household_id, amount, currency, description, service_date_start, service_date_end, due_date, status, admin_notes, image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -49,7 +44,6 @@ export function useInvoices(refreshKey?: number) {
           return {
             ...inv,
             household_name: hhEntry?.name ?? '—',
-            property_type: (hhEntry?.property_type as ContractorInvoice['property_type']) ?? null,
           };
         })
       );

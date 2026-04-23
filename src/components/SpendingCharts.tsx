@@ -93,7 +93,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
                 width={50}
               />
               <Tooltip
-                formatter={(value: number) => [fmt(value), 'Spending']}
+                formatter={(value) => [fmt(Number(value)), 'Spending']}
                 contentStyle={{
                   borderRadius: '12px',
                   border: '1px solid #e2e8f0',
@@ -131,7 +131,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) => [fmt(value)]}
+                formatter={(value) => [fmt(Number(value))]}
                 contentStyle={{
                   borderRadius: '12px',
                   border: '1px solid #e2e8f0',

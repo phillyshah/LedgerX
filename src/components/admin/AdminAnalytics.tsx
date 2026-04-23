@@ -17,7 +17,7 @@ interface Expense {
   category: string | null;
   notes: string | null;
   transcript: string | null;
-  household_id: string;
+  household_id: string | null;
   household_name?: string;
   image_path: string | null;
   image_mime: string | null;
@@ -110,7 +110,7 @@ export function AdminAnalytics() {
       setExpenses(
         expenseData.map((e) => ({
           ...e,
-          household_name: householdMap.get(e.household_id) || 'Unknown',
+          household_name: householdMap.get(e.household_id ?? '') || 'Unknown',
         }))
       );
     }
@@ -219,7 +219,7 @@ export function AdminAnalytics() {
             expense.total,
             expense.currency,
             `"${expense.category || ''}"`,
-            `"${householdMap.get(expense.household_id) || ''}"`,
+            `"${householdMap.get(expense.household_id ?? '') || ''}"`,
             `"${expense.notes || ''}"`,
           ].join(',')
         ),
@@ -258,7 +258,7 @@ export function AdminAnalytics() {
 
       const imageBoxWidth = 50;
       let contentStartY = addPageHeader(true);
-      const { cols, rows, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
+      const { cols, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
       const thumbHeight = cellHeight - 10;
 
       let txIndex = 0;
@@ -308,7 +308,7 @@ export function AdminAnalytics() {
           xOffset, yPos
         ); yPos += 4.5;
 
-        const hhName = householdMap.get(expense.household_id);
+        const hhName = householdMap.get(expense.household_id ?? '');
         if (hhName) { pdf.text(`Household: ${hhName}`, xOffset, yPos); yPos += 4.5; }
         if (expense.category) { pdf.text(`Category: ${expense.category}`, xOffset, yPos); yPos += 4.5; }
 
@@ -618,7 +618,7 @@ export function AdminAnalytics() {
 
       {editingExpense && (
         <EditExpense
-          expense={editingExpense}
+          expense={editingExpense as unknown as ExpenseType}
           onClose={() => setEditingExpense(null)}
           onSuccess={async () => {
             setEditingExpense(null);
