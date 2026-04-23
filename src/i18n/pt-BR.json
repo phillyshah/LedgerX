@@ -47,6 +47,7 @@
   "auth.error.generic": "Ocorreu um erro",
 
   "dashboard.addTransaction": "Adicionar Transação",
+  "dashboard.addTransactionHint": "Registrar um recibo ou despesa",
   "dashboard.exportData": "Exportar Dados",
   "dashboard.reports": "Relatórios",
   "dashboard.yourSubmissions": "Suas Submissões Recentes",
@@ -396,6 +397,7 @@
   "charts.noData": "Ainda não há dados de gastos.",
 
   "invoice.submitInvoice": "Enviar Nota Fiscal",
+  "invoice.submitInvoiceHint": "Envie um PDF ou foto",
   "invoice.myInvoices": "Minhas Notas Fiscais",
   "invoice.formTitle": "Enviar Nota Fiscal",
   "invoice.formSubtitle": "Envie sua nota fiscal — extraímos os detalhes automaticamente.",

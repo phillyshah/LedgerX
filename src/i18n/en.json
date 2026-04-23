@@ -47,6 +47,7 @@
   "auth.error.generic": "An error occurred",
 
   "dashboard.addTransaction": "Add Transaction",
+  "dashboard.addTransactionHint": "Log a receipt or expense",
   "dashboard.exportData": "Export Data",
   "dashboard.reports": "Reports",
   "dashboard.yourSubmissions": "Your Recent Submissions",
@@ -396,6 +397,7 @@
   "charts.noData": "No spending data yet.",
 
   "invoice.submitInvoice": "Submit Invoice",
+  "invoice.submitInvoiceHint": "Upload a PDF or photo",
   "invoice.myInvoices": "My Invoices",
   "invoice.formTitle": "Submit Invoice",
   "invoice.formSubtitle": "Upload your invoice — we'll extract the details automatically.",
