@@ -5,7 +5,7 @@ export type PropertyType = typeof PROPERTY_TYPES[number];
 
 export interface ContractorInvoice {
   id: string;
-  invoice_number: string;
+  invoice_number: string | null;
   created_by: string;
   household_id: string | null;
   amount: number;
@@ -13,7 +13,6 @@ export interface ContractorInvoice {
   description: string;
   service_date_start: string; // 'YYYY-MM-DD'
   service_date_end: string;   // 'YYYY-MM-DD'
-  due_date: string | null;    // 'YYYY-MM-DD'
   status: InvoiceStatus;
   admin_notes: string | null;
   image_path: string | null;

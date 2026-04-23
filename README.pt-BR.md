@@ -341,7 +341,7 @@ Prestadores veem um painel simplificado com duas ações:
 **Como enviar uma nota fiscal:**
 1. Toque em **Enviar Nota Fiscal**
 2. Envie o PDF ou JPG da nota fiscal — os campos são preenchidos automaticamente via OCR
-3. Revise e corrija os detalhes extraídos (nº da nota, valor, período de serviço, etc.)
+3. Revise e corrija os detalhes extraídos (valor, período de serviço, descrição — o nº da nota é opcional)
 4. Selecione a propriedade onde o serviço foi realizado
 5. Toque em **Enviar Nota Fiscal** para encaminhar ao seu administrador
 

@@ -284,7 +284,7 @@ export function AdminInvoices() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center flex-wrap gap-2">
-                      <span className="font-mono font-semibold text-slate-900 text-sm">{inv.invoice_number}</span>
+                      <span className="font-mono font-semibold text-slate-900 text-sm">{inv.invoice_number || t('invoice.noNumberPlaceholder')}</span>
                       <span className="text-xs text-slate-500">@{inv.submitter_username}</span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -351,7 +351,7 @@ export function AdminInvoices() {
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('adminInvoices.detailInvoiceNumber')}</span>
-                <span className="font-mono font-semibold">{actionModal.invoice.invoice_number}</span>
+                <span className="font-mono font-semibold">{actionModal.invoice.invoice_number || t('invoice.noNumberPlaceholder')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('adminInvoices.detailAmount')}</span>
@@ -416,13 +416,12 @@ export function AdminInvoices() {
               {/* Fields grid */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
-                  { label: t('adminInvoices.detailInvoiceNumber'), value: <span className="font-mono">{detailInvoice.invoice_number}</span> },
+                  { label: t('adminInvoices.detailInvoiceNumber'), value: detailInvoice.invoice_number ? <span className="font-mono">{detailInvoice.invoice_number}</span> : <span className="text-slate-400">{t('invoice.noNumberPlaceholder')}</span> },
                   { label: t('adminInvoices.detailContractor'), value: `@${detailInvoice.submitter_username}` },
                   { label: t('adminInvoices.detailProperty'), value: detailInvoice.household_name },
                   { label: t('adminInvoices.detailAmount'), value: fmtCurrency(detailInvoice.amount, detailInvoice.currency) },
                   { label: t('adminInvoices.detailStatus'), value: <StatusBadge status={detailInvoice.status} t={t} /> },
                   { label: t('adminInvoices.detailServicePeriod'), value: `${fmtDate(detailInvoice.service_date_start)} – ${fmtDate(detailInvoice.service_date_end)}` },
-                  { label: t('adminInvoices.detailDueDate'), value: detailInvoice.due_date ? fmtDate(detailInvoice.due_date) : <span className="text-slate-400">—</span> },
                   { label: t('adminInvoices.detailSubmitted'), value: fmtDate(detailInvoice.created_at.split('T')[0]) },
                   ...(detailInvoice.paid_at ? [{ label: t('adminInvoices.detailPaidAt'), value: fmtDate(detailInvoice.paid_at.split('T')[0]) }] : []),
                 ].map(({ label, value }) => (

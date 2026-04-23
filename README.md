@@ -344,7 +344,7 @@ Contractors see a simplified dashboard with two actions:
 **How invoice submission works:**
 1. Tap **Submit Invoice**
 2. Upload your invoice PDF or JPG — fields are filled in automatically via OCR
-3. Review and correct any extracted details (invoice #, amount, service period, etc.)
+3. Review and correct any extracted details (amount, service period, description — invoice # is optional)
 4. Select the property the work was performed at
 5. Tap **Submit Invoice** to send it to your admin
 

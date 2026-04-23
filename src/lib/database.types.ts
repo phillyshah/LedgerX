@@ -169,7 +169,7 @@ export interface Database {
       contractor_invoices: {
         Row: {
           id: string;
-          invoice_number: string;
+          invoice_number: string | null;
           created_by: string;
           household_id: string | null;
           amount: number;
@@ -177,7 +177,6 @@ export interface Database {
           description: string;
           service_date_start: string;
           service_date_end: string;
-          due_date: string | null;
           status: 'pending' | 'approved' | 'paid' | 'rejected';
           admin_notes: string | null;
           image_path: string | null;
@@ -190,7 +189,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          invoice_number: string;
+          invoice_number?: string | null;
           created_by: string;
           household_id?: string | null;
           amount: number;
@@ -198,7 +197,6 @@ export interface Database {
           description: string;
           service_date_start: string;
           service_date_end: string;
-          due_date?: string | null;
           status?: 'pending' | 'approved' | 'paid' | 'rejected';
           admin_notes?: string | null;
           image_path?: string | null;
@@ -211,7 +209,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          invoice_number?: string;
+          invoice_number?: string | null;
           created_by?: string;
           household_id?: string | null;
           amount?: number;
@@ -219,7 +217,6 @@ export interface Database {
           description?: string;
           service_date_start?: string;
           service_date_end?: string;
-          due_date?: string | null;
           status?: 'pending' | 'approved' | 'paid' | 'rejected';
           admin_notes?: string | null;
           image_path?: string | null;

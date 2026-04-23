@@ -39,7 +39,6 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
     description: '',
     service_date_start: today(),
     service_date_end: today(),
-    due_date: '',
   });
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
@@ -77,7 +76,6 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
       description: data.description || prev.description,
       service_date_start: data.service_date_start || data.invoice_date || prev.service_date_start,
       service_date_end: data.service_date_end || data.invoice_date || prev.service_date_end,
-      due_date: data.due_date || prev.due_date,
     }));
   };
 
@@ -192,13 +190,12 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
         .insert({
           created_by: user.id,
           household_id: formData.household_id,
-          invoice_number: formData.invoice_number,
+          invoice_number: formData.invoice_number.trim() || null,
           amount: parseFloat(formData.amount) || 0,
           currency: formData.currency,
           description: formData.description,
           service_date_start: formData.service_date_start,
           service_date_end: formData.service_date_end,
-          due_date: formData.due_date || null,
           image_path: imagePath,
           image_mime: imageMime,
           image_width: imageWidth,
@@ -277,7 +274,6 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
       description: '',
       service_date_start: today(),
       service_date_end: today(),
-      due_date: '',
     }));
     setImages([]);
     setScanError(null);
@@ -345,14 +341,13 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="inv-number" className="block text-sm font-medium text-slate-700 mb-2">
-                {t('invoice.invoiceNumber')}
+                {t('invoice.invoiceNumberOptional')}
               </label>
               <input
                 id="inv-number"
                 type="text"
                 value={formData.invoice_number}
                 onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                required
                 placeholder={t('invoice.invoiceNumberPlaceholder')}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all font-mono"
               />
@@ -451,20 +446,6 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
             {dateError && (
               <p className="mt-2 text-sm text-red-600">{dateError}</p>
             )}
-          </div>
-
-          {/* Due Date (optional) */}
-          <div>
-            <label htmlFor="inv-due" className="block text-sm font-medium text-slate-700 mb-2">
-              {t('invoice.dueDateOptional')}
-            </label>
-            <input
-              id="inv-due"
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
-            />
           </div>
 
           {/* File Upload */}

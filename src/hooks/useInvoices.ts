@@ -34,7 +34,7 @@ export function useInvoices(refreshKey?: number) {
     // Load this contractor's invoices (RLS scopes to own)
     const { data, error } = await supabase
       .from('contractor_invoices')
-      .select('id, invoice_number, created_by, household_id, amount, currency, description, service_date_start, service_date_end, due_date, status, admin_notes, image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at')
+      .select('id, invoice_number, created_by, household_id, amount, currency, description, service_date_start, service_date_end, status, admin_notes, image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at')
       .order('created_at', { ascending: false });
 
     if (!error && data) {

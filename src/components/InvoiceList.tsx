@@ -79,7 +79,7 @@ export function InvoiceList({ invoices, loading, onReload: _onReload }: InvoiceL
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono font-semibold text-slate-900 text-sm">
-                  {inv.invoice_number}
+                  {inv.invoice_number || t('invoice.noNumberPlaceholder')}
                 </span>
                 {inv.household_name && inv.household_name !== '—' && (
                   <span className="text-xs text-slate-500 truncate">{inv.household_name}</span>
