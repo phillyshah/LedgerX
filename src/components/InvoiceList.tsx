@@ -8,11 +8,20 @@ interface InvoiceListProps {
 }
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
+  // Prominent, solid-filled badges so contractors can see invoice status
+  // at a glance. Status is the single most important piece of information on
+  // this card — it's what the contractor is checking each time they return.
   const styles: Record<InvoiceStatus, string> = {
-    pending:  'bg-yellow-100 text-yellow-800',
-    approved: 'bg-blue-100 text-blue-800',
-    paid:     'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
+    pending:  'bg-amber-500 text-white ring-1 ring-amber-600/20',
+    approved: 'bg-blue-600 text-white ring-1 ring-blue-700/20',
+    paid:     'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
+    rejected: 'bg-red-600 text-white ring-1 ring-red-700/20',
+  };
+  const dots: Record<InvoiceStatus, string> = {
+    pending:  'bg-amber-200',
+    approved: 'bg-blue-200',
+    paid:     'bg-emerald-200',
+    rejected: 'bg-red-200',
   };
   const labels: Record<InvoiceStatus, string> = {
     pending:  t('invoice.statusPending'),
@@ -21,7 +30,8 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
     rejected: t('invoice.statusRejected'),
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${styles[status]}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dots[status]}`} />
       {labels[status]}
     </span>
   );

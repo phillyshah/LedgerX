@@ -309,13 +309,19 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
           {filteredExpenses.length === 0 ? (
             <div className="p-8 text-center">
               <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">{t('expenses.noMatch')}</p>
-              <button
-                onClick={clearAllFilters}
-                className="mt-2 text-sm text-slate-900 font-medium hover:underline"
-              >
-                {t('expenses.clearFilters')}
-              </button>
+              <p className="text-sm text-slate-500">
+                {hideFilters && !hasAnyFilter
+                  ? (ownSubmissionsOnly ? t('expenses.noReceiptsYet') : t('expenses.noExpensesYet'))
+                  : t('expenses.noMatch')}
+              </p>
+              {hasAnyFilter && (
+                <button
+                  onClick={clearAllFilters}
+                  className="mt-2 text-sm text-slate-900 font-medium hover:underline"
+                >
+                  {t('expenses.clearFilters')}
+                </button>
+              )}
             </div>
           ) : (
             filteredExpenses.map((expense) => (

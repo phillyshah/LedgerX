@@ -50,7 +50,7 @@
   "dashboard.addTransactionHint": "Registrar um recibo ou despesa",
   "dashboard.exportData": "Exportar Dados",
   "dashboard.reports": "Relatórios",
-  "dashboard.yourSubmissions": "Suas Submissões Recentes",
+  "dashboard.yourSubmissions": "Meus Recibos",
   "dashboard.contractorTagline": "Envie recibos de forma rápida e simples.",
 
   "summary.thisMonth": "Este Mês",
@@ -77,6 +77,8 @@
   "expenses.noLimit": "Sem limite",
   "expenses.showingOf": "Exibindo {shown} de {total} transações",
   "expenses.noMatch": "Nenhuma transação corresponde à sua busca",
+  "expenses.noReceiptsYet": "Nenhum recibo enviado ainda. Toque em Adicionar Transação para enviar o primeiro.",
+  "expenses.noExpensesYet": "Nenhuma transação ainda.",
   "expenses.clearFilters": "Limpar filtros",
   "expenses.noneYet": "Nenhuma transação ainda",
   "expenses.getStarted": "Adicione sua primeira transação para começar a acompanhar seus gastos.",

@@ -50,7 +50,7 @@
   "dashboard.addTransactionHint": "Log a receipt or expense",
   "dashboard.exportData": "Export Data",
   "dashboard.reports": "Reports",
-  "dashboard.yourSubmissions": "Your Recent Submissions",
+  "dashboard.yourSubmissions": "My Receipts",
   "dashboard.contractorTagline": "Submit receipts quickly and easily.",
 
   "summary.thisMonth": "This Month",
@@ -77,6 +77,8 @@
   "expenses.noLimit": "No limit",
   "expenses.showingOf": "Showing {shown} of {total} transactions",
   "expenses.noMatch": "No transactions match your search",
+  "expenses.noReceiptsYet": "No receipts submitted yet. Tap Add Transaction to submit your first one.",
+  "expenses.noExpensesYet": "No transactions yet.",
   "expenses.clearFilters": "Clear filters",
   "expenses.noneYet": "No transactions yet",
   "expenses.getStarted": "Add your first transaction to get started tracking your household spending.",
