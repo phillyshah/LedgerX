@@ -43,8 +43,7 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
 export function AdminInvoices() {
   const { t, locale } = useT();
   const { isAdmin } = useAuth();
-  // Only full admins can transition invoice status (mark paid / revert to pending).
-  // Household admins get the same list view but no action buttons.
+  // Only full admins mutate state (mark paid, assign category).
   const canMutateStatus = isAdmin;
 
   const [invoices, setInvoices] = useState<AdminInvoiceRow[]>([]);
@@ -52,17 +51,18 @@ export function AdminInvoices() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Category assignment modal (admin only)
+  // Category-assignment modal
   const [categoryModal, setCategoryModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
-  const [categoryPick, setCategoryPick] = useState<string>(''); // '' = unassigned
+  const [categoryPick, setCategoryPick] = useState('');
   const [categorySaving, setCategorySaving] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
-  // Filters
+  // Filters + sort
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
 
-  // Action modal (only 'paid' remains; kept as a confirm modal for the mark-paid action)
+  // Mark-paid modal
   const [actionModal, setActionModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
   const [actionNotes, setActionNotes] = useState('');
   const [actioning, setActioning] = useState(false);
@@ -74,20 +74,10 @@ export function AdminInvoices() {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Sort
-  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
-
-    // Household admins hit RLS-scoped queries (they only see households
-    // they're members of + invoices in those households). admin_list_users
-    // is admin-only, so for household_admins we derive usernames directly
-    // from user_profiles for the created_by column.
     const [hhRes, invRes, catRes, catHhRes] = await Promise.all([
       supabase.from('households').select('id, name').order('name'),
       supabase.from('contractor_invoices').select('*').order('created_at', { ascending: false }),
@@ -95,90 +85,59 @@ export function AdminInvoices() {
       supabase.from('category_households').select('category_id, household_id'),
     ]);
 
-    const hhData: HouseholdOption[] = (hhRes.data || []).map((h: HouseholdOption) => ({
-      id: h.id,
-      name: h.name,
-    }));
+    const hhData = (hhRes.data || []) as HouseholdOption[];
     setHouseholds(hhData);
-
     const hhMap = new Map(hhData.map((h) => [h.id, h]));
 
-    // Build category list with their household scoping (empty = global).
     const catHhByCat = new Map<string, string[]>();
-    ((catHhRes.data as Array<{ category_id: string; household_id: string }> | null) || []).forEach((row) => {
-      const arr = catHhByCat.get(row.category_id) || [];
-      arr.push(row.household_id);
-      catHhByCat.set(row.category_id, arr);
-    });
-    const catData: CategoryOption[] = ((catRes.data as Array<{ id: string; name: string }> | null) || []).map((c) => ({
-      id: c.id,
-      name: c.name,
-      household_ids: catHhByCat.get(c.id) || [],
+    for (const r of (catHhRes.data || []) as Array<{ category_id: string; household_id: string }>) {
+      const arr = catHhByCat.get(r.category_id) || [];
+      arr.push(r.household_id);
+      catHhByCat.set(r.category_id, arr);
+    }
+    const catData: CategoryOption[] = ((catRes.data || []) as Array<{ id: string; name: string }>).map((c) => ({
+      id: c.id, name: c.name, household_ids: catHhByCat.get(c.id) || [],
     }));
     setCategories(catData);
     const catNameMap = new Map(catData.map((c) => [c.id, c.name]));
 
+    // admin_list_users is admin-only; household_admins fall back to user_profiles.
     let usernameMap = new Map<string, string>();
     if (isAdmin) {
       const { data: users } = await supabase.rpc('admin_list_users');
-      usernameMap = new Map<string, string>(
-        (users || []).map((u: { id: string; username: string }) => [u.id, u.username])
-      );
+      usernameMap = new Map((users || []).map((u: { id: string; username: string }) => [u.id, u.username]));
     } else {
-      const creatorIds = Array.from(
-        new Set((invRes.data || []).map((inv: ContractorInvoice) => inv.created_by))
-      );
-      if (creatorIds.length) {
-        const { data: profiles } = await supabase
-          .from('user_profiles')
-          .select('id, username')
-          .in('id', creatorIds);
-        usernameMap = new Map<string, string>(
-          (profiles || []).map((p: { id: string; username: string | null }) => [p.id, p.username || 'Unknown'])
-        );
+      const ids = Array.from(new Set(((invRes.data || []) as ContractorInvoice[]).map((i) => i.created_by)));
+      if (ids.length) {
+        const { data: profiles } = await supabase.from('user_profiles').select('id, username').in('id', ids);
+        usernameMap = new Map((profiles || []).map((p: { id: string; username: string | null }) => [p.id, p.username || 'Unknown']));
       }
     }
 
-    const rows: AdminInvoiceRow[] = (invRes.data || []).map((inv: ContractorInvoice) => {
-      const hh = inv.household_id ? hhMap.get(inv.household_id) : null;
-      return {
-        ...inv,
-        household_name: hh?.name ?? '—',
-        submitter_username: usernameMap.get(inv.created_by) ?? 'Unknown',
-        category_name: inv.category_id ? catNameMap.get(inv.category_id) ?? null : null,
-      };
-    });
-
-    setInvoices(rows);
+    setInvoices(((invRes.data || []) as ContractorInvoice[]).map((inv) => ({
+      ...inv,
+      household_name: (inv.household_id && hhMap.get(inv.household_id)?.name) || '—',
+      submitter_username: usernameMap.get(inv.created_by) ?? 'Unknown',
+      category_name: inv.category_id ? catNameMap.get(inv.category_id) ?? null : null,
+    })));
     setLoading(false);
   };
 
-  // Client-side filtering + sorting
   const filtered = useMemo(() => {
-    let result = invoices.filter((inv) => {
-      if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
-      if (householdFilter !== 'all' && inv.household_id !== householdFilter) return false;
-      return true;
-    });
-
-    result = [...result].sort((a, b) => {
-      const diff = a.created_at.localeCompare(b.created_at);
-      return sortDir === 'desc' ? -diff : diff;
-    });
-
-    return result;
+    const rows = invoices.filter((inv) =>
+      (statusFilter === 'all' || inv.status === statusFilter) &&
+      (householdFilter === 'all' || inv.household_id === householdFilter));
+    const sign = sortDir === 'desc' ? -1 : 1;
+    return [...rows].sort((a, b) => sign * a.created_at.localeCompare(b.created_at));
   }, [invoices, statusFilter, householdFilter, sortDir]);
 
-  // Safe date formatting — never new Date(str) directly
-  const fmtDate = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString(locale, {
-      year: 'numeric', month: 'short', day: 'numeric',
-    });
+  // Safe date formatting — never new Date(str) directly.
+  const fmtDate = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
   };
-
-  const fmtCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+  const fmtCurrency = (amt: number, ccy: string) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: ccy }).format(amt);
 
   const openActionModal = (invoice: AdminInvoiceRow) => {
     setActionModal({ invoice });
@@ -188,21 +147,14 @@ export function AdminInvoices() {
 
   const confirmAction = async () => {
     if (!actionModal) return;
-    setActioning(true);
-    setActionError(null);
-
+    setActioning(true); setActionError(null);
     const { error } = await supabase.rpc('admin_update_invoice_status', {
-      p_invoice_id:  actionModal.invoice.id,
-      p_status:      'paid',
+      p_invoice_id: actionModal.invoice.id,
+      p_status: 'paid',
       p_admin_notes: actionNotes.trim() || undefined,
     });
-
-    if (error) {
-      setActionError(t('adminInvoices.failedAction'));
-    } else {
-      setActionModal(null);
-      await loadData();
-    }
+    if (error) setActionError(t('adminInvoices.failedAction'));
+    else { setActionModal(null); await loadData(); }
     setActioning(false);
   };
 
@@ -214,60 +166,38 @@ export function AdminInvoices() {
 
   const confirmCategory = async () => {
     if (!categoryModal) return;
-    setCategorySaving(true);
-    setCategoryError(null);
-
+    setCategorySaving(true); setCategoryError(null);
     const { error } = await supabase.rpc('admin_set_invoice_category', {
-      p_invoice_id:  categoryModal.invoice.id,
+      p_invoice_id: categoryModal.invoice.id,
       p_category_id: categoryPick || null,
     });
-
-    if (error) {
-      setCategoryError(t('adminInvoices.failedAction'));
-    } else {
-      setCategoryModal(null);
-      await loadData();
-    }
+    if (error) setCategoryError(t('adminInvoices.failedAction'));
+    else { setCategoryModal(null); await loadData(); }
     setCategorySaving(false);
   };
 
-  // Categories valid for the given household: globals (household_ids empty)
-  // plus any explicitly mapped to this household.
-  const categoriesForHousehold = (householdId: string | null): CategoryOption[] => {
-    return categories.filter(
-      (c) => c.household_ids.length === 0 || (householdId !== null && c.household_ids.includes(householdId))
+  // Globals (no mappings) plus any explicitly mapped to this household.
+  const categoriesForHousehold = (householdId: string | null): CategoryOption[] =>
+    categories.filter((c) =>
+      c.household_ids.length === 0 || (householdId !== null && c.household_ids.includes(householdId))
     );
-  };
 
   const openDetail = async (inv: AdminInvoiceRow) => {
-    setDetailInvoice(inv);
-    setDetailImages([]);
-    setSignedUrls({});
-    setLoadingDetail(true);
+    setDetailInvoice(inv); setDetailImages([]); setSignedUrls({}); setLoadingDetail(true);
 
     const { data: imgs } = await supabase
-      .from('invoice_images')
-      .select('*')
-      .eq('invoice_id', inv.id)
-      .order('display_order');
-
-    const images: InvoiceImage[] = imgs || [];
+      .from('invoice_images').select('*').eq('invoice_id', inv.id).order('display_order');
+    const images = (imgs || []) as InvoiceImage[];
     setDetailImages(images);
 
-    const allPaths = [
-      ...new Set([
-        inv.image_path,
-        ...images.map((i) => i.image_path),
-      ].filter((p): p is string => !!p))
-    ];
-
+    const paths = Array.from(new Set(
+      [inv.image_path, ...images.map((i) => i.image_path)].filter((p): p is string => !!p)
+    ));
+    const signed = await Promise.all(
+      paths.map((p) => supabase.storage.from('receipts').createSignedUrl(p, 3600).then((r) => [p, r.data?.signedUrl] as const))
+    );
     const urls: Record<string, string> = {};
-    for (const path of allPaths) {
-      const { data } = await supabase.storage
-        .from('receipts')
-        .createSignedUrl(path, 3600);
-      if (data?.signedUrl) urls[path] = data.signedUrl;
-    }
+    for (const [p, u] of signed) if (u) urls[p] = u;
     setSignedUrls(urls);
     setLoadingDetail(false);
   };

@@ -305,6 +305,8 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 - Criar, editar e excluir categorias
 - Limitar categorias a uma residência específica ou torná-las globais
 - Cada residência só vê as categorias atribuídas a ela
+- **Selecionar Todos / Limpar Todos** no seletor de residências para atribuição em massa rápida
+- O seletor agora é rolável com cabeçalho e rodapé fixos, funcionando mesmo com listas longas de residências
 
 ### Transações Sem Categoria
 
@@ -318,6 +320,7 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 - Filtre por status (Pendente / Paga) e propriedade
 - Clique em qualquer nota para ver os detalhes completos e documentos anexados
 - **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos
+- **Atribuir Categoria** (apenas admins completos) — etiquete qualquer nota fiscal com uma categoria para que apareça no Analytics junto com os recibos. O seletor só mostra as categorias válidas para o grupo da nota (globais + mapeadas explicitamente).
 
 ---
 

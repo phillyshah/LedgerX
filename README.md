@@ -309,6 +309,8 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 - Create, edit, and delete categories
 - Scope categories to a specific household or make them global
 - Each household only sees categories assigned to it
+- **Select All / Clear All** in the household picker for fast bulk assignment
+- The picker is scrollable with a fixed header and footer, so it works even with long household lists
 
 ### Uncategorized Transactions
 
@@ -322,6 +324,7 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 - Filter by status (Pending / Paid) and property
 - Click any invoice to see full details and attached documents
 - **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
+- **Assign Category** (full admins only) — tag any invoice with a category so it rolls up into Analytics alongside receipts. The picker only shows categories valid for the invoice's household (globals + any explicitly mapped).
 
 ---
 
