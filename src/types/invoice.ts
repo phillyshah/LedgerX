@@ -8,6 +8,7 @@ export interface ContractorInvoice {
   invoice_number: string | null;
   created_by: string;
   household_id: string | null;
+  category_id: string | null;
   amount: number;
   currency: string;
   description: string;
@@ -26,6 +27,7 @@ export interface ContractorInvoice {
   household_name?: string;
   property_type?: PropertyType | null;
   submitter_username?: string;
+  category_name?: string | null;
 }
 
 export interface InvoiceImage {

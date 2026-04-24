@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
-import { X, ChevronDown, ChevronUp, FileText, Check } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, FileText, Check, Tag } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
 
 interface HouseholdOption {
@@ -10,9 +10,16 @@ interface HouseholdOption {
   name: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  household_ids: string[]; // empty array = global
+}
+
 interface AdminInvoiceRow extends ContractorInvoice {
   household_name: string;
   submitter_username: string;
+  category_name: string | null;
 }
 
 type StatusFilter = InvoiceStatus | 'all';
@@ -42,7 +49,14 @@ export function AdminInvoices() {
 
   const [invoices, setInvoices] = useState<AdminInvoiceRow[]>([]);
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Category assignment modal (admin only)
+  const [categoryModal, setCategoryModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
+  const [categoryPick, setCategoryPick] = useState<string>(''); // '' = unassigned
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -74,9 +88,11 @@ export function AdminInvoices() {
     // they're members of + invoices in those households). admin_list_users
     // is admin-only, so for household_admins we derive usernames directly
     // from user_profiles for the created_by column.
-    const [hhRes, invRes] = await Promise.all([
+    const [hhRes, invRes, catRes, catHhRes] = await Promise.all([
       supabase.from('households').select('id, name').order('name'),
       supabase.from('contractor_invoices').select('*').order('created_at', { ascending: false }),
+      supabase.from('categories').select('id, name').order('name'),
+      supabase.from('category_households').select('category_id, household_id'),
     ]);
 
     const hhData: HouseholdOption[] = (hhRes.data || []).map((h: HouseholdOption) => ({
@@ -86,6 +102,21 @@ export function AdminInvoices() {
     setHouseholds(hhData);
 
     const hhMap = new Map(hhData.map((h) => [h.id, h]));
+
+    // Build category list with their household scoping (empty = global).
+    const catHhByCat = new Map<string, string[]>();
+    ((catHhRes.data as Array<{ category_id: string; household_id: string }> | null) || []).forEach((row) => {
+      const arr = catHhByCat.get(row.category_id) || [];
+      arr.push(row.household_id);
+      catHhByCat.set(row.category_id, arr);
+    });
+    const catData: CategoryOption[] = ((catRes.data as Array<{ id: string; name: string }> | null) || []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      household_ids: catHhByCat.get(c.id) || [],
+    }));
+    setCategories(catData);
+    const catNameMap = new Map(catData.map((c) => [c.id, c.name]));
 
     let usernameMap = new Map<string, string>();
     if (isAdmin) {
@@ -114,6 +145,7 @@ export function AdminInvoices() {
         ...inv,
         household_name: hh?.name ?? '—',
         submitter_username: usernameMap.get(inv.created_by) ?? 'Unknown',
+        category_name: inv.category_id ? catNameMap.get(inv.category_id) ?? null : null,
       };
     });
 
@@ -172,6 +204,39 @@ export function AdminInvoices() {
       await loadData();
     }
     setActioning(false);
+  };
+
+  const openCategoryModal = (invoice: AdminInvoiceRow) => {
+    setCategoryModal({ invoice });
+    setCategoryPick(invoice.category_id ?? '');
+    setCategoryError(null);
+  };
+
+  const confirmCategory = async () => {
+    if (!categoryModal) return;
+    setCategorySaving(true);
+    setCategoryError(null);
+
+    const { error } = await supabase.rpc('admin_set_invoice_category', {
+      p_invoice_id:  categoryModal.invoice.id,
+      p_category_id: categoryPick || null,
+    });
+
+    if (error) {
+      setCategoryError(t('adminInvoices.failedAction'));
+    } else {
+      setCategoryModal(null);
+      await loadData();
+    }
+    setCategorySaving(false);
+  };
+
+  // Categories valid for the given household: globals (household_ids empty)
+  // plus any explicitly mapped to this household.
+  const categoriesForHousehold = (householdId: string | null): CategoryOption[] => {
+    return categories.filter(
+      (c) => c.household_ids.length === 0 || (householdId !== null && c.household_ids.includes(householdId))
+    );
   };
 
   const openDetail = async (inv: AdminInvoiceRow) => {
@@ -283,6 +348,19 @@ export function AdminInvoices() {
                       {inv.household_name} · {fmtDate(inv.service_date_start)}
                       {inv.service_date_end !== inv.service_date_start && <> – {fmtDate(inv.service_date_end)}</>}
                     </p>
+                    <div className="mt-1.5">
+                      {inv.category_name ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          <Tag className="w-3 h-3" />
+                          {inv.category_name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-50 text-slate-500 border border-slate-200">
+                          <Tag className="w-3 h-3" />
+                          {t('adminInvoices.noCategory')}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <span className="font-semibold text-slate-900 text-sm">{fmtCurrency(inv.amount, inv.currency)}</span>
@@ -291,15 +369,24 @@ export function AdminInvoices() {
                 </div>
               </button>
 
-              {/* Mark Paid — full admin only, pending only */}
-              {canMutateStatus && inv.status === 'pending' && (
-                <div className="px-5 pb-4 flex items-center gap-2 border-t border-slate-100 pt-3">
+              {/* Admin actions — full admin only */}
+              {canMutateStatus && (
+                <div className="px-5 pb-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                  {inv.status === 'pending' && (
+                    <button
+                      onClick={() => openActionModal(inv)}
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all"
+                    >
+                      <Check className="w-3 h-3 inline mr-1" />
+                      {t('adminInvoices.actionMarkPaid')}
+                    </button>
+                  )}
                   <button
-                    onClick={() => openActionModal(inv)}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all"
+                    onClick={() => openCategoryModal(inv)}
+                    className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all"
                   >
-                    <Check className="w-3 h-3 inline mr-1" />
-                    {t('adminInvoices.actionMarkPaid')}
+                    <Tag className="w-3 h-3 inline mr-1" />
+                    {inv.category_id ? t('adminInvoices.actionChangeCategory') : t('adminInvoices.actionAssignCategory')}
                   </button>
                 </div>
               )}
@@ -387,6 +474,7 @@ export function AdminInvoices() {
                   { label: t('adminInvoices.detailInvoiceNumber'), value: detailInvoice.invoice_number ? <span className="font-mono">{detailInvoice.invoice_number}</span> : <span className="text-slate-400">{t('invoice.noNumberPlaceholder')}</span> },
                   { label: t('adminInvoices.detailContractor'), value: `@${detailInvoice.submitter_username}` },
                   { label: t('adminInvoices.detailProperty'), value: detailInvoice.household_name },
+                  { label: t('adminInvoices.detailCategory'), value: detailInvoice.category_name ? detailInvoice.category_name : <span className="text-slate-400">{t('adminInvoices.noCategory')}</span> },
                   { label: t('adminInvoices.detailAmount'), value: fmtCurrency(detailInvoice.amount, detailInvoice.currency) },
                   { label: t('adminInvoices.detailStatus'), value: <StatusBadge status={detailInvoice.status} t={t} /> },
                   { label: t('adminInvoices.detailServicePeriod'), value: `${fmtDate(detailInvoice.service_date_start)} – ${fmtDate(detailInvoice.service_date_end)}` },
@@ -445,13 +533,22 @@ export function AdminInvoices() {
                 )}
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 {canMutateStatus && detailInvoice.status === 'pending' && (
                   <button
                     onClick={() => { openActionModal(detailInvoice); setDetailInvoice(null); }}
                     className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all"
                   >
                     {t('adminInvoices.actionMarkPaid')}
+                  </button>
+                )}
+                {canMutateStatus && (
+                  <button
+                    onClick={() => { openCategoryModal(detailInvoice); setDetailInvoice(null); }}
+                    className="px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-all"
+                  >
+                    <Tag className="w-4 h-4 inline mr-1" />
+                    {detailInvoice.category_id ? t('adminInvoices.actionChangeCategory') : t('adminInvoices.actionAssignCategory')}
                   </button>
                 )}
                 <button
@@ -461,6 +558,70 @@ export function AdminInvoices() {
                   {t('adminInvoices.detailClose')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Category Assignment Modal ── */}
+      {categoryModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">
+                {t('adminInvoices.modalCategoryTitle')}
+              </h3>
+              <button onClick={() => setCategoryModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">{t('adminInvoices.detailInvoiceNumber')}</span>
+                <span className="font-mono font-semibold">{categoryModal.invoice.invoice_number || t('invoice.noNumberPlaceholder')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">{t('adminInvoices.detailProperty')}</span>
+                <span>{categoryModal.invoice.household_name}</span>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                {t('adminInvoices.modalCategoryLabel')}
+              </label>
+              <select
+                value={categoryPick}
+                onChange={(e) => { setCategoryPick(e.target.value); setCategoryError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="">{t('adminInvoices.modalCategoryNone')}</option>
+                {categoriesForHousehold(categoryModal.invoice.household_id).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-slate-500">
+                {t('adminInvoices.modalCategoryHint')}
+              </p>
+              {categoryError && <p className="mt-1 text-sm text-red-600">{categoryError}</p>}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCategoryModal(null)}
+                disabled={categorySaving}
+                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                {t('adminInvoices.modalCancel')}
+              </button>
+              <button
+                onClick={confirmCategory}
+                disabled={categorySaving}
+                className="flex-1 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                {categorySaving ? '...' : t('adminInvoices.modalConfirm')}
+              </button>
             </div>
           </div>
         </div>
