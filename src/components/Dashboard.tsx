@@ -12,6 +12,7 @@ import { ExportData } from './ExportData';
 import { Reports } from './Reports';
 import { LogOut, Plus, Download, FileText, Settings, HelpCircle } from 'lucide-react';
 import { UserSettings } from './UserSettings';
+import { LogoText } from './LogoText';
 import { SpendingCharts } from './SpendingCharts';
 import { HelpModal } from './HelpModal';
 import { APP_VERSION } from '../version';
@@ -52,7 +53,9 @@ export function Dashboard() {
           <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       </div>
-      <h1 className="text-2xl font-bold text-slate-900">LedgerX</h1>
+      <h1 className="text-2xl font-bold text-slate-900">
+        <LogoText betaClassName="text-emerald-700" />
+      </h1>
     </div>
   );
 

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { Eye, EyeOff, HelpCircle, ArrowLeft } from 'lucide-react';
 import { HelpModal } from './HelpModal';
+import { LogoText } from './LogoText';
 import { LANGUAGES, type Language } from '../i18n';
 import { APP_VERSION } from '../version';
 
@@ -81,7 +82,9 @@ export function AuthForm() {
               <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t('auth.title')}</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            <LogoText betaClassName="text-green-300" />
+          </h1>
           <p className="text-green-200">{t('auth.tagline')}</p>
         </div>
 

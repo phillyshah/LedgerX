@@ -11,6 +11,12 @@ interface Household {
   name: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  household_ids: string[]; // empty = global
+}
+
 interface ImageItem {
   file: File;
   preview: string;
@@ -31,8 +37,10 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const { t } = useT();
 
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [formData, setFormData] = useState({
     household_id: '',
+    category_id: '',
     invoice_number: '',
     amount: '',
     currency: 'USD',
@@ -48,24 +56,42 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadHouseholds();
+    loadData();
   }, [user]);
 
-  const loadHouseholds = async () => {
+  const loadData = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id);
+    const [memberRes, catRes, catHhRes] = await Promise.all([
+      supabase.from('household_members').select('household_id, households(id, name)').eq('user_id', user.id),
+      supabase.from('categories').select('id, name').order('name'),
+      supabase.from('category_households').select('category_id, household_id'),
+    ]);
 
-    if (data) {
-      const hh = data.map((item) => item.households).filter(Boolean) as unknown as Household[];
+    if (memberRes.data) {
+      const hh = memberRes.data.map((item) => item.households).filter(Boolean) as unknown as Household[];
       setHouseholds(hh);
       if (hh.length === 1) {
         setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
       }
     }
+
+    // Build category → household-ids map (empty array = global category).
+    const catHhByCat = new Map<string, string[]>();
+    for (const r of (catHhRes.data || []) as Array<{ category_id: string; household_id: string }>) {
+      const arr = catHhByCat.get(r.category_id) || [];
+      arr.push(r.household_id);
+      catHhByCat.set(r.category_id, arr);
+    }
+    setCategories(((catRes.data || []) as Array<{ id: string; name: string }>).map((c) => ({
+      id: c.id, name: c.name, household_ids: catHhByCat.get(c.id) || [],
+    })));
   };
+
+  // Globals (no mappings) + any category explicitly mapped to the selected household.
+  const categoriesForSelectedHousehold = (): CategoryOption[] =>
+    categories.filter((c) =>
+      c.household_ids.length === 0 || (formData.household_id && c.household_ids.includes(formData.household_id))
+    );
 
   const applyOCRData = (data: Awaited<ReturnType<typeof scanInvoice>>) => {
     setFormData((prev) => ({
@@ -190,6 +216,7 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
         .insert({
           created_by: user.id,
           household_id: formData.household_id,
+          category_id: formData.category_id || null,
           invoice_number: formData.invoice_number.trim() || null,
           amount: parseFloat(formData.amount) || 0,
           currency: formData.currency,
@@ -268,6 +295,7 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const resetForm = () => {
     setFormData((prev) => ({
       household_id: prev.household_id,
+      category_id: '',
       invoice_number: '',
       amount: '',
       currency: 'USD',
@@ -326,7 +354,7 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
             <select
               id="inv-household"
               value={formData.household_id}
-              onChange={(e) => setFormData({ ...formData, household_id: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, household_id: e.target.value, category_id: '' })}
               required
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             >
@@ -335,6 +363,26 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Category — filtered to categories available for the selected household */}
+          <div>
+            <label htmlFor="inv-category" className="block text-sm font-medium text-slate-700 mb-2">
+              {t('invoice.category')}
+            </label>
+            <select
+              id="inv-category"
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              disabled={!formData.household_id}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <option value="">{t('invoice.selectCategoryNone')}</option>
+              {categoriesForSelectedHousehold().map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-500">{t('invoice.categoryHint')}</p>
           </div>
 
           {/* Invoice # + Currency */}

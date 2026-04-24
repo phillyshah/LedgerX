@@ -370,13 +370,18 @@ Contractors see a simplified dashboard with two actions:
 2. Upload your invoice PDF or JPG — fields are filled in automatically via OCR
 3. Review and correct any extracted details (amount, service period, description — invoice # is optional)
 4. Select the property the work was performed at
-5. Tap **Submit Invoice** to send it to your admin
+5. Optionally pick a **Category** — only categories available for the selected property are shown. Leave blank if unsure; a full admin can assign one later.
+6. Tap **Submit Invoice** to send it to your admin
+
+**Viewing a submitted invoice:** tap any row in **My Invoices** to open the detail panel. You'll see the full invoice, any admin notes, and every attachment you uploaded — PDFs open in a new tab.
 
 **Invoice statuses:**
 - 🟡 **Pending** — submitted, awaiting payment
 - 🟢 **Paid** — payment has been issued
 
 > **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
+
+**Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work.
 
 ---
 

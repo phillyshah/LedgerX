@@ -8,9 +8,12 @@ import { UncategorizedTransactions } from './UncategorizedTransactions';
 import { ManageUsers } from './ManageUsers';
 import { AdminInvoices } from './AdminInvoices';
 import { Reports } from '../Reports';
+import { AddExpense } from '../AddExpense';
+import { InvoiceForm } from '../InvoiceForm';
 import { HelpModal } from '../HelpModal';
 import { APP_VERSION } from '../../version';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat } from 'lucide-react';
+import { LogoText } from '../LogoText';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus } from 'lucide-react';
 
 type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
 
@@ -20,6 +23,11 @@ export function AdminLayout() {
   const [activeView, setActiveView] = useState<AdminView>('analytics');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  // Household admins (and full admins) get the same self-submission flows
+  // contractors have — they can submit their own receipts and invoices.
+  const canSubmit = isAdmin || isHouseholdAdmin;
 
   // Full admins see all nav items. Household admins see a scaled-down set:
   // analytics + invoices + reports + (their own submission flows remain
@@ -59,7 +67,9 @@ export function AdminLayout() {
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-base leading-tight">LedgerX</h1>
+              <h1 className="text-white font-bold text-base leading-tight">
+                <LogoText betaClassName="text-emerald-300" />
+              </h1>
               <p className="text-emerald-300 text-xs font-medium">Admin Panel</p>
             </div>
           </div>
@@ -116,7 +126,9 @@ export function AdminLayout() {
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-white font-bold text-lg leading-tight">LedgerX</h1>
+                <h1 className="text-white font-bold text-lg leading-tight">
+                  <LogoText betaClassName="text-emerald-300" />
+                </h1>
                 <p className="text-emerald-300 text-xs font-medium">Admin Panel</p>
               </div>
             </div>
@@ -161,6 +173,24 @@ export function AdminLayout() {
 
       <main className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+          {canSubmit && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              <button
+                onClick={() => setShowAddExpense(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                {t('dashboard.addTransaction')}
+              </button>
+              <button
+                onClick={() => setShowInvoiceForm(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                {t('invoice.submitInvoice')}
+              </button>
+            </div>
+          )}
           {activeView === 'analytics' && <AdminAnalytics />}
           {activeView === 'households' && <ManageHouseholds />}
           {activeView === 'categories' && <ManageCategories />}
@@ -172,6 +202,12 @@ export function AdminLayout() {
       </main>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showAddExpense && (
+        <AddExpense onClose={() => setShowAddExpense(false)} onSaved={() => { /* admin views reload on navigation */ }} />
+      )}
+      {showInvoiceForm && (
+        <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={() => { /* AdminInvoices reloads when opened */ }} />
+      )}
     </div>
   );
 }

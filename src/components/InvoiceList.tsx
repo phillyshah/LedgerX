@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useT } from '../hooks/useT';
-import type { ContractorInvoice, InvoiceStatus } from '../types/invoice';
+import { supabase } from '../lib/supabase';
+import { X, FileText, Tag } from 'lucide-react';
+import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
 
 interface InvoiceListProps {
   invoices: ContractorInvoice[];
@@ -8,9 +11,7 @@ interface InvoiceListProps {
 }
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
-  // Prominent, solid-filled badges so contractors can see invoice status
-  // at a glance. Status is the single most important piece of information on
-  // this card — it's what the contractor is checking each time they return.
+  // Prominent, solid-filled badges so the submitter can see status at a glance.
   const styles: Record<InvoiceStatus, string> = {
     pending: 'bg-amber-500 text-white ring-1 ring-amber-600/20',
     paid:    'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
@@ -31,19 +32,47 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function InvoiceList({ invoices, loading, onReload: _onReload }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading }: InvoiceListProps) {
   const { t, locale } = useT();
 
-  // Safe date parsing — never new Date(dateString) directly
+  // Detail panel state — same pattern as AdminInvoices, minus admin actions.
+  const [detailInvoice, setDetailInvoice] = useState<ContractorInvoice | null>(null);
+  const [detailImages, setDetailImages] = useState<InvoiceImage[]>([]);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Safe date parsing — never `new Date(dateString)` directly (UTC off-by-one).
   const fmtDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day).toLocaleDateString(locale, {
       year: 'numeric', month: 'short', day: 'numeric',
     });
   };
-
   const fmtCurrency = (amount: number, currency: string) =>
     new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+
+  const openDetail = async (inv: ContractorInvoice) => {
+    setDetailInvoice(inv);
+    setDetailImages([]);
+    setSignedUrls({});
+    setLoadingDetail(true);
+
+    const { data: imgs } = await supabase
+      .from('invoice_images').select('*').eq('invoice_id', inv.id).order('display_order');
+    const images = (imgs || []) as InvoiceImage[];
+    setDetailImages(images);
+
+    const paths = Array.from(new Set(
+      [inv.image_path, ...images.map((i) => i.image_path)].filter((p): p is string => !!p)
+    ));
+    const signed = await Promise.all(
+      paths.map((p) => supabase.storage.from('receipts').createSignedUrl(p, 3600).then((r) => [p, r.data?.signedUrl] as const))
+    );
+    const urls: Record<string, string> = {};
+    for (const [p, u] of signed) if (u) urls[p] = u;
+    setSignedUrls(urls);
+    setLoadingDetail(false);
+  };
 
   if (loading) {
     return (
@@ -73,49 +102,167 @@ export function InvoiceList({ invoices, loading, onReload: _onReload }: InvoiceL
   }
 
   return (
-    <div className="space-y-3">
-      {invoices.map((inv) => (
-        <div
-          key={inv.id}
-          className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono font-semibold text-slate-900 text-sm">
-                  {inv.invoice_number || t('invoice.noNumberPlaceholder')}
-                </span>
-                {inv.household_name && inv.household_name !== '—' && (
-                  <span className="text-xs text-slate-500 truncate">{inv.household_name}</span>
+    <>
+      <div className="space-y-3">
+        {invoices.map((inv) => (
+          <button
+            key={inv.id}
+            type="button"
+            onClick={() => openDetail(inv)}
+            className="w-full text-left bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.995]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-semibold text-slate-900 text-sm">
+                    {inv.invoice_number || t('invoice.noNumberPlaceholder')}
+                  </span>
+                  {inv.household_name && inv.household_name !== '—' && (
+                    <span className="text-xs text-slate-500 truncate">{inv.household_name}</span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-500 mt-1">
+                  {fmtDate(inv.service_date_start)}
+                  {inv.service_date_end !== inv.service_date_start && (
+                    <> – {fmtDate(inv.service_date_end)}</>
+                  )}
+                </p>
+
+                {inv.description && (
+                  <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{inv.description}</p>
+                )}
+
+                {inv.category_name && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <Tag className="w-3 h-3" />
+                    {inv.category_name}
+                  </span>
                 )}
               </div>
 
-              <p className="text-xs text-slate-500 mt-1">
-                {fmtDate(inv.service_date_start)}
-                {inv.service_date_end !== inv.service_date_start && (
-                  <> – {fmtDate(inv.service_date_end)}</>
-                )}
-              </p>
-
-              {inv.description && (
-                <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{inv.description}</p>
-              )}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <span className="font-semibold text-slate-900 text-sm">
+                  {fmtCurrency(inv.amount, inv.currency)}
+                </span>
+                <StatusBadge status={inv.status} t={t} />
+              </div>
             </div>
 
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <span className="font-semibold text-slate-900 text-sm">
-                {fmtCurrency(inv.amount, inv.currency)}
-              </span>
-              <StatusBadge status={inv.status} t={t} />
+            <p className="text-xs text-slate-400 mt-3">
+              {t('invoice.submittedOn')} {fmtDate(inv.created_at.split('T')[0])}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      {/* Detail panel — read-only for submitters. Attachments open in new tab. */}
+      {detailInvoice && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-2xl sm:max-h-[90vh] sm:my-4 overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 rounded-t-2xl z-10 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-900">{t('invoice.detailTitle')}</h3>
+              <button onClick={() => setDetailInvoice(null)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {[
+                  {
+                    label: t('invoice.detailInvoiceNumber'),
+                    value: detailInvoice.invoice_number
+                      ? <span className="font-mono">{detailInvoice.invoice_number}</span>
+                      : <span className="text-slate-400">{t('invoice.noNumberPlaceholder')}</span>,
+                  },
+                  { label: t('invoice.detailProperty'), value: detailInvoice.household_name ?? '—' },
+                  {
+                    label: t('invoice.detailCategory'),
+                    value: detailInvoice.category_name
+                      ? detailInvoice.category_name
+                      : <span className="text-slate-400">{t('invoice.detailNoCategory')}</span>,
+                  },
+                  { label: t('invoice.detailAmount'), value: fmtCurrency(detailInvoice.amount, detailInvoice.currency) },
+                  { label: t('invoice.detailStatus'), value: <StatusBadge status={detailInvoice.status} t={t} /> },
+                  { label: t('invoice.detailServicePeriod'), value: `${fmtDate(detailInvoice.service_date_start)} – ${fmtDate(detailInvoice.service_date_end)}` },
+                  { label: t('invoice.detailSubmitted'), value: fmtDate(detailInvoice.created_at.split('T')[0]) },
+                  ...(detailInvoice.paid_at
+                    ? [{ label: t('invoice.detailPaidAt'), value: fmtDate(detailInvoice.paid_at.split('T')[0]) }]
+                    : []),
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+                    <p className="font-medium text-slate-900">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {detailInvoice.description && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">{t('invoice.detailDescription')}</p>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{detailInvoice.description}</p>
+                </div>
+              )}
+
+              {detailInvoice.admin_notes && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-xs font-semibold text-amber-800 mb-1">{t('invoice.detailAdminNotes')}</p>
+                  <p className="text-sm text-amber-700 whitespace-pre-wrap">{detailInvoice.admin_notes}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-3">{t('invoice.detailAttachments')}</p>
+                {loadingDetail ? (
+                  <p className="text-sm text-slate-400">{t('invoice.detailLoadingImages')}</p>
+                ) : Object.keys(signedUrls).length === 0 ? (
+                  <p className="text-sm text-slate-400">{t('invoice.detailNoAttachments')}</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {Object.entries(signedUrls).map(([path, url]) => {
+                      const isPdf = path.toLowerCase().endsWith('.pdf') ||
+                        detailImages.find((i) => i.image_path === path)?.image_mime === 'application/pdf' ||
+                        detailInvoice.image_mime === 'application/pdf';
+                      return isPdf ? (
+                        <a
+                          key={path}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex flex-col items-center justify-center h-32 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all gap-1 text-slate-500"
+                        >
+                          <FileText className="w-8 h-8 text-red-400" />
+                          <span className="text-xs">{t('invoice.detailClickToOpen')}</span>
+                        </a>
+                      ) : (
+                        <a
+                          key={path}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-xl overflow-hidden border border-slate-200 hover:opacity-90 transition-all"
+                        >
+                          <img src={url} alt="Invoice attachment" className="w-full h-32 object-cover" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setDetailInvoice(null)}
+                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all"
+                >
+                  {t('invoice.detailClose')}
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Submitted date */}
-          <p className="text-xs text-slate-400 mt-3">
-            {t('invoice.submittedOn')} {fmtDate(inv.created_at.split('T')[0])}
-          </p>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }

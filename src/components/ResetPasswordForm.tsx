@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import { LogoText } from './LogoText';
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -49,7 +50,9 @@ export function ResetPasswordForm() {
               <line x1="12" y1="15" x2="15" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">LedgerX</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            <LogoText betaClassName="text-green-300" />
+          </h1>
           <p className="text-green-200">Reset Your Password</p>
         </div>
 

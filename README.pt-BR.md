@@ -366,13 +366,18 @@ Prestadores veem um painel simplificado com duas ações:
 2. Envie o PDF ou JPG da nota fiscal — os campos são preenchidos automaticamente via OCR
 3. Revise e corrija os detalhes extraídos (valor, período de serviço, descrição — o nº da nota é opcional)
 4. Selecione a propriedade onde o serviço foi realizado
-5. Toque em **Enviar Nota Fiscal** para encaminhar ao seu administrador
+5. Opcionalmente escolha uma **Categoria** — só aparecem categorias disponíveis para a propriedade selecionada. Deixe em branco se não souber; um administrador completo pode atribuir depois.
+6. Toque em **Enviar Nota Fiscal** para encaminhar ao seu administrador
+
+**Visualizar uma nota enviada:** toque em qualquer linha em **Minhas Notas Fiscais** para abrir o painel de detalhes. Você verá a nota completa, observações do administrador e todos os anexos enviados — PDFs abrem em nova aba.
 
 **Status das notas fiscais:**
 - 🟡 **Pendente** — enviada, aguardando pagamento
 - 🟢 **Paga** — pagamento efetuado
 
 > **Dica:** Os recibos de despesas comuns que você envia também recebem um emblema verde **Pago** assim que o administrador os marcar como pagos — assim você sabe o status de cada recibo enviado.
+
+**Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho.
 
 ---
 
