@@ -15,21 +15,27 @@ import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, He
 type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
 
 export function AdminLayout() {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, isHouseholdAdmin } = useAuth();
   const { t } = useT();
   const [activeView, setActiveView] = useState<AdminView>('analytics');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const navItems: { key: AdminView; label: string; icon: typeof BarChart3 }[] = [
+  // Full admins see all nav items. Household admins see a scaled-down set:
+  // analytics + invoices + reports + (their own submission flows remain
+  // accessible via the normal contractor Submit Invoice / Add Transaction
+  // routes rendered inside AdminInvoices / analytics).
+  const allNavItems: { key: AdminView; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
     { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
-    { key: 'households', label: t('admin.manageHouseholds'), icon: Home },
-    { key: 'categories', label: t('admin.manageCategories'), icon: Tag },
-    { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle },
-    { key: 'users', label: t('admin.manageUsers'), icon: Users },
+    { key: 'households', label: t('admin.manageHouseholds'), icon: Home, adminOnly: true },
+    { key: 'categories', label: t('admin.manageCategories'), icon: Tag, adminOnly: true },
+    { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle, adminOnly: true },
+    { key: 'users', label: t('admin.manageUsers'), icon: Users, adminOnly: true },
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
+  const navItems = allNavItems.filter((item) => isAdmin || !item.adminOnly);
+  void isHouseholdAdmin; // role gating for page-level access lives inside each admin page
 
   const handleViewChange = (view: AdminView) => {
     setActiveView(view);

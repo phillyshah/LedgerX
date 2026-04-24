@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { userid, password, is_admin, is_contractor, preferred_language, email: realEmail } = await req.json();
+    const { userid, password, is_admin, is_contractor, is_household_admin, preferred_language, email: realEmail } = await req.json();
     const language = (preferred_language === 'pt-BR' || preferred_language === 'en') ? preferred_language : 'en';
 
     if (!userid || !password) {
@@ -161,6 +161,7 @@ Deno.serve(async (req: Request) => {
         user_id: userId,
         is_admin: is_admin || false,
         is_contractor: is_contractor || false,
+        is_household_admin: is_household_admin || false,
       });
 
     if (newRoleError) {

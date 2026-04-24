@@ -339,6 +339,8 @@
   "admin.roleAdmin": "Administrador",
   "admin.roleContractor": "Prestador",
   "admin.roleContractorLong": "Prestador (apenas envio de recibos)",
+  "admin.roleHouseholdAdmin": "Admin de Propriedade",
+  "admin.roleHouseholdAdminLong": "Admin de Propriedade (visualizar e enviar, sem aprovações)",
   "admin.createUser": "Criar Usuário",
   "admin.createNewUser": "Criar Novo Usuário",
   "admin.creating": "Criando...",
@@ -442,7 +444,7 @@
   "invoice.dateServiceEndBeforeStart": "A data de término deve ser igual ou posterior à data de início.",
 
   "adminInvoices.title": "Notas Fiscais de Prestadores",
-  "adminInvoices.subtitle": "Revisar, aprovar e processar notas fiscais enviadas por prestadores.",
+  "adminInvoices.subtitle": "Revisar notas fiscais enviadas por prestadores.",
   "adminInvoices.allStatuses": "Todos os Status",
   "adminInvoices.allHouseholds": "Todas as Propriedades",
   "adminInvoices.allPropertyTypes": "Todos os Tipos",

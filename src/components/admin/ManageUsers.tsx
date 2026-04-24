@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
 import { useT } from '../../hooks/useT';
 
-type Role = 'regular' | 'admin' | 'contractor';
+type Role = 'regular' | 'admin' | 'contractor' | 'household_admin';
 
 interface User {
   id: string;
@@ -13,6 +13,7 @@ interface User {
   created_at: string;
   is_admin?: boolean;
   is_contractor?: boolean;
+  is_household_admin?: boolean;
   preferred_language?: Language;
 }
 
@@ -75,6 +76,7 @@ export function ManageUsers() {
       p_user_id: userId,
       p_is_admin: role === 'admin',
       p_is_contractor: role === 'contractor',
+      p_is_household_admin: role === 'household_admin',
     });
     if (updateError) setError(updateError.message);
     else await loadUsers();
@@ -94,7 +96,13 @@ export function ManageUsers() {
   };
 
   const currentRole = (u: User): Role =>
-    u.is_admin ? 'admin' : u.is_contractor ? 'contractor' : 'regular';
+    u.is_admin
+      ? 'admin'
+      : u.is_household_admin
+      ? 'household_admin'
+      : u.is_contractor
+      ? 'contractor'
+      : 'regular';
 
   const deleteUser = async (userId: string) => {
     if (userId === currentUser?.id) {
@@ -167,6 +175,7 @@ export function ManageUsers() {
             password: newUserPassword,
             is_admin: newUserRole === 'admin',
             is_contractor: newUserRole === 'contractor',
+            is_household_admin: newUserRole === 'household_admin',
             preferred_language: newUserLanguage,
           }),
         }
@@ -396,6 +405,12 @@ export function ManageUsers() {
                           {t('admin.roleContractor')}
                         </span>
                       )}
+                      {user.is_household_admin && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded">
+                          <Shield className="w-3 h-3" />
+                          {t('admin.roleHouseholdAdmin')}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
                       {t('admin.joined', { date: new Date(user.created_at).toLocaleDateString(locale) })}
@@ -442,6 +457,7 @@ export function ManageUsers() {
                         >
                           <option value="regular">{t('admin.roleRegularShort')}</option>
                           <option value="admin">{t('admin.roleAdmin')}</option>
+                          <option value="household_admin">{t('admin.roleHouseholdAdmin')}</option>
                           <option value="contractor">{t('admin.roleContractor')}</option>
                         </select>
                         <select
@@ -539,6 +555,7 @@ export function ManageUsers() {
                 >
                   <option value="regular">{t('admin.roleRegular')}</option>
                   <option value="admin">{t('admin.roleAdmin')}</option>
+                  <option value="household_admin">{t('admin.roleHouseholdAdminLong')}</option>
                   <option value="contractor">{t('admin.roleContractorLong')}</option>
                 </select>
               </div>

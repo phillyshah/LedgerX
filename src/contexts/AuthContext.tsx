@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isContractor: boolean;
+  isHouseholdAdmin: boolean;
   preferredLanguage: Language;
   setPreferredLanguage: (lang: Language) => Promise<void>;
   isRecoveryMode: boolean;
@@ -38,17 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isContractor, setIsContractor] = useState(false);
+  const [isHouseholdAdmin, setIsHouseholdAdmin] = useState(false);
   const [preferredLanguage, setPreferredLanguageState] = useState<Language>(readStoredLanguage());
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   const hydrateUserMeta = async (userId: string) => {
     const [{ data: roleData }, { data: profileData }] = await Promise.all([
-      supabase.from('user_roles').select('is_admin, is_contractor').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_roles').select('is_admin, is_contractor, is_household_admin').eq('user_id', userId).maybeSingle(),
       supabase.from('user_profiles').select('preferred_language').eq('id', userId).maybeSingle(),
     ]);
 
     setIsAdmin(roleData?.is_admin === true);
     setIsContractor(roleData?.is_contractor === true);
+    setIsHouseholdAdmin(roleData?.is_household_admin === true);
 
     const lang = profileData?.preferred_language;
     if (isLanguage(lang)) {
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setIsAdmin(false);
           setIsContractor(false);
+          setIsHouseholdAdmin(false);
         }
       })();
     });
@@ -154,13 +158,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setIsAdmin(false);
     setIsContractor(false);
+    setIsHouseholdAdmin(false);
     setIsRecoveryMode(false);
   };
 
   return (
     <AuthContext.Provider value={{
       user, session, loading,
-      isAdmin, isContractor,
+      isAdmin, isContractor, isHouseholdAdmin,
       preferredLanguage, setPreferredLanguage,
       isRecoveryMode,
       signUp, signIn, signOut, requestPasswordReset, resetPassword,

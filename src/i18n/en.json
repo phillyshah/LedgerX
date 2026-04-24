@@ -339,6 +339,8 @@
   "admin.roleAdmin": "Admin",
   "admin.roleContractor": "Contractor",
   "admin.roleContractorLong": "Contractor (receipt submissions only)",
+  "admin.roleHouseholdAdmin": "Household Admin",
+  "admin.roleHouseholdAdminLong": "Household Admin (view & submit, no approvals)",
   "admin.createUser": "Create User",
   "admin.createNewUser": "Create New User",
   "admin.creating": "Creating...",
@@ -442,7 +444,7 @@
   "invoice.dateServiceEndBeforeStart": "End date must be on or after the start date.",
 
   "adminInvoices.title": "Contractor Invoices",
-  "adminInvoices.subtitle": "Review, approve, and process contractor invoice submissions.",
+  "adminInvoices.subtitle": "Review contractor invoice submissions.",
   "adminInvoices.allStatuses": "All Statuses",
   "adminInvoices.allHouseholds": "All Properties",
   "adminInvoices.allPropertyTypes": "All Types",

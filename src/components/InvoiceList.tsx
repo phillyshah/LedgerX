@@ -12,22 +12,16 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   // at a glance. Status is the single most important piece of information on
   // this card — it's what the contractor is checking each time they return.
   const styles: Record<InvoiceStatus, string> = {
-    pending:  'bg-amber-500 text-white ring-1 ring-amber-600/20',
-    approved: 'bg-blue-600 text-white ring-1 ring-blue-700/20',
-    paid:     'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
-    rejected: 'bg-red-600 text-white ring-1 ring-red-700/20',
+    pending: 'bg-amber-500 text-white ring-1 ring-amber-600/20',
+    paid:    'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
   };
   const dots: Record<InvoiceStatus, string> = {
-    pending:  'bg-amber-200',
-    approved: 'bg-blue-200',
-    paid:     'bg-emerald-200',
-    rejected: 'bg-red-200',
+    pending: 'bg-amber-200',
+    paid:    'bg-emerald-200',
   };
   const labels: Record<InvoiceStatus, string> = {
-    pending:  t('invoice.statusPending'),
-    approved: t('invoice.statusApproved'),
-    paid:     t('invoice.statusPaid'),
-    rejected: t('invoice.statusRejected'),
+    pending: t('invoice.statusPending'),
+    paid:    t('invoice.statusPaid'),
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${styles[status]}`}>
@@ -115,14 +109,6 @@ export function InvoiceList({ invoices, loading, onReload: _onReload }: InvoiceL
               <StatusBadge status={inv.status} t={t} />
             </div>
           </div>
-
-          {/* Admin notes shown when rejected */}
-          {inv.status === 'rejected' && inv.admin_notes && (
-            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-              <p className="text-xs font-semibold text-amber-800 mb-0.5">{t('invoice.adminNotes')}</p>
-              <p className="text-xs text-amber-700">{inv.admin_notes}</p>
-            </div>
-          )}
 
           {/* Submitted date */}
           <p className="text-xs text-slate-400 mt-3">

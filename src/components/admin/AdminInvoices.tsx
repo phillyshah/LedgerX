@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { X, ChevronDown, ChevronUp, FileText, Check } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
@@ -18,16 +19,12 @@ type StatusFilter = InvoiceStatus | 'all';
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
   const styles: Record<InvoiceStatus, string> = {
-    pending:  'bg-yellow-100 text-yellow-800',
-    approved: 'bg-blue-100 text-blue-800',
-    paid:     'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    paid:    'bg-green-100 text-green-800',
   };
   const labels: Record<InvoiceStatus, string> = {
-    pending:  t('invoice.statusPending'),
-    approved: t('invoice.statusApproved'),
-    paid:     t('invoice.statusPaid'),
-    rejected: t('invoice.statusRejected'),
+    pending: t('invoice.statusPending'),
+    paid:    t('invoice.statusPaid'),
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>
@@ -38,6 +35,10 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
 
 export function AdminInvoices() {
   const { t, locale } = useT();
+  const { isAdmin } = useAuth();
+  // Only full admins can transition invoice status (mark paid / revert to pending).
+  // Household admins get the same list view but no action buttons.
+  const canMutateStatus = isAdmin;
 
   const [invoices, setInvoices] = useState<AdminInvoiceRow[]>([]);
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
@@ -47,11 +48,8 @@ export function AdminInvoices() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
 
-  // Action modal
-  const [actionModal, setActionModal] = useState<{
-    invoice: AdminInvoiceRow;
-    action: 'approve' | 'reject' | 'paid';
-  } | null>(null);
+  // Action modal (only 'paid' remains; kept as a confirm modal for the mark-paid action)
+  const [actionModal, setActionModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
   const [actionNotes, setActionNotes] = useState('');
   const [actioning, setActioning] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -72,10 +70,13 @@ export function AdminInvoices() {
   const loadData = async () => {
     setLoading(true);
 
-    const [hhRes, invRes, usersRes] = await Promise.all([
+    // Household admins hit RLS-scoped queries (they only see households
+    // they're members of + invoices in those households). admin_list_users
+    // is admin-only, so for household_admins we derive usernames directly
+    // from user_profiles for the created_by column.
+    const [hhRes, invRes] = await Promise.all([
       supabase.from('households').select('id, name').order('name'),
       supabase.from('contractor_invoices').select('*').order('created_at', { ascending: false }),
-      supabase.rpc('admin_list_users'),
     ]);
 
     const hhData: HouseholdOption[] = (hhRes.data || []).map((h: HouseholdOption) => ({
@@ -85,9 +86,27 @@ export function AdminInvoices() {
     setHouseholds(hhData);
 
     const hhMap = new Map(hhData.map((h) => [h.id, h]));
-    const usernameMap = new Map<string, string>(
-      (usersRes.data || []).map((u: { id: string; username: string }) => [u.id, u.username])
-    );
+
+    let usernameMap = new Map<string, string>();
+    if (isAdmin) {
+      const { data: users } = await supabase.rpc('admin_list_users');
+      usernameMap = new Map<string, string>(
+        (users || []).map((u: { id: string; username: string }) => [u.id, u.username])
+      );
+    } else {
+      const creatorIds = Array.from(
+        new Set((invRes.data || []).map((inv: ContractorInvoice) => inv.created_by))
+      );
+      if (creatorIds.length) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, username')
+          .in('id', creatorIds);
+        usernameMap = new Map<string, string>(
+          (profiles || []).map((p: { id: string; username: string | null }) => [p.id, p.username || 'Unknown'])
+        );
+      }
+    }
 
     const rows: AdminInvoiceRow[] = (invRes.data || []).map((inv: ContractorInvoice) => {
       const hh = inv.household_id ? hhMap.get(inv.household_id) : null;
@@ -129,31 +148,20 @@ export function AdminInvoices() {
   const fmtCurrency = (amount: number, currency: string) =>
     new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
 
-  const openActionModal = (invoice: AdminInvoiceRow, action: 'approve' | 'reject' | 'paid') => {
-    setActionModal({ invoice, action });
+  const openActionModal = (invoice: AdminInvoiceRow) => {
+    setActionModal({ invoice });
     setActionNotes('');
     setActionError(null);
   };
 
   const confirmAction = async () => {
     if (!actionModal) return;
-    if (actionModal.action === 'reject' && !actionNotes.trim()) {
-      setActionError(t('adminInvoices.modalNotesRequired'));
-      return;
-    }
-
     setActioning(true);
     setActionError(null);
 
-    const statusMap: Record<'approve' | 'reject' | 'paid', InvoiceStatus> = {
-      approve: 'approved',
-      reject:  'rejected',
-      paid:    'paid',
-    };
-
     const { error } = await supabase.rpc('admin_update_invoice_status', {
       p_invoice_id:  actionModal.invoice.id,
-      p_status:      statusMap[actionModal.action],
+      p_status:      'paid',
       p_admin_notes: actionNotes.trim() || undefined,
     });
 
@@ -181,7 +189,6 @@ export function AdminInvoices() {
     const images: InvoiceImage[] = imgs || [];
     setDetailImages(images);
 
-    // Collect all paths to sign
     const allPaths = [
       ...new Set([
         inv.image_path,
@@ -200,12 +207,6 @@ export function AdminInvoices() {
     setLoadingDetail(false);
   };
 
-  const actionModalTitle: Record<'approve' | 'reject' | 'paid', string> = {
-    approve: t('adminInvoices.modalApproveTitle'),
-    reject:  t('adminInvoices.modalRejectTitle'),
-    paid:    t('adminInvoices.modalPaidTitle'),
-  };
-
   return (
     <div>
       {/* Page header */}
@@ -216,7 +217,6 @@ export function AdminInvoices() {
 
       {/* Filter bar */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {/* Status */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
@@ -224,12 +224,9 @@ export function AdminInvoices() {
         >
           <option value="all">{t('adminInvoices.allStatuses')}</option>
           <option value="pending">{t('invoice.statusPending')}</option>
-          <option value="approved">{t('invoice.statusApproved')}</option>
           <option value="paid">{t('invoice.statusPaid')}</option>
-          <option value="rejected">{t('invoice.statusRejected')}</option>
         </select>
 
-        {/* Household */}
         <select
           value={householdFilter}
           onChange={(e) => setHouseholdFilter(e.target.value)}
@@ -241,7 +238,6 @@ export function AdminInvoices() {
           ))}
         </select>
 
-        {/* Sort toggle */}
         <button
           onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
           className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-50 transition-all"
@@ -251,7 +247,6 @@ export function AdminInvoices() {
         </button>
       </div>
 
-      {/* Loading skeleton */}
       {loading && (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
@@ -260,7 +255,6 @@ export function AdminInvoices() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && filtered.length === 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
           <p className="text-slate-500">{t('adminInvoices.noInvoices')}</p>
@@ -268,7 +262,6 @@ export function AdminInvoices() {
         </div>
       )}
 
-      {/* Invoice list */}
       {!loading && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((inv) => (
@@ -276,7 +269,6 @@ export function AdminInvoices() {
               key={inv.id}
               className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
             >
-              {/* Main row */}
               <button
                 className="w-full text-left p-5 hover:bg-slate-50 transition-all"
                 onClick={() => openDetail(inv)}
@@ -299,34 +291,16 @@ export function AdminInvoices() {
                 </div>
               </button>
 
-              {/* Action buttons */}
-              {(inv.status === 'pending' || inv.status === 'approved') && (
+              {/* Mark Paid — full admin only, pending only */}
+              {canMutateStatus && inv.status === 'pending' && (
                 <div className="px-5 pb-4 flex items-center gap-2 border-t border-slate-100 pt-3">
-                  {inv.status === 'pending' && (
-                    <>
-                      <button
-                        onClick={() => openActionModal(inv, 'approve')}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-300 hover:bg-blue-50 rounded-lg transition-all"
-                      >
-                        {t('adminInvoices.actionApprove')}
-                      </button>
-                      <button
-                        onClick={() => openActionModal(inv, 'reject')}
-                        className="px-3 py-1.5 text-xs font-medium text-red-700 border border-red-300 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        {t('adminInvoices.actionReject')}
-                      </button>
-                    </>
-                  )}
-                  {inv.status === 'approved' && (
-                    <button
-                      onClick={() => openActionModal(inv, 'paid')}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all"
-                    >
-                      <Check className="w-3 h-3 inline mr-1" />
-                      {t('adminInvoices.actionMarkPaid')}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => openActionModal(inv)}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-all"
+                  >
+                    <Check className="w-3 h-3 inline mr-1" />
+                    {t('adminInvoices.actionMarkPaid')}
+                  </button>
                 </div>
               )}
             </div>
@@ -334,20 +308,19 @@ export function AdminInvoices() {
         </div>
       )}
 
-      {/* ── Action Modal ── */}
+      {/* ── Mark Paid Modal ── */}
       {actionModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
-                {actionModalTitle[actionModal.action]}
+                {t('adminInvoices.modalPaidTitle')}
               </h3>
               <button onClick={() => setActionModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
 
-            {/* Invoice summary */}
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('adminInvoices.detailInvoiceNumber')}</span>
@@ -363,13 +336,9 @@ export function AdminInvoices() {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 {t('adminInvoices.modalNotesLabel')}
-                {actionModal.action === 'reject' && (
-                  <span className="text-red-500 ml-1">*</span>
-                )}
               </label>
               <textarea
                 value={actionNotes}
@@ -413,7 +382,6 @@ export function AdminInvoices() {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Fields grid */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
                   { label: t('adminInvoices.detailInvoiceNumber'), value: detailInvoice.invoice_number ? <span className="font-mono">{detailInvoice.invoice_number}</span> : <span className="text-slate-400">{t('invoice.noNumberPlaceholder')}</span> },
@@ -432,13 +400,11 @@ export function AdminInvoices() {
                 ))}
               </div>
 
-              {/* Description */}
               <div>
                 <p className="text-xs text-slate-500 mb-1">{t('adminInvoices.detailDescription')}</p>
                 <p className="text-sm text-slate-700 whitespace-pre-wrap">{detailInvoice.description}</p>
               </div>
 
-              {/* Admin notes */}
               {detailInvoice.admin_notes && (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-xs font-semibold text-amber-800 mb-1">{t('adminInvoices.detailAdminNotes')}</p>
@@ -446,7 +412,6 @@ export function AdminInvoices() {
                 </div>
               )}
 
-              {/* Attachments */}
               <div>
                 <p className="text-sm font-semibold text-slate-900 mb-3">{t('adminInvoices.detailAttachments')}</p>
                 {loadingDetail ? (
@@ -480,27 +445,10 @@ export function AdminInvoices() {
                 )}
               </div>
 
-              {/* In-detail action buttons */}
               <div className="flex gap-3 pt-2">
-                {detailInvoice.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => { openActionModal(detailInvoice, 'approve'); setDetailInvoice(null); }}
-                      className="px-4 py-2.5 text-sm font-medium text-blue-700 border border-blue-300 hover:bg-blue-50 rounded-xl transition-all"
-                    >
-                      {t('adminInvoices.actionApprove')}
-                    </button>
-                    <button
-                      onClick={() => { openActionModal(detailInvoice, 'reject'); setDetailInvoice(null); }}
-                      className="px-4 py-2.5 text-sm font-medium text-red-700 border border-red-300 hover:bg-red-50 rounded-xl transition-all"
-                    >
-                      {t('adminInvoices.actionReject')}
-                    </button>
-                  </>
-                )}
-                {detailInvoice.status === 'approved' && (
+                {canMutateStatus && detailInvoice.status === 'pending' && (
                   <button
-                    onClick={() => { openActionModal(detailInvoice, 'paid'); setDetailInvoice(null); }}
+                    onClick={() => { openActionModal(detailInvoice); setDetailInvoice(null); }}
                     className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all"
                   >
                     {t('adminInvoices.actionMarkPaid')}

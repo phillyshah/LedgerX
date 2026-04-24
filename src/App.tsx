@@ -21,7 +21,7 @@ function LoadingSpinner() {
 }
 
 function App() {
-  const { user, loading, isAdmin, isRecoveryMode } = useAuth();
+  const { user, loading, isAdmin, isHouseholdAdmin, isRecoveryMode } = useAuth();
 
   if (loading) return <LoadingSpinner />;
 
@@ -37,7 +37,7 @@ function App() {
 
   return (
     <Suspense fallback={<LoadingSpinner />}>
-      {isAdmin ? <AdminLayout /> : <Dashboard />}
+      {(isAdmin || isHouseholdAdmin) ? <AdminLayout /> : <Dashboard />}
     </Suspense>
   );
 }

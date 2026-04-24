@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'pending' | 'approved' | 'paid' | 'rejected';
+export type InvoiceStatus = 'pending' | 'paid';
 
 export const PROPERTY_TYPES = ['Residential', 'Commercial', 'Vacation Rental', 'Other'] as const;
 export type PropertyType = typeof PROPERTY_TYPES[number];
