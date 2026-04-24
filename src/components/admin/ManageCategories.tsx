@@ -315,8 +315,8 @@ export function ManageCategories() {
 
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="p-6 border-b border-slate-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-200 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">{t('admin.cat.assignCategory')}</h3>
@@ -331,16 +331,35 @@ export function ManageCategories() {
               </div>
             </div>
 
-            <div className="p-6">
-              <p className="text-sm text-slate-600 mb-4">
+            <div className="px-6 pt-6 pb-3 flex-shrink-0">
+              <p className="text-sm text-slate-600 mb-3">
                 {t('admin.cat.assignHelp')}
               </p>
 
-              <div className="space-y-2">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedHouseholdIds(households.map((h) => h.id))}
+                  className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all"
+                >
+                  {t('admin.cat.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHouseholdIds([])}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all"
+                >
+                  {t('admin.cat.clearAll')}
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 flex-1 overflow-y-auto min-h-0">
+              <div className="space-y-1.5">
                 {households.map((household) => (
                   <label
                     key={household.id}
-                    className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all"
+                    className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all"
                   >
                     <input
                       type="checkbox"
@@ -355,9 +374,11 @@ export function ManageCategories() {
                   </label>
                 ))}
               </div>
+            </div>
 
+            <div className="p-6 border-t border-slate-200 flex-shrink-0">
               {selectedHouseholdIds.length === 0 && (
-                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-slate-600" />
                     <p className="text-sm text-slate-700 font-medium">{t('admin.cat.assignedToAll')}</p>
@@ -366,12 +387,12 @@ export function ManageCategories() {
               )}
 
               {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl">
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
 
-              <div className="flex gap-3 pt-6">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAssignModal(false)}

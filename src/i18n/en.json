@@ -298,6 +298,8 @@
   "admin.cat.assignCategory": "Assign Category",
   "admin.cat.assignHelp": "Select which households can use this category. Leave all unchecked to make it available globally:",
   "admin.cat.assignedToAll": "This category will be available to all households",
+  "admin.cat.selectAll": "Select All",
+  "admin.cat.clearAll": "Clear All",
   "admin.cat.assigning": "Saving...",
   "admin.cat.save": "Save",
   "admin.cat.assignToHousehold": "Assign to Household",

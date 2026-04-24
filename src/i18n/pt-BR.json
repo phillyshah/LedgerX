@@ -298,6 +298,8 @@
   "admin.cat.assignCategory": "Atribuir Categoria",
   "admin.cat.assignHelp": "Selecione quais grupos podem usar esta categoria. Deixe todos desmarcados para torná-la global:",
   "admin.cat.assignedToAll": "Esta categoria estará disponível para todos os grupos",
+  "admin.cat.selectAll": "Selecionar Todos",
+  "admin.cat.clearAll": "Limpar Todos",
   "admin.cat.assigning": "Salvando...",
   "admin.cat.save": "Salvar",
   "admin.cat.assignToHousehold": "Atribuir ao Grupo",
