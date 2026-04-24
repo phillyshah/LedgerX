@@ -20,6 +20,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
 - [Admin Features](#admin-features)
+- [Household Admin Role](#household-admin-role)
 - [Contractor Role](#contractor-role)
 - [FAQ & Troubleshooting](#faq--troubleshooting)
 - [Tech Stack](#tech-stack)
@@ -317,12 +318,32 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 ### Contractor Invoices
 <!-- roles: admin -->
 
-- View all invoices submitted by contractor users
-- Filter by status (Pending / Approved / Paid / Rejected) and property
+- View all invoices submitted by contractors and household admins
+- Filter by status (Pending / Paid) and property
 - Click any invoice to see full details and attached documents
-- **Approve** a pending invoice to indicate it has been reviewed
-- **Mark Paid** to record that payment was issued (timestamp recorded)
-- **Reject** with a required note — the contractor sees the reason on their dashboard
+- **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
+
+---
+
+## Household Admin Role
+<!-- roles: admin -->
+
+Household admins are a scaled-down admin role. They can do everything a contractor can (submit receipts, submit invoices) **plus** read-only oversight of the households they belong to.
+
+**What a household admin can do:**
+- Submit receipts (Add Transaction) and invoices (Submit Invoice)
+- View **Analytics** for households they're a member of
+- View the **Contractor Invoices** list (read-only — no Mark Paid button)
+- View **Reports**
+
+**What a household admin cannot do (full admin only):**
+- Mark invoices paid
+- Create, modify, or delete households
+- Create, modify, or delete users
+- Create or assign categories
+- Edit or delete expenses submitted by others (their own are editable)
+
+Assign the role from **Manage Users → role dropdown → Household Admin**.
 
 ### Mark Expenses as Paid
 <!-- roles: admin -->
@@ -349,10 +370,8 @@ Contractors see a simplified dashboard with two actions:
 5. Tap **Submit Invoice** to send it to your admin
 
 **Invoice statuses:**
-- 🟡 **Pending** — submitted, awaiting admin review
-- 🔵 **Approved** — admin reviewed it; payment is being arranged
+- 🟡 **Pending** — submitted, awaiting payment
 - 🟢 **Paid** — payment has been issued
-- 🔴 **Rejected** — rejected with a note explaining why (shown on your dashboard)
 
 > **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
 

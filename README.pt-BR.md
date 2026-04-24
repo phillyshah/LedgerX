@@ -314,12 +314,32 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 ### Notas Fiscais de Prestadores
 <!-- roles: admin -->
 
-- Visualize todas as notas fiscais enviadas por prestadores de serviços
-- Filtre por status (Pendente / Aprovada / Paga / Rejeitada) e propriedade
+- Visualize todas as notas fiscais enviadas por prestadores e admins de propriedade
+- Filtre por status (Pendente / Paga) e propriedade
 - Clique em qualquer nota para ver os detalhes completos e documentos anexados
-- **Aprovar** uma nota pendente para indicar que foi revisada
-- **Marcar como Paga** para registrar que o pagamento foi efetuado (com registro de data e hora)
-- **Rejeitar** com uma observação obrigatória — o prestador verá o motivo no seu painel
+- **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos
+
+---
+
+## Função de Admin de Propriedade
+<!-- roles: admin -->
+
+O Admin de Propriedade é uma versão reduzida do admin. Faz tudo que um prestador faz (enviar recibos, enviar notas fiscais) **mais** acompanhamento somente-leitura das propriedades às quais pertence.
+
+**O que um admin de propriedade pode fazer:**
+- Enviar recibos (Adicionar Transação) e notas fiscais (Enviar Nota Fiscal)
+- Visualizar **Análises** das propriedades em que é membro
+- Visualizar a lista de **Notas Fiscais de Prestadores** (somente leitura — sem botão Marcar como Paga)
+- Visualizar **Relatórios**
+
+**O que um admin de propriedade NÃO pode fazer (somente admin completo):**
+- Marcar notas fiscais como pagas
+- Criar, modificar ou excluir propriedades
+- Criar, modificar ou excluir usuários
+- Criar ou atribuir categorias
+- Editar ou excluir despesas enviadas por outros (as suas próprias continuam editáveis)
+
+Atribua a função em **Gerenciar Usuários → dropdown de função → Admin de Propriedade**.
 
 ### Marcar Despesas como Pagas
 <!-- roles: admin -->
@@ -346,10 +366,8 @@ Prestadores veem um painel simplificado com duas ações:
 5. Toque em **Enviar Nota Fiscal** para encaminhar ao seu administrador
 
 **Status das notas fiscais:**
-- 🟡 **Pendente** — enviada, aguardando revisão do administrador
-- 🔵 **Aprovada** — revisada pelo administrador; pagamento em andamento
+- 🟡 **Pendente** — enviada, aguardando pagamento
 - 🟢 **Paga** — pagamento efetuado
-- 🔴 **Rejeitada** — rejeitada com uma observação explicando o motivo (exibida no seu painel)
 
 > **Dica:** Os recibos de despesas comuns que você envia também recebem um emblema verde **Pago** assim que o administrador os marcar como pagos — assim você sabe o status de cada recibo enviado.
 
