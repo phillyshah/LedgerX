@@ -335,7 +335,8 @@ Household admins are a scaled-down admin role. They can do everything a contract
 
 **What a household admin can do:**
 - Submit receipts (Add Transaction) and invoices (Submit Invoice)
-- View **Analytics** for households they're a member of
+- View **My Transactions** — a list of every receipt they've personally submitted (filtered to their own work)
+- View **Analytics** for households they're a member of (opens as a modal overlay from the nav)
 - View the **Contractor Invoices** list (read-only — no Mark Paid button)
 - View **Reports**
 
@@ -381,7 +382,7 @@ Contractors see a simplified dashboard with two actions:
 
 > **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
 
-**Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work.
+**Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 
 ---
 

@@ -10,12 +10,14 @@ import { AdminInvoices } from './AdminInvoices';
 import { Reports } from '../Reports';
 import { AddExpense } from '../AddExpense';
 import { InvoiceForm } from '../InvoiceForm';
+import { ExpenseList } from '../ExpenseList';
 import { HelpModal } from '../HelpModal';
 import { APP_VERSION } from '../../version';
 import { LogoText } from '../LogoText';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus } from 'lucide-react';
+import { useExpenses } from '../../hooks/useExpenses';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt } from 'lucide-react';
 
-type AdminView = 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
+type AdminView = 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports' | 'my-transactions';
 // Analytics and Reports are launched as modal overlays from the nav, not as
 // inline views — keeps the underlying base view (Invoices for HAs) intact.
 type AdminNavKey = AdminView | 'analytics';
@@ -44,6 +46,11 @@ export function AdminLayout() {
   // contractors have — they can submit their own receipts and invoices.
   const canSubmit = isAdmin || isHouseholdAdmin;
 
+  // Recent transactions submitted by the current user (HA or full admin) —
+  // surfaced via the "My Transactions" nav item so HAs can review what they
+  // entered without digging through the full analytics view.
+  const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
+
   // Nav order is role-aware: full admins see analytics first (their primary
   // view); household admins see invoices first because that's their job.
   // 'analytics' and 'reports' are modal overlays, not inline views — they
@@ -54,11 +61,13 @@ export function AdminLayout() {
     { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle, adminOnly: true },
     { key: 'users', label: t('admin.manageUsers'), icon: Users, adminOnly: true },
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'my-transactions', label: t('admin.myTransactions'), icon: Receipt },
     { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
   const haItems: typeof adminItems = [
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'my-transactions', label: t('admin.myTransactions'), icon: Receipt },
     { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
@@ -242,6 +251,16 @@ export function AdminLayout() {
           {activeView === 'uncategorized' && <UncategorizedTransactions />}
           {activeView === 'users' && <ManageUsers />}
           {activeView === 'invoices' && <AdminInvoices />}
+          {activeView === 'my-transactions' && (
+            <ExpenseList
+              expenses={expenses}
+              households={households}
+              loading={expensesLoading}
+              onReload={reloadExpenses}
+              ownSubmissionsOnly
+              hideFilters
+            />
+          )}
         </div>
       </main>
 
@@ -250,7 +269,7 @@ export function AdminLayout() {
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       {showAddExpense && (
-        <AddExpense onClose={() => setShowAddExpense(false)} onSaved={() => { /* admin views reload on navigation */ }} />
+        <AddExpense onClose={() => setShowAddExpense(false)} onSaved={reloadExpenses} />
       )}
       {showInvoiceForm && (
         <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={() => { /* AdminInvoices reloads when opened */ }} />

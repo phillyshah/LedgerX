@@ -331,7 +331,8 @@ O Admin de Propriedade é uma versão reduzida do admin. Faz tudo que um prestad
 
 **O que um admin de propriedade pode fazer:**
 - Enviar recibos (Adicionar Transação) e notas fiscais (Enviar Nota Fiscal)
-- Visualizar **Análises** das propriedades em que é membro
+- Visualizar **Minhas Transações** — lista de todos os recibos que ele mesmo enviou (filtrada para o próprio trabalho)
+- Visualizar **Análises** das propriedades em que é membro (abre como modal sobre a tela)
 - Visualizar a lista de **Notas Fiscais de Prestadores** (somente leitura — sem botão Marcar como Paga)
 - Visualizar **Relatórios**
 
@@ -377,7 +378,7 @@ Prestadores veem um painel simplificado com duas ações:
 
 > **Dica:** Os recibos de despesas comuns que você envia também recebem um emblema verde **Pago** assim que o administrador os marcar como pagos — assim você sabe o status de cada recibo enviado.
 
-**Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho.
+**Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
 
 ---
 

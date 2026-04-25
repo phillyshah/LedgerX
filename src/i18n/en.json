@@ -521,6 +521,7 @@
   "adminInvoices.loadingImages": "Loading...",
 
   "admin.contractorInvoices": "Contractor Invoices",
+  "admin.myTransactions": "My Transactions",
 
   "admin.hh.propertyType": "Property Type",
   "admin.hh.propertyTypeNone": "— Not Set —",

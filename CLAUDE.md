@@ -8,7 +8,7 @@ Shared household expense tracker with receipt OCR and admin analytics. React 18 
 - **Dates**: Parse with `dateString.split('-').map(Number)` → `new Date(year, month-1, day)`. NEVER `new Date(dateString)` — UTC off-by-one.
 - **RLS**: All tables use Row Level Security. Never use service role key in frontend.
 - **Images**: Receipts in private `receipts` bucket — signed URLs only. Dual-write to `expenses` (legacy fields) AND `expense_images` table.
-- **Version bump**: Every change merged to main MUST increment version by `0.1` in `package.json` AND `src/version.ts`. Current: `v5.8`.
+- **Version bump**: Every change merged to main MUST increment version by `0.1` in `package.json` AND `src/version.ts`. Current: `v5.9`.
 - **Branding**: Wordmark is rendered via `<LogoText />` (`src/components/LogoText.tsx`) so the "beta" superscript stays in sync everywhere. Never hardcode the string "LedgerX" in headers — import the component.
 - **Roles**: Three role flags on `user_roles` — `is_admin` (full admin), `is_household_admin` (scaled-down admin: analytics/invoices/reports for member households, no user/household/category mgmt, no mark-paid. Can submit their own receipts + invoices just like contractors), `is_contractor` (submit-only). Invoice status is binary: `pending` | `paid`.
 - **Invoice categories**: `contractor_invoices.category_id` can be set by the submitter on insert (picker filters to globals + categories mapped to the selected household via `category_households`). Full admins can change it after submission via the `admin_set_invoice_category` RPC.
