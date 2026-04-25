@@ -15,7 +15,10 @@ import { APP_VERSION } from '../../version';
 import { LogoText } from '../LogoText';
 import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus } from 'lucide-react';
 
-type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
+type AdminView = 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports';
+// Analytics and Reports are launched as modal overlays from the nav, not as
+// inline views — keeps the underlying base view (Invoices for HAs) intact.
+type AdminNavKey = AdminView | 'analytics';
 
 export function AdminLayout() {
   const { signOut, isAdmin, isHouseholdAdmin } = useAuth();
@@ -25,9 +28,14 @@ export function AdminLayout() {
   // submitting their own work — analytics is a distant third. Land them on
   // Invoices so the most-used screen is the default. Full admins still land
   // on Analytics, which is what they came for.
+  // Inline base view. Full admins land on households-mgmt-style page? No — full
+  // admins still default to invoices as their inline base; analytics opens as
+  // a modal on demand via the nav (matching how Reports already worked).
   const [activeView, setActiveView] = useState<AdminView>(
-    isAdmin ? 'analytics' : 'invoices'
+    isAdmin ? 'households' : 'invoices'
   );
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showReports, setShowReports] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -38,25 +46,41 @@ export function AdminLayout() {
 
   // Nav order is role-aware: full admins see analytics first (their primary
   // view); household admins see invoices first because that's their job.
-  const adminItems: { key: AdminView; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
-    { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
+  // 'analytics' and 'reports' are modal overlays, not inline views — they
+  // appear in the nav alongside inline pages but launch as full-screen modals.
+  const adminItems: { key: AdminNavKey; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
     { key: 'households', label: t('admin.manageHouseholds'), icon: Home, adminOnly: true },
     { key: 'categories', label: t('admin.manageCategories'), icon: Tag, adminOnly: true },
     { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle, adminOnly: true },
     { key: 'users', label: t('admin.manageUsers'), icon: Users, adminOnly: true },
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
   const haItems: typeof adminItems = [
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
-    { key: 'reports', label: t('reports.title'), icon: FileText },
     { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
+    { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
   const navItems = isAdmin ? adminItems.filter((item) => !item.adminOnly || isAdmin) : haItems;
 
-  const handleViewChange = (view: AdminView) => {
-    setActiveView(view);
+  const handleViewChange = (view: AdminNavKey) => {
+    if (view === 'analytics') {
+      setShowAnalytics(true);
+    } else if (view === 'reports') {
+      setShowReports(true);
+    } else {
+      setActiveView(view);
+    }
     setMobileMenuOpen(false);
+  };
+
+  // For the active-state pill in the sidebar, treat the modal-overlay nav
+  // items as "active" while their modal is open.
+  const isItemActive = (key: AdminNavKey) => {
+    if (key === 'analytics') return showAnalytics;
+    if (key === 'reports') return showReports;
+    return activeView === key;
   };
 
   const handleSignOut = async () => {
@@ -114,7 +138,7 @@ export function AdminLayout() {
                 key={key}
                 onClick={() => handleViewChange(key)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  activeView === key
+                  isItemActive(key)
                     ? 'bg-emerald-700 text-white shadow-lg'
                     : 'text-emerald-200 hover:text-white hover:bg-emerald-800'
                 }`}
@@ -149,9 +173,9 @@ export function AdminLayout() {
           {navItems.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setActiveView(key)}
+              onClick={() => handleViewChange(key)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeView === key
+                isItemActive(key)
                   ? 'bg-emerald-700 text-white shadow-lg'
                   : 'text-emerald-200 hover:text-white hover:bg-emerald-800'
               }`}
@@ -213,15 +237,16 @@ export function AdminLayout() {
               </button>
             </div>
           )}
-          {activeView === 'analytics' && <AdminAnalytics />}
           {activeView === 'households' && <ManageHouseholds />}
           {activeView === 'categories' && <ManageCategories />}
           {activeView === 'uncategorized' && <UncategorizedTransactions />}
           {activeView === 'users' && <ManageUsers />}
           {activeView === 'invoices' && <AdminInvoices />}
-          {activeView === 'reports' && <Reports onClose={() => setActiveView('analytics')} />}
         </div>
       </main>
+
+      {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
+      {showReports && <Reports onClose={() => setShowReports(false)} />}
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       {showAddExpense && (

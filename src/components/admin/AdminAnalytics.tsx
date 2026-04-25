@@ -44,7 +44,14 @@ interface GroupedData {
   count: number;
 }
 
-export function AdminAnalytics() {
+interface AdminAnalyticsProps {
+  // When provided, the component renders inside a modal overlay (matching the
+  // Reports modal pattern). Used by HA mobile UX where Invoices is the base
+  // view and Analytics opens on demand from the hamburger menu.
+  onClose?: () => void;
+}
+
+export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
   const { t, locale } = useT();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -378,7 +385,7 @@ export function AdminAnalytics() {
   };
 
   if (loading) {
-    return (
+    const loadingBody = (
       <div className="space-y-6">
         <div className="h-8 w-48 bg-slate-200 rounded-lg animate-pulse" />
         <div className="grid grid-cols-3 gap-4">
@@ -388,9 +395,25 @@ export function AdminAnalytics() {
         </div>
       </div>
     );
+    if (onClose) {
+      return (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-5xl sm:max-h-[90vh] sm:my-4 overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-slate-900">{t('admin.analyticsTitle')}</h2>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" aria-label={t('common.close')}>
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4 sm:p-6">{loadingBody}</div>
+          </div>
+        </div>
+      );
+    }
+    return loadingBody;
   }
 
-  return (
+  const body = (
     <div>
       {/* Title block always stacks above controls — prevents the cramped
           three-column squeeze on phones where the title was wrapping awkwardly
@@ -632,6 +655,24 @@ export function AdminAnalytics() {
       )}
     </div>
   );
+
+  if (onClose) {
+    return (
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+        <div className="bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-5xl sm:max-h-[90vh] sm:my-4 overflow-y-auto">
+          <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-10">
+            <h2 className="text-lg font-bold text-slate-900">{t('admin.analyticsTitle')}</h2>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg" aria-label={t('common.close')}>
+              <X className="w-5 h-5 text-slate-500" />
+            </button>
+          </div>
+          <div className="p-4 sm:p-6">{body}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return body;
 }
 
 function StatCard({ icon: Icon, label, value }: { icon: typeof DollarSign; label: string; value: string }) {
