@@ -20,7 +20,14 @@ type AdminView = 'analytics' | 'households' | 'categories' | 'uncategorized' | '
 export function AdminLayout() {
   const { signOut, isAdmin, isHouseholdAdmin } = useAuth();
   const { t } = useT();
-  const [activeView, setActiveView] = useState<AdminView>('analytics');
+
+  // Household admins care primarily about reviewing contractor invoices and
+  // submitting their own work — analytics is a distant third. Land them on
+  // Invoices so the most-used screen is the default. Full admins still land
+  // on Analytics, which is what they came for.
+  const [activeView, setActiveView] = useState<AdminView>(
+    isAdmin ? 'analytics' : 'invoices'
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -29,11 +36,9 @@ export function AdminLayout() {
   // contractors have — they can submit their own receipts and invoices.
   const canSubmit = isAdmin || isHouseholdAdmin;
 
-  // Full admins see all nav items. Household admins see a scaled-down set:
-  // analytics + invoices + reports + (their own submission flows remain
-  // accessible via the normal contractor Submit Invoice / Add Transaction
-  // routes rendered inside AdminInvoices / analytics).
-  const allNavItems: { key: AdminView; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
+  // Nav order is role-aware: full admins see analytics first (their primary
+  // view); household admins see invoices first because that's their job.
+  const adminItems: { key: AdminView; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
     { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
     { key: 'households', label: t('admin.manageHouseholds'), icon: Home, adminOnly: true },
     { key: 'categories', label: t('admin.manageCategories'), icon: Tag, adminOnly: true },
@@ -42,8 +47,12 @@ export function AdminLayout() {
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
     { key: 'reports', label: t('reports.title'), icon: FileText },
   ];
-  const navItems = allNavItems.filter((item) => isAdmin || !item.adminOnly);
-  void isHouseholdAdmin; // role gating for page-level access lives inside each admin page
+  const haItems: typeof adminItems = [
+    { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'reports', label: t('reports.title'), icon: FileText },
+    { key: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
+  ];
+  const navItems = isAdmin ? adminItems.filter((item) => !item.adminOnly || isAdmin) : haItems;
 
   const handleViewChange = (view: AdminView) => {
     setActiveView(view);
@@ -174,20 +183,33 @@ export function AdminLayout() {
       <main className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
           {canSubmit && (
-            <div className="flex flex-wrap gap-2 mb-6">
+            // On mobile: full-width action cards stacked side-by-side (matches
+            // the contractor dashboard so the primary tasks are unmissable).
+            // On desktop: compact toolbar so admin pages have more breathing room.
+            <div className="grid grid-cols-2 gap-3 mb-6 lg:flex lg:flex-wrap lg:gap-2">
               <button
                 onClick={() => setShowAddExpense(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium text-sm"
+                className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
               >
-                <Plus className="w-4 h-4" />
-                {t('dashboard.addTransaction')}
+                <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-white/15 lg:bg-transparent flex items-center justify-center group-hover:bg-white/20 lg:group-hover:bg-transparent transition-colors">
+                  <Plus className="w-5 h-5 lg:w-4 lg:h-4" />
+                </div>
+                <div className="lg:contents">
+                  <div className="font-semibold text-sm lg:text-sm leading-tight">{t('dashboard.addTransaction')}</div>
+                  <div className="lg:hidden text-xs text-emerald-100/80 mt-1">{t('dashboard.addTransactionHint')}</div>
+                </div>
               </button>
               <button
                 onClick={() => setShowInvoiceForm(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium text-sm"
+                className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
               >
-                <FileText className="w-4 h-4" />
-                {t('invoice.submitInvoice')}
+                <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-emerald-100 lg:bg-transparent flex items-center justify-center group-hover:bg-emerald-200 lg:group-hover:bg-transparent transition-colors">
+                  <FileText className="w-5 h-5 lg:w-4 lg:h-4" />
+                </div>
+                <div className="lg:contents">
+                  <div className="font-semibold text-sm lg:text-sm leading-tight">{t('invoice.submitInvoice')}</div>
+                  <div className="lg:hidden text-xs text-emerald-700/70 mt-1">{t('invoice.submitInvoiceHint')}</div>
+                </div>
               </button>
             </div>
           )}

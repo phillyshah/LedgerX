@@ -392,24 +392,20 @@ export function AdminAnalytics() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      {/* Title block always stacks above controls — prevents the cramped
+          three-column squeeze on phones where the title was wrapping awkwardly
+          next to the Export Report button. On desktop the controls float
+          right via `sm:ml-auto`. */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold text-slate-900">{t('admin.analyticsTitle')}</h2>
-          <p className="text-slate-500 mt-1">{t('admin.analyticsDesc')}</p>
+          <p className="text-slate-500 mt-1 text-sm">{t('admin.analyticsDesc')}</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            {exporting ? t('admin.exporting') : t('admin.exportReport')}
-          </button>
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
           <select
             value={householdFilter}
             onChange={(e) => setHouseholdFilter(e.target.value)}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            className="flex-1 sm:flex-none min-w-[8rem] px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           >
             <option value="all">{t('admin.allHouseholds')}</option>
             {households.map((h) => (
@@ -419,13 +415,21 @@ export function AdminAnalytics() {
           <select
             value={dateRange}
             onChange={(e) => handleDateRangeChange(e.target.value as '30d' | '90d' | 'ytd' | 'custom')}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 min-w-[140px]"
+            className="flex-1 sm:flex-none min-w-[8rem] px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
           >
             <option value="30d">{t('admin.last30')}</option>
             <option value="90d">{t('admin.last90')}</option>
             <option value="ytd">{t('admin.ytd')}</option>
             <option value="custom">{dateRange === 'custom' && customStartDate && customEndDate ? getDateRangeLabel() : t('admin.customRange')}</option>
           </select>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {exporting ? t('admin.exporting') : t('admin.exportReport')}
+          </button>
         </div>
       </div>
 
