@@ -376,6 +376,8 @@ Contractors see a simplified dashboard with two actions:
 
 **Viewing a submitted invoice:** tap any row in **My Invoices** to open the detail panel. You'll see the full invoice, any admin notes, and every attachment you uploaded — PDFs open in a new tab.
 
+**Deleting a submitted invoice:** the detail panel has a red **Delete invoice** button — only the original submitter sees it. Use this if you uploaded the wrong PDF or fixed numbers in a fresh upload. Full admins can also delete any invoice from the admin detail view (cleanup tool).
+
 **Invoice statuses:**
 - 🟡 **Pending** — submitted, awaiting payment
 - 🟢 **Paid** — payment has been issued

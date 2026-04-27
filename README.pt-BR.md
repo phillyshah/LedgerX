@@ -372,6 +372,8 @@ Prestadores veem um painel simplificado com duas ações:
 
 **Visualizar uma nota enviada:** toque em qualquer linha em **Minhas Notas Fiscais** para abrir o painel de detalhes. Você verá a nota completa, observações do administrador e todos os anexos enviados — PDFs abrem em nova aba.
 
+**Excluir uma nota enviada:** o painel de detalhes tem um botão vermelho **Excluir nota fiscal** — só quem enviou a nota vê o botão. Use quando enviar o PDF errado ou corrigir valores em um envio novo. Administradores completos também podem excluir qualquer nota a partir da visualização administrativa (ferramenta de limpeza).
+
 **Status das notas fiscais:**
 - 🟡 **Pendente** — enviada, aguardando pagamento
 - 🟢 **Paga** — pagamento efetuado

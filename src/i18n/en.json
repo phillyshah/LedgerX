@@ -522,6 +522,10 @@
 
   "admin.contractorInvoices": "Contractor Invoices",
   "admin.myTransactions": "My Transactions",
+  "common.deleting": "Deleting…",
+  "invoice.confirmDelete": "Delete this invoice? This cannot be undone.",
+  "invoice.detailDelete": "Delete invoice",
+  "adminInvoices.actionDelete": "Delete invoice",
 
   "admin.hh.propertyType": "Property Type",
   "admin.hh.propertyTypeNone": "— Not Set —",

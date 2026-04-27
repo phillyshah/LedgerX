@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
-import { X, ChevronDown, ChevronUp, FileText, Check, Tag } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, FileText, Check, Tag, Trash2 } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
 
 interface HouseholdOption {
@@ -181,6 +181,19 @@ export function AdminInvoices() {
     categories.filter((c) =>
       c.household_ids.length === 0 || (householdId !== null && c.household_ids.includes(householdId))
     );
+
+  // Full-admin destructive action — superadmin can clear out an invoice
+   // (creator-side delete is in InvoiceList). RLS gates this server-side too.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteInvoice = async (inv: AdminInvoiceRow) => {
+    if (!confirm(t('invoice.confirmDelete'))) return;
+    setDeletingId(inv.id);
+    const { error } = await supabase.from('contractor_invoices').delete().eq('id', inv.id);
+    setDeletingId(null);
+    if (error) { alert(error.message); return; }
+    setDetailInvoice(null);
+    await loadData();
+  };
 
   const openDetail = async (inv: AdminInvoiceRow) => {
     setDetailInvoice(inv); setDetailImages([]); setSignedUrls({}); setLoadingDetail(true);
@@ -481,9 +494,19 @@ export function AdminInvoices() {
                     {detailInvoice.category_id ? t('adminInvoices.actionChangeCategory') : t('adminInvoices.actionAssignCategory')}
                   </button>
                 )}
+                {isAdmin && (
+                  <button
+                    onClick={() => deleteInvoice(detailInvoice)}
+                    disabled={deletingId === detailInvoice.id}
+                    className="ml-auto px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all inline-flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {deletingId === detailInvoice.id ? t('common.deleting') : t('adminInvoices.actionDelete')}
+                  </button>
+                )}
                 <button
                   onClick={() => setDetailInvoice(null)}
-                  className="ml-auto px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all"
+                  className={`${isAdmin ? '' : 'ml-auto '}px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all`}
                 >
                   {t('adminInvoices.detailClose')}
                 </button>

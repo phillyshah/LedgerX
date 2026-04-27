@@ -522,6 +522,10 @@
 
   "admin.contractorInvoices": "Notas Fiscais",
   "admin.myTransactions": "Minhas Transações",
+  "common.deleting": "Excluindo…",
+  "invoice.confirmDelete": "Excluir esta nota fiscal? Esta ação não pode ser desfeita.",
+  "invoice.detailDelete": "Excluir nota fiscal",
+  "adminInvoices.actionDelete": "Excluir nota fiscal",
 
   "admin.hh.propertyType": "Tipo de Propriedade",
   "admin.hh.propertyTypeNone": "— Não Definido —",

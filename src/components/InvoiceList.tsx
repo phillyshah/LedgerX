@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useT } from '../hooks/useT';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Tag } from 'lucide-react';
+import { X, FileText, Tag, Trash2 } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
 
 interface InvoiceListProps {
@@ -32,8 +33,10 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function InvoiceList({ invoices, loading }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onReload }: InvoiceListProps) {
   const { t, locale } = useT();
+  const { user } = useAuth();
+  const [deleting, setDeleting] = useState(false);
 
   // Detail panel state — same pattern as AdminInvoices, minus admin actions.
   const [detailInvoice, setDetailInvoice] = useState<ContractorInvoice | null>(null);
@@ -72,6 +75,22 @@ export function InvoiceList({ invoices, loading }: InvoiceListProps) {
     for (const [p, u] of signed) if (u) urls[p] = u;
     setSignedUrls(urls);
     setLoadingDetail(false);
+  };
+
+  // Submitter-only delete. RLS allows DELETE only when auth.uid() = created_by
+  // (or the user is a full admin), so even if this button were rendered for
+  // someone else, the row wouldn't actually go away.
+  const deleteInvoice = async (inv: ContractorInvoice) => {
+    if (!confirm(t('invoice.confirmDelete'))) return;
+    setDeleting(true);
+    const { error } = await supabase.from('contractor_invoices').delete().eq('id', inv.id);
+    setDeleting(false);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    setDetailInvoice(null);
+    onReload();
   };
 
   if (loading) {
@@ -251,7 +270,17 @@ export function InvoiceList({ invoices, loading }: InvoiceListProps) {
                 )}
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-wrap justify-between gap-2 pt-2">
+                {user && detailInvoice.created_by === user.id ? (
+                  <button
+                    onClick={() => deleteInvoice(detailInvoice)}
+                    disabled={deleting}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {deleting ? t('common.deleting') : t('invoice.detailDelete')}
+                  </button>
+                ) : <span />}
                 <button
                   onClick={() => setDetailInvoice(null)}
                   className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all"
