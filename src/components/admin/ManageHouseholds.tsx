@@ -149,9 +149,15 @@ export function ManageHouseholds() {
 
   const removeMember = async (memberId: string) => {
     if (!expandedId) return;
-    await supabase.rpc('admin_remove_household_member', { p_member_id: memberId });
-    await loadMembers(expandedId);
-    setExpandedId(expandedId);
+    const { error } = await supabase.rpc('admin_remove_household_member', { p_member_id: memberId });
+    if (error) {
+      setMemberError(error.message);
+      return;
+    }
+    // Optimistic update — `loadMembers(expandedId)` would *toggle* the
+    // expansion off (it's also the open/close handler), so we patch local
+    // state directly instead. Server-side delete already happened.
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
   };
 
   const deleteHousehold = async (householdId: string) => {

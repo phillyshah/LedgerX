@@ -36,6 +36,10 @@ export function ManageUsers() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState<Role>('regular');
   const [newUserLanguage, setNewUserLanguage] = useState<Language>('en');
+  // Households assigned at creation time. Defaults to "all" because the
+  // auto-assign trigger does that anyway — admins explicitly *uncheck* the
+  // households a new user shouldn't see.
+  const [newUserHouseholdIds, setNewUserHouseholdIds] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -186,11 +190,31 @@ export function ManageUsers() {
       if (!response.ok) {
         setError(result.error || t('admin.failedCreate'));
       } else {
+        // The auto_assign_user_to_households trigger inserted memberships for
+        // every household. Honor the admin's selection by removing the new
+        // user from any household they didn't check.
+        const createdUserId = (result && (result.user?.id || result.user_id || result.id)) as string | undefined;
+        if (createdUserId) {
+          const allHouseholdIds = households.map((h) => h.id);
+          const toRemove = allHouseholdIds.filter((id) => !newUserHouseholdIds.includes(id));
+          if (toRemove.length > 0) {
+            const { data: memberships } = await supabase
+              .from('household_members')
+              .select('id, household_id')
+              .eq('user_id', createdUserId)
+              .in('household_id', toRemove);
+            for (const m of memberships || []) {
+              await supabase.rpc('admin_remove_household_member', { p_member_id: m.id });
+            }
+          }
+        }
+
         setShowCreateModal(false);
         setNewUserId('');
         setNewUserPassword('');
         setNewUserRole('regular');
         setNewUserLanguage('en');
+        setNewUserHouseholdIds([]);
         await loadUsers();
       }
     } catch (err) {
@@ -320,6 +344,7 @@ export function ManageUsers() {
       setSelectedUserId('');
       setSelectedUserUsername('');
       setSelectedHouseholdIds([]);
+      await loadUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('admin.failedSaveHouseholds'));
     } finally {
@@ -351,7 +376,19 @@ export function ManageUsers() {
             <span className="text-sm font-semibold text-slate-900">{t('admin.usersCount', { count: users.length })}</span>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={async () => {
+              setError('');
+              const { data: hh } = await supabase
+                .from('households')
+                .select('id, name')
+                .order('name');
+              const list = (hh || []) as Household[];
+              setHouseholds(list);
+              // Default to all households checked (matches the auto-assign
+              // trigger). Admin can uncheck to scope the new user.
+              setNewUserHouseholdIds(list.map((h) => h.id));
+              setShowCreateModal(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all"
           >
             <UserPlus className="w-4 h-4" />
@@ -574,6 +611,58 @@ export function ManageUsers() {
                     <option key={l.code} value={l.code}>{LANG_FLAG[l.code]} {l.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    {t('admin.users.assignHouseholds')}
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewUserHouseholdIds(households.map((h) => h.id))}
+                      className="text-xs text-emerald-700 hover:text-emerald-800 font-medium"
+                    >
+                      {t('admin.users.selectAll')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewUserHouseholdIds([])}
+                      className="text-xs text-slate-500 hover:text-slate-700 font-medium"
+                    >
+                      {t('admin.users.selectNone')}
+                    </button>
+                  </div>
+                </div>
+                {households.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">{t('admin.users.noHouseholdsYet')}</p>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-2 space-y-1">
+                    {households.map((h) => {
+                      const checked = newUserHouseholdIds.includes(h.id);
+                      return (
+                        <label
+                          key={h.id}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-white transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              setNewUserHouseholdIds((prev) =>
+                                prev.includes(h.id) ? prev.filter((x) => x !== h.id) : [...prev, h.id]
+                              )
+                            }
+                            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span className="text-sm text-slate-700">{h.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-xs text-slate-500 mt-1">{t('admin.users.assignHouseholdsHint')}</p>
               </div>
 
               <div className="flex gap-3 pt-4">
