@@ -48,7 +48,7 @@ LedgerX is built for households and small teams that want a shared, organized wa
 ## Signing In
 <!-- roles: contractor, member, admin -->
 
-1. Open the app at **ledger.phillyshah.com** in your browser.
+1. Open the app at **ledger.90ten.life** in your browser.
 2. Enter your **username** and **password**.
 3. Click **Sign In**.
 

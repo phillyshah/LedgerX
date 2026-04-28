@@ -44,7 +44,7 @@ O LedgerX foi criado para residências e pequenas equipes que querem uma forma c
 ## Fazendo Login
 <!-- roles: contractor, member, admin -->
 
-1. Abra o aplicativo em **ledger.phillyshah.com** no navegador.
+1. Abra o aplicativo em **ledger.90ten.life** no navegador.
 2. Digite seu **nome de usuário** e **senha**.
 3. Clique em **Entrar**.
 
