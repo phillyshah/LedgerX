@@ -486,7 +486,7 @@ npm run typecheck
 
 ```bash
 npm run build
-rsync -avz --delete dist/ root@72.62.174.193:/var/www/ledger.phillyshah.com/
+rsync -avz --delete dist/ root@72.62.174.193:/var/www/ledger.90ten.life/
 ```
 
 ---
