@@ -1,24 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageCompression';
-import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
+import { loadUserHouseholds, loadHouseholdCategories } from '../lib/queries';
+import { todayDateString } from '../lib/dateUtils';
+import { prepareImageItem, readImageDimensions } from '../lib/imagePicker';
+import { useReceiptScanner, applyReceiptDataToForm } from '../hooks/useReceiptScanner';
 import { X, Upload, Check, Camera, Loader2, Plus } from 'lucide-react';
-
-interface Household {
-  id: string;
-  name: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface ImageItem {
-  file: File;
-  preview: string;
-}
+import type { Household, Category, ImageItem } from '../types/expense';
 
 interface AddExpenseProps {
   onClose: () => void;
@@ -31,7 +19,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     household_id: '',
-    expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+    expense_date: todayDateString(),
     vendor: '',
     total: '',
     category: '',
@@ -40,17 +28,21 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [categoryAutoFilled, setCategoryAutoFilled] = useState(false);
+  const { scanning, scanError, setScanError, scan } = useReceiptScanner();
 
   useEffect(() => {
-    loadOptions();
+    if (!user) return;
+    loadUserHouseholds(user.id).then((hh) => {
+      setHouseholds(hh);
+      if (hh.length === 1) {
+        setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
+      }
+    });
   }, [user]);
 
   useEffect(() => {
     if (formData.household_id) {
-      loadCategoriesForHousehold(formData.household_id);
+      loadHouseholdCategories(formData.household_id).then(setCategories);
     }
   }, [formData.household_id]);
 
@@ -63,57 +55,6 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     return () => clearTimeout(timer);
   }, [formData.vendor, formData.household_id]);
 
-  const loadOptions = async () => {
-    if (!user) return;
-
-    const householdRes = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id);
-
-    if (householdRes.data) {
-      const hh = householdRes.data
-        .map((item) => item.households)
-        .filter(Boolean) as unknown as Household[];
-      setHouseholds(hh);
-      if (hh.length === 1) {
-        setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
-      }
-    }
-  };
-
-  const loadCategoriesForHousehold = async (householdId: string) => {
-    // Get categories assigned to this household via junction table
-    const { data: junctionData } = await supabase
-      .from('category_households')
-      .select('categories(id, name)')
-      .eq('household_id', householdId);
-
-    const junctionCats = (junctionData || [])
-      .map((r) => r.categories)
-      .filter(Boolean) as unknown as Category[];
-
-    // Also get global categories (household_id IS NULL, available to all)
-    const { data: globalCats } = await supabase
-      .from('categories')
-      .select('id, name')
-      .is('household_id', null)
-      .order('name');
-
-    // Merge junction-assigned + global, deduplicate
-    const all = [...junctionCats, ...(globalCats || [])];
-    const seen = new Set<string>();
-    const unique = all
-      .filter((c) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    setCategories(unique);
-  };
-
   const lookupVendorCategory = async (vendor: string, householdId: string) => {
     const { data } = await supabase
       .from('vendor_category_map')
@@ -123,11 +64,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       .maybeSingle();
 
     if (data?.category_name) {
-      // Only auto-fill if the category is valid for this household
       const isValid = categories.some((c) => c.name === data.category_name);
       if (isValid) {
         setFormData((prev) => ({ ...prev, category: data.category_name }));
-        setCategoryAutoFilled(true);
       }
     }
   };
@@ -142,35 +81,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       );
   };
 
-  const applyReceiptData = (data: ReceiptData) => {
-    const enhanced = formatReceiptNotes(data);
-    setFormData((prev) => ({
-      ...prev,
-      vendor: data.vendor_name || prev.vendor,
-      total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
-      expense_date: data.transaction_date || prev.expense_date,
-      category: data.category || prev.category,
-      notes: enhanced
-        ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
-        : prev.notes,
-    }));
-  };
-
   const handleScanReceipt = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    setScanning(true);
-    setScanError(null);
-    try {
-      // OpenAI uses detail:"low" → 512px internal — send a smaller copy to cut upload time
-      const ocrFile = await compressImage(file, 0.3, 800, 800);
-      const data = await scanReceipt(ocrFile);
-      applyReceiptData(data);
-    } catch (error) {
-      console.error('Receipt scan error:', error);
-      setScanError(error instanceof Error ? error.message : 'Failed to scan receipt');
-    } finally {
-      setScanning(false);
-    }
+    const data = await scan(file);
+    if (data) applyReceiptDataToForm(setFormData, data);
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,21 +92,12 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
 
     for (const file of Array.from(files)) {
       try {
-        let fileToUse = file;
-        if (file.type.startsWith('image/')) {
-          fileToUse = await compressImage(file, 2);
-        }
-        const preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(fileToUse);
-        });
-
-        setImages((prev) => [...prev, { file: fileToUse, preview }]);
+        const item = await prepareImageItem(file);
+        setImages((prev) => [...prev, item]);
 
         // Auto-scan only the first image added when form fields are empty
         if (images.length === 0 && file.type.startsWith('image/')) {
-          handleScanReceipt(fileToUse);
+          handleScanReceipt(item.file);
         }
       } catch (error) {
         console.error('Error processing file:', error);
@@ -201,7 +105,6 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
       }
     }
 
-    // Reset input so the same file can be selected again
     e.target.value = '';
   };
 
@@ -216,7 +119,7 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const resetForm = () => {
     setFormData((prev) => ({
       household_id: prev.household_id,
-      expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+      expense_date: todayDateString(),
       vendor: '',
       total: '',
       category: '',
@@ -224,7 +127,6 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }));
     setImages([]);
     setScanError(null);
-    setCategoryAutoFilled(false);
   };
 
   const saveExpense = async () => {
@@ -233,10 +135,10 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     setSaving(true);
     try {
       // Keep backward compat: store first image in expense row too
-      let imagePath = null;
-      let imageMime = null;
-      let imageWidth = null;
-      let imageHeight = null;
+      let imagePath: string | null = null;
+      let imageMime: string | null = null;
+      let imageWidth: number | null = null;
+      let imageHeight: number | null = null;
 
       if (images.length > 0) {
         const firstImg = images[0];
@@ -250,16 +152,9 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         if (!uploadError) {
           imagePath = fileName;
           imageMime = firstImg.file.type;
-
-          const img = new Image();
-          img.src = firstImg.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              imageWidth = img.width;
-              imageHeight = img.height;
-              resolve(null);
-            };
-          });
+          const dims = await readImageDimensions(firstImg);
+          imageWidth = dims.width;
+          imageHeight = dims.height;
         }
       }
 
@@ -285,7 +180,6 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         let uploadedPath: string;
 
         if (i === 0 && imagePath) {
-          // First image already uploaded above
           uploadedPath = imagePath;
         } else {
           const fileExt = imgItem.file.name.split('.').pop();
@@ -302,39 +196,24 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
           uploadedPath = fileName;
         }
 
-        // Get dimensions
-        let w: number | null = null;
-        let h: number | null = null;
-        if (imgItem.file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = imgItem.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              w = img.width;
-              h = img.height;
-              resolve(null);
-            };
-          });
-        }
+        const dims = await readImageDimensions(imgItem);
 
         await supabase.from('expense_images').insert({
           expense_id: expenseData.id,
           image_path: uploadedPath,
           image_mime: imgItem.file.type,
-          image_width: w,
-          image_height: h,
+          image_width: dims.width,
+          image_height: dims.height,
           display_order: i,
         });
       }
 
-      // Update vendor-to-category mapping for future auto-fill
       if (formData.vendor && formData.category) {
         upsertVendorCategory(formData.vendor, formData.category, formData.household_id);
       }
 
       onSaved();
       setJustSaved(true);
-      setCategoryAutoFilled(false);
       setTimeout(() => setJustSaved(false), 2000);
       return true;
     } catch (error) {

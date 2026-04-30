@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useExpenses } from '../hooks/useExpenses';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
-import { AddExpense } from './AddExpense';
-import { ExportData } from './ExportData';
-import { Reports } from './Reports';
 import { LogOut, Plus, Download, FileText, Settings } from 'lucide-react';
-import { UserSettings } from './UserSettings';
-import { SpendingCharts } from './SpendingCharts';
+
+const AddExpense = lazy(() => import('./AddExpense').then((m) => ({ default: m.AddExpense })));
+const ExportData = lazy(() => import('./ExportData').then((m) => ({ default: m.ExportData })));
+const Reports = lazy(() => import('./Reports').then((m) => ({ default: m.Reports })));
+const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default: m.UserSettings })));
+const SpendingCharts = lazy(() => import('./SpendingCharts').then((m) => ({ default: m.SpendingCharts })));
+
+function ChartsSkeleton() {
+  return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
+}
 
 export function Dashboard() {
   const { signOut } = useAuth();
@@ -18,10 +23,6 @@ export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
 
   const { expenses, households, loading, reloadExpenses } = useExpenses();
-
-  const handleExpenseAdded = () => {
-    reloadExpenses();
-  };
 
   const handleSignOut = async () => {
     try {
@@ -96,7 +97,9 @@ export function Dashboard() {
 
           <DashboardSummary expenses={expenses} loading={loading} />
 
-          <SpendingCharts expenses={expenses} loading={loading} />
+          <Suspense fallback={<ChartsSkeleton />}>
+            <SpendingCharts expenses={expenses} loading={loading} />
+          </Suspense>
 
           <ExpenseList
             expenses={expenses}
@@ -107,24 +110,20 @@ export function Dashboard() {
         </div>
       </main>
 
-      {showAddExpense && (
-        <AddExpense
-          onClose={() => setShowAddExpense(false)}
-          onSaved={handleExpenseAdded}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showAddExpense && (
+          <AddExpense
+            onClose={() => setShowAddExpense(false)}
+            onSaved={reloadExpenses}
+          />
+        )}
 
-      {showExport && (
-        <ExportData onClose={() => setShowExport(false)} />
-      )}
+        {showExport && <ExportData onClose={() => setShowExport(false)} />}
 
-      {showReports && (
-        <Reports onClose={() => setShowReports(false)} />
-      )}
+        {showReports && <Reports onClose={() => setShowReports(false)} />}
 
-      {showSettings && (
-        <UserSettings onClose={() => setShowSettings(false)} />
-      )}
+        {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
+      </Suspense>
     </div>
   );
 }

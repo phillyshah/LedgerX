@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { Suspense, lazy, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X } from 'lucide-react';
-import { EditExpense } from './EditExpense';
+import { parseExpenseDate } from '../lib/dateUtils';
 import type { Expense, Household } from '../types/expense';
+
+const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -38,14 +40,12 @@ export function ExpenseList({ expenses, households, loading, onReload }: Expense
     onReload();
   };
 
-  const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) =>
+    parseExpenseDate(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-  };
 
   const formatAmount = (amount: number, currency: string) =>
     new Intl.NumberFormat('en-US', {
@@ -356,11 +356,13 @@ export function ExpenseList({ expenses, households, loading, onReload }: Expense
       </div>
 
       {editingExpense && (
-        <EditExpense
-          expense={editingExpense}
-          onClose={() => setEditingExpense(null)}
-          onSuccess={handleExpenseUpdated}
-        />
+        <Suspense fallback={null}>
+          <EditExpense
+            expense={editingExpense}
+            onClose={() => setEditingExpense(null)}
+            onSuccess={handleExpenseUpdated}
+          />
+        </Suspense>
       )}
     </>
   );

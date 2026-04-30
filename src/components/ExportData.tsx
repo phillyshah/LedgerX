@@ -1,18 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { loadUserHouseholds } from '../lib/queries';
+import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
+import { addReportHeader, loadStorageImage, imageFormatFromMime } from '../lib/pdfHelpers';
 import { X, Download, ChevronDown } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-
-interface Household {
-  id: string;
-  name: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
+import type { Household, Category } from '../types/expense';
 
 interface CategoryHousehold {
   category_id: string;
@@ -39,41 +32,26 @@ export function ExportData({ onClose }: ExportDataProps) {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load households
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('household_members')
-      .select('household_id, households(id, name)')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
-        if (data) {
-          const hh = data
-            .map((item) => item.households)
-            .filter(Boolean) as unknown as Household[];
-          setHouseholds(hh);
-        }
-      });
+    loadUserHouseholds(user.id).then(setHouseholds);
   }, [user]);
 
-  // Load categories and their household assignments
   useEffect(() => {
     if (!user || households.length === 0) return;
     Promise.all([
       supabase.from('categories').select('id, name').order('name'),
       supabase.from('category_households').select('category_id, household_id'),
     ]).then(([catRes, chRes]) => {
-      if (catRes.data) setAllCategories(catRes.data);
-      if (chRes.data) setCategoryHouseholds(chRes.data);
+      if (catRes.data) setAllCategories(catRes.data as Category[]);
+      if (chRes.data) setCategoryHouseholds(chRes.data as CategoryHousehold[]);
     });
   }, [user, households]);
 
-  // Reset selected categories when household selection changes
   useEffect(() => {
     setSelectedCategories([]);
   }, [selectedHousehold]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
@@ -84,7 +62,6 @@ export function ExportData({ onClose }: ExportDataProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter categories based on selected household
   // A category with no entries in category_households is global (available to all)
   const availableCategories = allCategories.filter((c) => {
     const assignedHouseholds = categoryHouseholds
@@ -92,10 +69,8 @@ export function ExportData({ onClose }: ExportDataProps) {
       .map((ch) => ch.household_id);
     const isGlobal = assignedHouseholds.length === 0;
     if (selectedHousehold === 'all') {
-      // Show global categories + categories assigned to any of the user's households
       return isGlobal || assignedHouseholds.some((hid) => households.some((h) => h.id === hid));
     }
-    // Show global categories + categories assigned to the selected household
     return isGlobal || assignedHouseholds.includes(selectedHousehold);
   });
 
@@ -105,13 +80,8 @@ export function ExportData({ onClose }: ExportDataProps) {
     );
   };
 
-  const selectAllCategories = () => {
-    setSelectedCategories([]);
-  };
-
-  const deselectAllCategories = () => {
-    setSelectedCategories(['__none__']);
-  };
+  const selectAllCategories = () => setSelectedCategories([]);
+  const deselectAllCategories = () => setSelectedCategories(['__none__']);
 
   // Empty selectedCategories means "all categories" (default)
   const allSelected = selectedCategories.length === 0;
@@ -127,7 +97,9 @@ export function ExportData({ onClose }: ExportDataProps) {
     return `${count} categories`;
   };
 
-  const sortExpenses = (expenses: any[], householdMap: Map<string, string>) => {
+  // Loose typing: Supabase client surfaces `never` for query rows in this codebase,
+  // so a generic would collapse to `never[]` and break property access in the loop.
+  const sortExpenses = (expenses: any[], householdMap: Map<string, string>): any[] => {
     return [...expenses].sort((a, b) => {
       const dateCompare = (b.expense_date || '').localeCompare(a.expense_date || '');
       const householdCompare = (householdMap.get(a.household_id) || '').localeCompare(householdMap.get(b.household_id) || '');
@@ -166,7 +138,6 @@ export function ExportData({ onClose }: ExportDataProps) {
         .lte('expense_date', endDate)
         .order('expense_date', { ascending: false });
 
-      // Apply category filter if specific categories are selected
       if (!allSelected) {
         const selectedCategoryNames = availableCategories
           .filter((c) => selectedCategories.includes(c.id))
@@ -174,7 +145,6 @@ export function ExportData({ onClose }: ExportDataProps) {
         if (selectedCategoryNames.length > 0) {
           query = query.in('category', selectedCategoryNames);
         } else {
-          // No categories selected - return empty result
           query = query.eq('category', '__impossible_match__');
         }
       }
@@ -182,71 +152,38 @@ export function ExportData({ onClose }: ExportDataProps) {
       const { data: expensesData, error } = await query;
       if (error) throw error;
 
-      const expenses = sortExpenses(expensesData, householdMap);
+      const expenses = sortExpenses(expensesData || [], householdMap);
 
-      const csvContent = [
-        ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
-        ...expenses.map((expense) =>
-          [
-            `"${expense.pic_id || ''}"`,
-            expense.expense_date,
-            `"${expense.vendor || ''}"`,
-            expense.total,
-            expense.currency,
-            `"${expense.category || ''}"`,
-            `"${householdMap.get(expense.household_id) || ''}"`,
-            `"${expense.notes || ''}"`,
-          ].join(',')
-        ),
-      ].join('\n');
+      // CSV
+      const csvContent = buildExpenseCsv(expenses, householdMap, 'pic_id');
+      downloadBlob(
+        new Blob([csvContent], { type: 'text/csv' }),
+        `ledgerx-export-${startDate}-to-${endDate}.csv`,
+      );
 
-      const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-      const csvUrl = window.URL.createObjectURL(csvBlob);
-      const csvLink = document.createElement('a');
-      csvLink.href = csvUrl;
-      csvLink.download = `ledgerx-export-${startDate}-to-${endDate}.csv`;
-      document.body.appendChild(csvLink);
-      csvLink.click();
-      document.body.removeChild(csvLink);
-      window.URL.revokeObjectURL(csvUrl);
-
+      // PDF (jsPDF lazy-loaded so the ~370KB chunk only ships when actually needed)
+      const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
 
-      const addPageHeader = () => {
-        pdf.setFontSize(16);
-        pdf.text('Transaction Report', margin, margin);
-
-        pdf.setFontSize(9);
-        pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
-
-        return margin + 20;
-      };
-
-      let contentStartY = addPageHeader();
+      let contentStartY = addReportHeader(pdf, startDate, endDate, margin);
       const maxItemsPerPage = 2;
-      const cols = 1;
-      const rows = 2;
       const cellWidth = pageWidth - 2 * margin;
-      const cellHeight = (pageHeight - margin - contentStartY) / rows;
+      const cellHeight = (pageHeight - margin - contentStartY) / maxItemsPerPage;
 
       let txIndex = 0;
 
-      for (let i = 0; i < expenses.length; i++) {
-        const expense = expenses[i];
-
+      for (const expense of expenses) {
         if (txIndex >= maxItemsPerPage) {
           pdf.addPage();
-          contentStartY = addPageHeader();
+          contentStartY = addReportHeader(pdf, startDate, endDate, margin);
           txIndex = 0;
         }
 
-        const col = txIndex % cols;
-        const row = Math.floor(txIndex / cols);
-        const xOffset = margin + col * cellWidth;
-        const yOffset = contentStartY + row * cellHeight;
+        const xOffset = margin;
+        const yOffset = contentStartY + txIndex * cellHeight;
 
         let yPosition = yOffset + 5;
 
@@ -266,7 +203,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         pdf.setFontSize(12);
         pdf.setFont(undefined as unknown as string, 'bold');
-        const vendorLines = pdf.splitTextToSize(`${expense.vendor || 'Unnamed Transaction'}`, textWidth);
+        const vendorLines = pdf.splitTextToSize(expense.vendor || 'Unnamed Transaction', textWidth);
         pdf.text(vendorLines, margin, yPosition);
         yPosition += vendorLines.length * 6;
 
@@ -280,7 +217,7 @@ export function ExportData({ onClose }: ExportDataProps) {
             currency: expense.currency || 'USD',
           }).format(expense.total)}`,
           xOffset,
-          yPosition
+          yPosition,
         );
         yPosition += 5;
 
@@ -296,15 +233,10 @@ export function ExportData({ onClose }: ExportDataProps) {
         }
 
         if (expense.notes) {
-          const noteLines = pdf.splitTextToSize(
-            `Notes: ${expense.notes}`,
-            textWidth
-          );
-
+          const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, textWidth);
           const availableForNotes = imageY - yPosition - 5;
           const maxNoteLines = Math.floor(availableForNotes / 5);
           const limitedNoteLines = noteLines.slice(0, Math.max(1, maxNoteLines));
-
           pdf.text(limitedNoteLines, xOffset, yPosition);
           yPosition += limitedNoteLines.length * 5;
         }
@@ -332,7 +264,7 @@ export function ExportData({ onClose }: ExportDataProps) {
           const maxImgPerTx = 6;
           const imagesToShow = expenseImages.slice(0, maxImgPerTx);
 
-          // Arrange in a grid: 3 columns, up to 2 rows
+          // 3-column grid, up to 2 rows
           const gridCols = Math.min(3, imagesToShow.length);
           const gridGap = 2;
           const totalGapX = (gridCols - 1) * gridGap;
@@ -347,46 +279,17 @@ export function ExportData({ onClose }: ExportDataProps) {
             const thumbY = imageY + gridRow * (thumbHeight + gridGap);
 
             try {
-              const { data: imageData } = await supabase.storage
-                .from('receipts')
-                .download(expImg.image_path);
-
-              if (imageData) {
-                const imageUrl = URL.createObjectURL(imageData);
-                const img = new Image();
-
-                await new Promise((resolve, reject) => {
-                  img.onload = resolve;
-                  img.onerror = reject;
-                  img.src = imageUrl;
-                });
-
-                let imgWidth = expImg.image_width || img.width;
-                let imgHeightRaw = expImg.image_height || img.height;
-
-                const widthRatio = thumbWidth / imgWidth;
-                const heightRatio = thumbHeight / imgHeightRaw;
-                const ratio = Math.min(widthRatio, heightRatio);
-
-                const scaledW = imgWidth * ratio;
-                const scaledH = imgHeightRaw * ratio;
-
-                // Center the image within its grid cell
+              const loaded = await loadStorageImage(expImg.image_path);
+              if (loaded) {
+                const naturalW = expImg.image_width || loaded.img.width;
+                const naturalH = expImg.image_height || loaded.img.height;
+                const ratio = Math.min(thumbWidth / naturalW, thumbHeight / naturalH);
+                const scaledW = naturalW * ratio;
+                const scaledH = naturalH * ratio;
                 const offsetX = thumbX + (thumbWidth - scaledW) / 2;
                 const offsetY = thumbY + (thumbHeight - scaledH) / 2;
-
-                let imageFormat = 'JPEG';
-                if (expImg.image_mime) {
-                  if (expImg.image_mime.includes('png')) {
-                    imageFormat = 'PNG';
-                  } else if (expImg.image_mime.includes('webp')) {
-                    imageFormat = 'WEBP';
-                  }
-                }
-
-                pdf.addImage(img, imageFormat, offsetX, offsetY, scaledW, scaledH);
-
-                URL.revokeObjectURL(imageUrl);
+                pdf.addImage(loaded.img, imageFormatFromMime(expImg.image_mime), offsetX, offsetY, scaledW, scaledH);
+                URL.revokeObjectURL(loaded.objectUrl);
               }
             } catch (imageError) {
               console.error('Error loading image:', imageError);
@@ -398,7 +301,7 @@ export function ExportData({ onClose }: ExportDataProps) {
           }
 
           if (expenseImages.length > maxImgPerTx) {
-            const overflowY = imageY + (Math.ceil(imagesToShow.length / 3)) * (thumbHeight + gridGap);
+            const overflowY = imageY + Math.ceil(imagesToShow.length / 3) * (thumbHeight + gridGap);
             pdf.setFontSize(7);
             pdf.setTextColor(130, 130, 130);
             pdf.text(`+${expenseImages.length - maxImgPerTx} more image(s)`, imageX, overflowY);
@@ -408,7 +311,6 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         txIndex += 1;
       }
-
 
       pdf.save(`ledgerx-export-${startDate}-to-${endDate}.pdf`);
 
@@ -465,7 +367,6 @@ export function ExportData({ onClose }: ExportDataProps) {
             </select>
           </div>
 
-          {/* Category Filter Dropdown */}
           <div ref={categoryDropdownRef} className="relative">
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Categories
@@ -475,9 +376,7 @@ export function ExportData({ onClose }: ExportDataProps) {
               onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all flex items-center justify-between text-left"
             >
-              <span className={allSelected ? 'text-slate-900' : 'text-slate-900'}>
-                {getCategoryDropdownLabel()}
-              </span>
+              <span className="text-slate-900">{getCategoryDropdownLabel()}</span>
               <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${categoryDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
             {categoryDropdownOpen && (
@@ -557,7 +456,6 @@ export function ExportData({ onClose }: ExportDataProps) {
             />
           </div>
 
-          {/* Sort By Dropdown */}
           <div>
             <label htmlFor="sortBy" className="block text-sm font-medium text-slate-700 mb-2">
               Sort By

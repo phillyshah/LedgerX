@@ -19,3 +19,13 @@ export interface Household {
   id: string;
   name: string;
 }
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface ImageItem {
+  file: File;
+  preview: string;
+}

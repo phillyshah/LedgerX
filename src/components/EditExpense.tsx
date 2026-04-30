@@ -1,35 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { compressImage } from '../lib/imageCompression';
-import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
+import { loadUserHouseholds, loadAllHouseholds, loadHouseholdCategories } from '../lib/queries';
+import { prepareImageItem, readImageDimensions } from '../lib/imagePicker';
+import { useReceiptScanner, applyReceiptDataToForm } from '../hooks/useReceiptScanner';
+import { ZoomableImage } from './shared/ZoomableImage';
 import { X, Upload, Camera, Loader2, Plus } from 'lucide-react';
-
-interface Expense {
-  id: string;
-  expense_date: string;
-  vendor: string | null;
-  total: number;
-  currency: string;
-  category: string | null;
-  notes: string | null;
-  transcript: string | null;
-  household_id: string;
-  image_path: string | null;
-  image_mime: string | null;
-  image_width: number | null;
-  image_height: number | null;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface Household {
-  id: string;
-  name: string;
-}
+import type { Expense, Household, Category, ImageItem } from '../types/expense';
 
 interface ExistingImage {
   id: string;
@@ -39,11 +16,6 @@ interface ExistingImage {
   image_height: number | null;
   display_order: number;
   signedUrl?: string;
-}
-
-interface NewImage {
-  file: File;
-  preview: string;
 }
 
 interface EditExpenseProps {
@@ -68,26 +40,34 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   });
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
-  const [newImages, setNewImages] = useState<NewImage[]>([]);
-  const [imageZoom, setImageZoom] = useState(1);
+  const [newImages, setNewImages] = useState<ImageItem[]>([]);
   const [zoomedImageIndex, setZoomedImageIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const { scanning, scanError, scan } = useReceiptScanner();
 
   useEffect(() => {
-    loadHouseholds();
+    if (!user) return;
+    (async () => {
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const hh = rolesData?.is_admin
+        ? await loadAllHouseholds()
+        : await loadUserHouseholds(user.id);
+      setHouseholds(hh);
+    })();
     loadExistingImages();
   }, [user]);
 
   useEffect(() => {
     if (formData.household_id) {
-      loadCategoriesForHousehold(formData.household_id);
+      loadHouseholdCategories(formData.household_id).then(setCategories);
     }
   }, [formData.household_id]);
 
   const loadExistingImages = async () => {
-    // Load from expense_images table
     const { data } = await supabase
       .from('expense_images')
       .select('id, image_path, image_mime, image_width, image_height, display_order')
@@ -95,7 +75,6 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       .order('display_order');
 
     if (data && data.length > 0) {
-      // Get signed URLs for all images
       const imagesWithUrls = await Promise.all(
         data.map(async (img) => {
           const { data: urlData } = await supabase.storage
@@ -122,101 +101,9 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     }
   };
 
-  const loadHouseholds = async () => {
-    if (!user) return;
-
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('is_admin')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const isAdmin = rolesData?.is_admin || false;
-
-    if (isAdmin) {
-      const { data } = await supabase
-        .from('households')
-        .select('id, name')
-        .order('name');
-
-      if (data) {
-        setHouseholds(data);
-      }
-    } else {
-      const { data } = await supabase
-        .from('household_members')
-        .select('household_id, households(id, name)')
-        .eq('user_id', user.id);
-
-      if (data) {
-        const hh = data
-          .map((item) => item.households)
-          .filter(Boolean) as unknown as Household[];
-        setHouseholds(hh);
-      }
-    }
-  };
-
-  const loadCategoriesForHousehold = async (householdId: string) => {
-    // Get categories assigned to this household via junction table
-    const { data: junctionData } = await supabase
-      .from('category_households')
-      .select('categories(id, name)')
-      .eq('household_id', householdId);
-
-    const junctionCats = (junctionData || [])
-      .map((r) => r.categories)
-      .filter(Boolean) as unknown as Category[];
-
-    // Also get global categories (household_id IS NULL, available to all)
-    const { data: globalCats } = await supabase
-      .from('categories')
-      .select('id, name')
-      .is('household_id', null)
-      .order('name');
-
-    // Merge junction-assigned + global, deduplicate
-    const all = [...junctionCats, ...(globalCats || [])];
-    const seen = new Set<string>();
-    const unique = all
-      .filter((c) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    setCategories(unique);
-  };
-
-  const applyReceiptData = (data: ReceiptData) => {
-    const enhanced = formatReceiptNotes(data);
-    setFormData((prev) => ({
-      ...prev,
-      vendor: data.vendor_name || prev.vendor,
-      total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
-      expense_date: data.transaction_date || prev.expense_date,
-      category: data.category || prev.category,
-      notes: enhanced
-        ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
-        : prev.notes,
-    }));
-  };
-
   const handleScanReceipt = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    setScanning(true);
-    setScanError(null);
-    try {
-      const ocrFile = await compressImage(file, 0.3, 800, 800);
-      const data = await scanReceipt(ocrFile);
-      applyReceiptData(data);
-    } catch (error) {
-      console.error('Receipt scan error:', error);
-      setScanError(error instanceof Error ? error.message : 'Failed to scan receipt');
-    } finally {
-      setScanning(false);
-    }
+    const data = await scan(file);
+    if (data) applyReceiptDataToForm(setFormData, data);
   };
 
   const handleNewImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,21 +112,12 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
 
     for (const file of Array.from(files)) {
       try {
-        let fileToUse = file;
-        if (file.type.startsWith('image/')) {
-          fileToUse = await compressImage(file, 2);
-        }
-        const preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(fileToUse);
-        });
-
-        setNewImages((prev) => [...prev, { file: fileToUse, preview }]);
+        const item = await prepareImageItem(file);
+        setNewImages((prev) => [...prev, item]);
 
         // Auto-scan first new image if no existing images
         if (existingImages.length === 0 && newImages.length === 0 && file.type.startsWith('image/')) {
-          handleScanReceipt(fileToUse);
+          handleScanReceipt(item.file);
         }
       } catch (error) {
         console.error('Error processing file:', error);
@@ -254,13 +132,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     setRemovedImageIds((prev) => [...prev, imageId]);
     setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
     setZoomedImageIndex(null);
-    setImageZoom(1);
   };
 
   const removeNewImage = (index: number) => {
     setNewImages((prev) => prev.filter((_, i) => i !== index));
     setZoomedImageIndex(null);
-    setImageZoom(1);
   };
 
   const visibleExistingImages = existingImages.filter((img) => !removedImageIds.includes(img.id));
@@ -272,7 +148,6 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     setSaving(true);
     try {
       // Delete removed images from storage and DB
-      // Use the original existingImages list (before filtering) to find paths
       for (const imgId of removedImageIds) {
         const img = existingImages.find((i) => i.id === imgId);
         if (img) {
@@ -283,7 +158,6 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
         }
       }
 
-      // Upload new images and track their metadata for primary image selection
       const nextOrder = visibleExistingImages.length;
       const uploadedNewImages: { path: string; mime: string | null; width: number | null; height: number | null }[] = [];
 
@@ -301,30 +175,18 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           continue;
         }
 
-        let w: number | null = null;
-        let h: number | null = null;
-        if (imgItem.file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = imgItem.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              w = img.width;
-              h = img.height;
-              resolve(null);
-            };
-          });
-        }
+        const dims = await readImageDimensions(imgItem);
 
         await supabase.from('expense_images').insert({
           expense_id: expense.id,
           image_path: fileName,
           image_mime: imgItem.file.type,
-          image_width: w,
-          image_height: h,
+          image_width: dims.width,
+          image_height: dims.height,
           display_order: nextOrder + i,
         });
 
-        uploadedNewImages.push({ path: fileName, mime: imgItem.file.type, width: w, height: h });
+        uploadedNewImages.push({ path: fileName, mime: imgItem.file.type, width: dims.width, height: dims.height });
       }
 
       // Update the primary image fields on the expense for backward compat
@@ -375,60 +237,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     }
   };
 
-  const renderZoomedImage = (src: string) => (
-    <div className="relative">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <button
-          type="button"
-          onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
-          className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-          title="Zoom in"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
-          className="px-2 py-1 bg-emerald-900 text-white rounded-lg"
-          title="Zoom out"
-        >
-          −
-        </button>
-        <button
-          type="button"
-          onClick={() => { setZoomedImageIndex(null); setImageZoom(1); }}
-          className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg"
-          title="Close zoom"
-        >
-          close
-        </button>
-      </div>
-      <div
-        className="max-h-64 overflow-auto"
-        onWheel={(e) => {
-          if (e.ctrlKey) {
-            e.preventDefault();
-            setImageZoom((z) => {
-              const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-              return Math.min(3, Math.max(0.5, next));
-            });
-          }
-        }}
-      >
-        <img
-          src={src}
-          alt="Zoomed receipt"
-          style={{
-            transform: `scale(${imageZoom})`,
-            transformOrigin: 'center center',
-            width: '100%',
-            height: 'auto',
-          }}
-          className="mx-auto rounded-lg"
-        />
-      </div>
-    </div>
-  );
+  const zoomedSrc = zoomedImageIndex == null
+    ? null
+    : zoomedImageIndex < visibleExistingImages.length
+      ? visibleExistingImages[zoomedImageIndex].signedUrl ?? null
+      : newImages[zoomedImageIndex - visibleExistingImages.length].preview;
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
@@ -580,27 +393,24 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
               )}
             </label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-slate-300 transition-all">
-              {/* Zoomed view */}
-              {zoomedImageIndex !== null && (
+              {zoomedSrc && (
                 <div className="mb-4">
-                  {zoomedImageIndex < visibleExistingImages.length ? (
-                    visibleExistingImages[zoomedImageIndex].signedUrl &&
-                    renderZoomedImage(visibleExistingImages[zoomedImageIndex].signedUrl!)
-                  ) : (
-                    renderZoomedImage(newImages[zoomedImageIndex - visibleExistingImages.length].preview)
-                  )}
+                  <ZoomableImage
+                    src={zoomedSrc}
+                    alt="Zoomed receipt"
+                    onClose={() => setZoomedImageIndex(null)}
+                  />
                 </div>
               )}
 
               {totalImages > 0 ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {/* Existing images */}
                     {visibleExistingImages.map((img, index) => (
                       <div
                         key={img.id}
                         className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
-                        onClick={() => { setZoomedImageIndex(index); setImageZoom(1); }}
+                        onClick={() => setZoomedImageIndex(index)}
                       >
                         {img.signedUrl ? (
                           <img src={img.signedUrl} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
@@ -624,12 +434,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                       </div>
                     ))}
 
-                    {/* New images */}
                     {newImages.map((img, index) => (
                       <div
                         key={`new-${index}`}
                         className="relative group rounded-lg overflow-hidden border border-slate-200 cursor-pointer"
-                        onClick={() => { setZoomedImageIndex(visibleExistingImages.length + index); setImageZoom(1); }}
+                        onClick={() => setZoomedImageIndex(visibleExistingImages.length + index)}
                       >
                         <img src={img.preview} alt={`New receipt ${index + 1}`} className="w-full h-32 object-cover" />
                         <button
@@ -645,7 +454,6 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                       </div>
                     ))}
 
-                    {/* Add more button */}
                     <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all">
                       <Plus className="w-6 h-6 text-slate-400" />
                       <span className="text-xs text-slate-400 mt-1">Add more</span>
