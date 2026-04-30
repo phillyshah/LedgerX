@@ -45,6 +45,8 @@
   "auth.backToSignIn": "Voltar para Entrar",
   "auth.sendResetLink": "Enviar Link de Redefinição",
   "auth.needHelp": "Precisa de ajuda para começar?",
+  "auth.whatsNew": "Veja o que há de novo no LedgerX",
+  "auth.whatsNewBadge": "Recém lançado",
   "auth.resetNoEmail": "Nenhum e-mail cadastrado para esta conta. Contate um administrador para redefinir sua senha.",
   "auth.resetSent": "Se existir uma conta com esse usuário e e-mail cadastrado, um link de redefinição foi enviado.",
   "auth.error.generic": "Ocorreu um erro",

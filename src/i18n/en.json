@@ -45,6 +45,8 @@
   "auth.backToSignIn": "Back to Sign In",
   "auth.sendResetLink": "Send Reset Link",
   "auth.needHelp": "Need help getting started?",
+  "auth.whatsNew": "See what's new in LedgerX",
+  "auth.whatsNewBadge": "Just shipped",
   "auth.resetNoEmail": "No email on file for this account. Contact an admin to reset your password.",
   "auth.resetSent": "If an account with that username has an email on file, a reset link has been sent.",
   "auth.error.generic": "An error occurred",

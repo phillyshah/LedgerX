@@ -33,6 +33,29 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v6.9',
+    version: 'v6.9',
+    date: '2026-04-30',
+    title: {
+      'en': "What's New on the login screen",
+      'pt-BR': 'Novidades na tela de login',
+    },
+    body: {
+      'en':
+        "You no longer need to sign in to see what's been shipped. The new " +
+        "\"See what's new\" button on the login screen shows the two most " +
+        "recent updates — readable by anyone, no account needed. We also " +
+        "tightened up TypeScript types across the board so the app is more " +
+        "reliable under the hood.",
+      'pt-BR':
+        'Você não precisa mais entrar para ver o que foi lançado. O novo ' +
+        'botão "Veja o que há de novo" na tela de login exibe as duas ' +
+        'atualizações mais recentes — visível para qualquer pessoa, sem ' +
+        'conta. Também ajustamos os tipos TypeScript em todo o app para ' +
+        'maior confiabilidade.',
+    },
+  },
+  {
     id: 'v6.8',
     version: 'v6.8',
     date: '2026-04-29',
