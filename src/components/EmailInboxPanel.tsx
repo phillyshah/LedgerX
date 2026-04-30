@@ -18,10 +18,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Mail, Trash2, FileText, ChevronDown, ChevronUp, Plus, X, Check, Loader2, ExternalLink } from 'lucide-react';
-import { useEmailInbox, useSenderEmails, type InboxItem } from '../hooks/useEmailInbox';
+import { Mail, FileText, X, Loader2, ExternalLink } from 'lucide-react';
+import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
 import { supabase } from '../lib/supabase';
 import { useT } from '../hooks/useT';
+export type { InboxItem } from '../hooks/useEmailInbox';
 
 // ── Attachment preview ────────────────────────────────────────────────────────
 function AttachmentThumb({ path }: { path: string }) {
@@ -173,104 +174,6 @@ function InboxCard({
   );
 }
 
-// ── Sender email manager ──────────────────────────────────────────────────────
-function SenderEmailManager({ t }: { t: (k: string) => string }) {
-  const [open, setOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [newLabel, setNewLabel] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState('');
-  const [refresh, setRefresh] = useState(0);
-  const { emails, add, remove } = useSenderEmails(refresh);
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEmail.trim()) return;
-    setAdding(true);
-    setAddError('');
-    const err = await add(newEmail, newLabel);
-    setAdding(false);
-    if (err) {
-      setAddError(err.message.includes('unique') ? t('inbox.senderDuplicate') : err.message);
-    } else {
-      setNewEmail('');
-      setNewLabel('');
-      setRefresh(r => r + 1);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
-      >
-        <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
-        <span className="flex-1 text-left text-sm font-semibold text-slate-700">
-          {t('inbox.senderEmailsTitle')}
-        </span>
-        <span className="text-xs text-slate-400 mr-1">{emails.length} {t('inbox.registered')}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-3">
-          <p className="text-xs text-slate-500 leading-relaxed">
-            {t('inbox.senderEmailsHelp')}
-          </p>
-
-          {emails.length > 0 && (
-            <ul className="space-y-1.5">
-              {emails.map(se => (
-                <li key={se.id} className="flex items-center gap-2 text-sm bg-slate-50 rounded-lg px-3 py-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                  <span className="flex-1 font-medium text-slate-700 truncate">{se.email}</span>
-                  {se.label && <span className="text-xs text-slate-400 italic">{se.label}</span>}
-                  <button
-                    onClick={() => remove(se.id)}
-                    className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <form onSubmit={handleAdd} className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={newEmail}
-                onChange={e => setNewEmail(e.target.value)}
-                placeholder={t('inbox.senderEmailPlaceholder')}
-                className="flex-1 min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-              <input
-                type="text"
-                value={newLabel}
-                onChange={e => setNewLabel(e.target.value)}
-                placeholder={t('inbox.senderLabelPlaceholder')}
-                className="w-24 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            {addError && <p className="text-xs text-red-600">{addError}</p>}
-            <button
-              type="submit"
-              disabled={adding || !newEmail.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
-            >
-              {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {t('inbox.addSender')}
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main panel ────────────────────────────────────────────────────────────────
 interface Props {
   /** Called when the user wants to open AddExpense pre-filled from an inbox item */
@@ -297,40 +200,33 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
     setRefresh(r => r + 1);
   };
 
-  // Don't render the panel at all when there's nothing pending and sender emails section is also hidden
-  const showPanel = items.length > 0 || true; // always show sender email manager
-  if (!showPanel) return null;
+  // Only render when there are pending items
+  if (!loading && items.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Pending inbox items */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Mail className="w-4 h-4 text-emerald-600" />
+        <h3 className="text-sm font-semibold text-slate-700">
+          {t('inbox.pendingTitle')}{items.length > 0 ? ` (${items.length})` : ''}
+        </h3>
+      </div>
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           {t('common.loading')}
         </div>
-      ) : items.length > 0 ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-sm font-semibold text-slate-700">
-              {t('inbox.pendingTitle')} ({items.length})
-            </h3>
-          </div>
-          {items.map(item => (
-            <InboxCard
-              key={item.id}
-              item={item}
-              onDiscard={handleDiscard}
-              onOpenForm={handleOpenForm}
-              t={t}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {/* Sender email manager — always visible */}
-      <SenderEmailManager t={t} />
+      ) : (
+        items.map(item => (
+          <InboxCard
+            key={item.id}
+            item={item}
+            onDiscard={handleDiscard}
+            onOpenForm={handleOpenForm}
+            t={t}
+          />
+        ))
+      )}
     </div>
   );
 }

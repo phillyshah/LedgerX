@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, Eye, EyeOff, Mail, Lock, User, Languages } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Trash2, Check, Loader2 } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { LANGUAGES, type Language } from '../i18n';
+import { useSenderEmails } from '../hooks/useEmailInbox';
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -25,6 +26,12 @@ export function UserSettings({ onClose }: UserSettingsProps) {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [senderRefresh, setSenderRefresh] = useState(0);
+  const { emails: senderEmails, add: addSender, remove: removeSender } = useSenderEmails(senderRefresh);
+  const [newSenderEmail, setNewSenderEmail] = useState('');
+  const [newSenderLabel, setNewSenderLabel] = useState('');
+  const [senderAdding, setSenderAdding] = useState(false);
+  const [senderError, setSenderError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -248,6 +255,82 @@ export function UserSettings({ onClose }: UserSettingsProps) {
                 </button>
               </form>
             </div>
+
+
+            {/* ── Email Forwarding ── */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Mail className="w-5 h-5 text-slate-600" />
+                <h3 className="text-lg font-semibold text-slate-900">{t('inbox.senderEmailsTitle')}</h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">{t('inbox.senderEmailsHelp')}</p>
+
+              {senderEmails.length > 0 && (
+                <ul className="space-y-1.5 mb-3">
+                  {senderEmails.map(se => (
+                    <li key={se.id} className="flex items-center gap-2 text-sm bg-slate-50 rounded-xl px-3 py-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                      <span className="flex-1 font-medium text-slate-700 truncate">{se.email}</span>
+                      {se.label && <span className="text-xs text-slate-400 italic">{se.label}</span>}
+                      <button
+                        onClick={async () => { await removeSender(se.id); setSenderRefresh(r => r + 1); }}
+                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title={t('inbox.discard')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!newSenderEmail.trim()) return;
+                  setSenderAdding(true);
+                  setSenderError('');
+                  const err = await addSender(newSenderEmail, newSenderLabel);
+                  setSenderAdding(false);
+                  if (err) {
+                    setSenderError(err.message.includes('unique') ? t('inbox.senderDuplicate') : err.message);
+                  } else {
+                    setNewSenderEmail('');
+                    setNewSenderLabel('');
+                    setSenderRefresh(r => r + 1);
+                  }
+                }}
+                className="space-y-2"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={newSenderEmail}
+                    onChange={e => setNewSenderEmail(e.target.value)}
+                    placeholder={t('inbox.senderEmailPlaceholder')}
+                    className="flex-1 min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={newSenderLabel}
+                    onChange={e => setNewSenderLabel(e.target.value)}
+                    placeholder={t('inbox.senderLabelPlaceholder')}
+                    className="w-28 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                  />
+                </div>
+                {senderError && <p className="text-xs text-red-600">{senderError}</p>}
+                <button
+                  type="submit"
+                  disabled={senderAdding || !newSenderEmail.trim()}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                >
+                  {senderAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {t('inbox.addSender')}
+                </button>
+              </form>
+            </div>
+
           </div>
         )}
       </div>

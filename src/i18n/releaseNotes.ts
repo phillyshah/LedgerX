@@ -33,6 +33,32 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.1',
+    version: 'v7.1',
+    date: '2026-04-30',
+    title: {
+      'en': 'Forward receipts by email',
+      'pt-BR': 'Encaminhe recibos por e-mail',
+    },
+    body: {
+      'en':
+        "You can now forward any receipt or invoice email straight to " +
+        "receipts@90ten.life and it will appear in your dashboard for review. " +
+        "Go to Settings → Email Forwarding to register the address(es) you'll " +
+        "send from. The system OCR-reads attachments and pre-fills the form — " +
+        "just check the details and hit Accept. Unrecognised senders are " +
+        "silently ignored, so only your registered addresses land in your inbox.",
+      'pt-BR':
+        'Agora você pode encaminhar qualquer recibo ou nota fiscal para ' +
+        'receipts@90ten.life e ele aparecerá no seu painel para revisão. ' +
+        'Vá em Configurações → Encaminhamento por E-mail para registrar os ' +
+        'endereços a partir dos quais você enviará. O sistema lê os anexos ' +
+        'com OCR e preenche o formulário automaticamente — basta conferir ' +
+        'os dados e clicar em Aceitar. Remetentes não reconhecidos são ' +
+        'ignorados silenciosamente.',
+    },
+  },
+  {
     id: 'v6.9',
     version: 'v6.9',
     date: '2026-04-30',
