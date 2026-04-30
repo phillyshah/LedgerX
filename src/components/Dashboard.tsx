@@ -1,27 +1,36 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useExpenses } from '../hooks/useExpenses';
 import { useInvoices } from '../hooks/useInvoices';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
-import { AddExpense, type AddExpenseInitialData } from './AddExpense';
-import { InvoiceForm, type InvoiceFormInitialData } from './InvoiceForm';
+import type { AddExpenseInitialData } from './AddExpense';
+import type { InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
-import { ExportData } from './ExportData';
-import { Reports } from './Reports';
 import { LogOut, Plus, Download, FileText, Settings, HelpCircle } from 'lucide-react';
-import { UserSettings } from './UserSettings';
 import { LogoText } from './LogoText';
-import { SpendingCharts } from './SpendingCharts';
-import { HelpModal } from './HelpModal';
 import { BellButton } from './BellButton';
-import { WhatsNewModal } from './WhatsNewModal';
 import { EmailInboxPanel } from './EmailInboxPanel';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
 import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react';
 import { APP_VERSION } from '../version';
+
+// Modals + heavy chart bundles only mount on user action, so lazy-loading
+// keeps them out of the initial Dashboard chunk.
+const AddExpense = lazy(() => import('./AddExpense').then((m) => ({ default: m.AddExpense })));
+const InvoiceForm = lazy(() => import('./InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
+const ExportData = lazy(() => import('./ExportData').then((m) => ({ default: m.ExportData })));
+const Reports = lazy(() => import('./Reports').then((m) => ({ default: m.Reports })));
+const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default: m.UserSettings })));
+const HelpModal = lazy(() => import('./HelpModal').then((m) => ({ default: m.HelpModal })));
+const WhatsNewModal = lazy(() => import('./WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
+const SpendingCharts = lazy(() => import('./SpendingCharts').then((m) => ({ default: m.SpendingCharts })));
+
+function ChartsSkeleton() {
+  return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
+}
 
 export function Dashboard() {
   const { signOut, isContractor } = useAuth();
@@ -216,23 +225,25 @@ export function Dashboard() {
           </CollapsibleSection>
         </main>
 
-        {showAddExpense && (
-          <AddExpense
-            onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
-            onSaved={handleExpenseAdded}
-            initialData={expenseInitialData}
-          />
-        )}
-        {showInvoiceForm && (
-          <InvoiceForm
-            onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); }}
-            onSaved={reloadInvoices}
-            initialData={invoiceInitialData}
-          />
-        )}
-        {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
-        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+        <Suspense fallback={null}>
+          {showAddExpense && (
+            <AddExpense
+              onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
+              onSaved={handleExpenseAdded}
+              initialData={expenseInitialData}
+            />
+          )}
+          {showInvoiceForm && (
+            <InvoiceForm
+              onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); }}
+              onSaved={reloadInvoices}
+              initialData={invoiceInitialData}
+            />
+          )}
+          {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
+          {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+          {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+        </Suspense>
       </div>
     );
   }
@@ -302,7 +313,9 @@ export function Dashboard() {
             title={t('dashboard.chartsTitle')}
             icon={<BarChart3 className="w-4 h-4" />}
           >
-            <SpendingCharts expenses={expenses} loading={loading} />
+            <Suspense fallback={<ChartsSkeleton />}>
+              <SpendingCharts expenses={expenses} loading={loading} />
+            </Suspense>
           </CollapsibleSection>
 
           <CollapsibleSection
@@ -322,33 +335,25 @@ export function Dashboard() {
         </div>
       </main>
 
-      {showAddExpense && (
-        <AddExpense
-          onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
-          onSaved={handleExpenseAdded}
-          initialData={expenseInitialData}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showAddExpense && (
+          <AddExpense
+            onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
+            onSaved={handleExpenseAdded}
+            initialData={expenseInitialData}
+          />
+        )}
 
-      {showExport && (
-        <ExportData onClose={() => setShowExport(false)} />
-      )}
+        {showExport && <ExportData onClose={() => setShowExport(false)} />}
 
-      {showReports && (
-        <Reports onClose={() => setShowReports(false)} />
-      )}
+        {showReports && <Reports onClose={() => setShowReports(false)} />}
 
-      {showSettings && (
-        <UserSettings onClose={() => setShowSettings(false)} />
-      )}
+        {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
 
-      {showHelp && (
-        <HelpModal onClose={() => setShowHelp(false)} />
-      )}
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
 
-      {showWhatsNew && (
-        <WhatsNewModal onClose={() => setShowWhatsNew(false)} />
-      )}
+        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+      </Suspense>
     </div>
   );
 }
