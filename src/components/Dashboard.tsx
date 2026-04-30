@@ -15,6 +15,8 @@ import { UserSettings } from './UserSettings';
 import { LogoText } from './LogoText';
 import { SpendingCharts } from './SpendingCharts';
 import { HelpModal } from './HelpModal';
+import { BellButton } from './BellButton';
+import { WhatsNewModal } from './WhatsNewModal';
 import { APP_VERSION } from '../version';
 
 export function Dashboard() {
@@ -26,6 +28,7 @@ export function Dashboard() {
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   // Regular users and contractors only ever see receipts they personally
   // submitted — no commingling with other household members. Admins and
@@ -68,6 +71,7 @@ export function Dashboard() {
       <span className="hidden md:inline text-xs text-slate-400 font-medium pr-2 border-r border-slate-200 mr-1">
         {APP_VERSION}
       </span>
+      <BellButton onClick={() => setShowWhatsNew(true)} />
       <button
         onClick={() => setShowHelp(true)}
         className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
@@ -163,6 +167,7 @@ export function Dashboard() {
         )}
         {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       </div>
     );
   }
@@ -239,6 +244,10 @@ export function Dashboard() {
 
       {showHelp && (
         <HelpModal onClose={() => setShowHelp(false)} />
+      )}
+
+      {showWhatsNew && (
+        <WhatsNewModal onClose={() => setShowWhatsNew(false)} />
       )}
     </div>
   );

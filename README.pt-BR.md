@@ -242,6 +242,23 @@ Os resultados vêm do registro público CMS NPPES. O botão fica oculto em resid
 
 ---
 
+## Novidades (Ícone do Sino)
+<!-- roles: contractor, member, admin -->
+
+Um **ícone de sino** fica no topo direito de cada página (e na base da
+barra lateral admin no desktop). Toque para ver o que foi lançado
+recentemente — versão, data e uma breve descrição de cada release.
+
+O sino fica **âmbar com um pequeno ponto vermelho** quando há novidades
+não lidas. Abrir o painel limpa o ponto. O estado de leitura é por
+navegador/dispositivo, portanto entrar pelo celular após ler no laptop
+mostra o ponto brevemente novamente até você tocar no sino lá também.
+
+Usamos isso para mantê-lo informado conforme novos recursos forem
+lançados — sem mais atualizações silenciosas.
+
+---
+
 ## Configurações da Conta
 <!-- roles: contractor, member, admin -->
 

@@ -12,10 +12,14 @@ import { AddExpense } from '../AddExpense';
 import { InvoiceForm } from '../InvoiceForm';
 import { ExpenseList } from '../ExpenseList';
 import { HelpModal } from '../HelpModal';
+import { BellButton } from '../BellButton';
+import { WhatsNewModal } from '../WhatsNewModal';
 import { APP_VERSION } from '../../version';
 import { LogoText } from '../LogoText';
 import { useExpenses } from '../../hooks/useExpenses';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt } from 'lucide-react';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt, Bell } from 'lucide-react';
+import { hasUnreadReleases, LAST_SEEN_KEY } from '../../i18n/releaseNotes';
+import { useEffect } from 'react';
 
 type AdminView = 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports' | 'my-transactions';
 // Analytics and Reports are launched as modal overlays from the nav, not as
@@ -40,6 +44,21 @@ export function AdminLayout() {
   const [showReports, setShowReports] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  // Mirror the bell's unread state into the sidebar "What's New" row so
+  // both surfaces light up in sync. We watch storage events the same way
+  // BellButton does — that keeps the dot reactive across tabs.
+  const [hasUnread, setHasUnread] = useState<boolean>(() => hasUnreadReleases());
+  useEffect(() => {
+    const refresh = () => setHasUnread(hasUnreadReleases());
+    const onStorage = (e: StorageEvent) => { if (e.key === LAST_SEEN_KEY) refresh(); };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [showWhatsNew]); // re-run after closing the modal so the dot clears
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   // Household admins (and full admins) get the same self-submission flows
@@ -116,6 +135,7 @@ export function AdminLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <BellButton onClick={() => setShowWhatsNew(true)} dark compact />
             <button
               onClick={() => setShowHelp(true)}
               className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
@@ -197,6 +217,20 @@ export function AdminLayout() {
 
         <div className="p-4 border-t border-emerald-800 space-y-1">
           <button
+            onClick={() => setShowWhatsNew(true)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              hasUnread
+                ? 'text-amber-300 hover:text-amber-200 hover:bg-emerald-800'
+                : 'text-emerald-200 hover:text-white hover:bg-emerald-800'
+            }`}
+          >
+            <Bell className="w-4.5 h-4.5" />
+            <span>{t('whatsNew.title')}</span>
+            {hasUnread && (
+              <span className="ml-auto w-2 h-2 rounded-full bg-red-500" aria-hidden="true" />
+            )}
+          </button>
+          <button
             onClick={() => setShowHelp(true)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
           >
@@ -268,6 +302,7 @@ export function AdminLayout() {
       {showReports && <Reports onClose={() => setShowReports(false)} />}
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       {showAddExpense && (
         <AddExpense onClose={() => setShowAddExpense(false)} onSaved={reloadExpenses} />
       )}

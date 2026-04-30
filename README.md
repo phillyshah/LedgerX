@@ -246,6 +246,24 @@ Results come from the public CMS NPPES registry. The button is hidden for househ
 
 ---
 
+## What's New (Bell Icon)
+<!-- roles: contractor, member, admin -->
+
+A **bell icon** lives in the top-right of every page (and at the bottom
+of the admin sidebar on desktop). Tap it to see what's been shipped
+recently — version, date, and a short description of each release.
+
+The bell turns **amber with a small red dot** when there's a release you
+haven't read. Opening the panel clears the dot. Read state is per
+browser/device, so signing in on your phone after reading on your
+laptop will briefly show the dot again until you tap the bell there
+too.
+
+We use this to keep you in the loop as features ship — no more silent
+updates.
+
+---
+
 ## Account Settings
 <!-- roles: contractor, member, admin -->
 
