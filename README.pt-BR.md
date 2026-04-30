@@ -134,6 +134,31 @@ serviço, data de vencimento etc.).
 
 ---
 
+## Mapeamento Fornecedor → Categoria (Catálogo de Fornecedores)
+<!-- roles: contractor, member, admin -->
+
+Ao digitar um nome de fornecedor em **Adicionar Transação**, o campo se
+completa automaticamente a partir de um catálogo compartilhado. Duas
+fontes preenchem esse catálogo:
+
+1. **Entradas aprendidas automaticamente** — cada vez que alguém da sua
+   residência salva uma despesa com fornecedor e categoria, o par é
+   memoizado para aquela residência. Da próxima vez que alguém digitar o
+   mesmo fornecedor, a categoria é preenchida.
+2. **Globais curados por admin** — o administrador pode pré-carregar
+   fornecedores comuns (Home Depot → Manutenção, Comcast → Utilidades,
+   etc.) que valem em todas as residências. Globais cobrem o caso do
+   dia 1, antes de uma residência acumular histórico.
+
+A entrada específica da residência sempre vence sobre a global.
+
+**Administradores** gerenciam o catálogo em **Fornecedores** no menu
+admin — adicionar mapeamentos, editar categorias, excluir entradas
+ruins, ou **promover** uma entrada de residência a global com um clique.
+A página tem busca e filtro de escopo (Todos / Global / Residência).
+
+---
+
 ## Visualizar, Editar e Pesquisar Transações
 <!-- roles: contractor, member, admin -->
 

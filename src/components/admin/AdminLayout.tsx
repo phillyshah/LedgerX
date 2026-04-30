@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ManageHouseholds } from './ManageHouseholds';
 import { ManageCategories } from './ManageCategories';
+import { ManageVendors } from './ManageVendors';
 import { AdminAnalytics } from './AdminAnalytics';
 import { UncategorizedTransactions } from './UncategorizedTransactions';
 import { ManageUsers } from './ManageUsers';
@@ -17,11 +18,11 @@ import { WhatsNewModal } from '../WhatsNewModal';
 import { APP_VERSION } from '../../version';
 import { LogoText } from '../LogoText';
 import { useExpenses } from '../../hooks/useExpenses';
-import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt, Bell } from 'lucide-react';
+import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt, Bell, Store } from 'lucide-react';
 import { hasUnreadReleases, LAST_SEEN_KEY } from '../../i18n/releaseNotes';
 import { useEffect } from 'react';
 
-type AdminView = 'households' | 'categories' | 'uncategorized' | 'users' | 'invoices' | 'reports' | 'my-transactions';
+type AdminView = 'households' | 'categories' | 'vendors' | 'uncategorized' | 'users' | 'invoices' | 'reports' | 'my-transactions';
 // Analytics and Reports are launched as modal overlays from the nav, not as
 // inline views — keeps the underlying base view (Invoices for HAs) intact.
 type AdminNavKey = AdminView | 'analytics';
@@ -77,6 +78,7 @@ export function AdminLayout() {
   const adminItems: { key: AdminNavKey; label: string; icon: typeof BarChart3; adminOnly?: boolean }[] = [
     { key: 'households', label: t('admin.manageHouseholds'), icon: Home, adminOnly: true },
     { key: 'categories', label: t('admin.manageCategories'), icon: Tag, adminOnly: true },
+    { key: 'vendors', label: t('admin.manageVendors'), icon: Store, adminOnly: true },
     { key: 'uncategorized', label: t('admin.uncategorized'), icon: AlertCircle, adminOnly: true },
     { key: 'users', label: t('admin.manageUsers'), icon: Users, adminOnly: true },
     { key: 'invoices', label: t('admin.contractorInvoices'), icon: HardHat },
@@ -282,6 +284,7 @@ export function AdminLayout() {
           )}
           {activeView === 'households' && <ManageHouseholds />}
           {activeView === 'categories' && <ManageCategories />}
+          {activeView === 'vendors' && <ManageVendors />}
           {activeView === 'uncategorized' && <UncategorizedTransactions />}
           {activeView === 'users' && <ManageUsers />}
           {activeView === 'invoices' && <AdminInvoices />}

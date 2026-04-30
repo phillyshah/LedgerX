@@ -138,6 +138,30 @@ date, etc.).
 
 ---
 
+## Vendor → Category Mapping (Vendor Catalog)
+<!-- roles: contractor, member, admin -->
+
+When you type a vendor name on **Add Transaction**, the field
+autocompletes from a shared catalog. Two things populate that catalog:
+
+1. **Auto-learned entries** — every time anyone in your household saves
+   an expense with a vendor and category, the pair gets memoized for
+   that household. Next time someone types the same vendor, the
+   category snaps in.
+2. **Admin-curated globals** — the platform admin can pre-load common
+   vendors (Home Depot → Maintenance, Comcast → Utilities, etc.) that
+   apply across every household. Globals fill the gap on day one,
+   before a household has any history.
+
+The household-specific entry always wins over the global if both exist.
+
+**Admins** manage the catalog from **Manage Vendors** in the admin nav
+— add new mappings, edit categories, delete bad entries, or **promote**
+a household-specific entry to a global with one click. The page also
+shows a search field and a scope filter (All / Global / Household).
+
+---
+
 ## Viewing Editing & Searching Transactions
 <!-- roles: contractor, member, admin -->
 

@@ -4,6 +4,7 @@ import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
+import { useVendorCatalog, uniqueVendorNames } from '../hooks/useVendorCatalog';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 
@@ -33,6 +34,11 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const { t } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // Vendor catalog (globals + this user's household entries) drives the
+  // autocomplete on the vendor input. Picking a known vendor immediately
+  // triggers the existing useEffect that calls lookupVendorCategory and
+  // auto-fills the category.
+  const { vendors: vendorCatalog } = useVendorCatalog();
   const [formData, setFormData] = useState({
     household_id: '',
     expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
@@ -123,18 +129,35 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   };
 
   const lookupVendorCategory = async (vendor: string, householdId: string) => {
-    const { data } = await supabase
+    // Try the household-scoped mapping first; fall back to the
+    // admin-curated global catalog if there's no household entry. This
+    // lets a brand-new household member pick "Home Depot" and get
+    // "Maintenance" auto-filled on day one — even before that household
+    // has any prior expenses to memoize from.
+    const { data: scoped } = await supabase
       .from('vendor_category_map')
       .select('category_name')
       .eq('household_id', householdId)
       .ilike('vendor_name', vendor)
       .maybeSingle();
 
-    if (data?.category_name) {
+    let categoryName = scoped?.category_name as string | undefined;
+
+    if (!categoryName) {
+      const { data: global } = await supabase
+        .from('vendor_category_map')
+        .select('category_name')
+        .is('household_id', null)
+        .ilike('vendor_name', vendor)
+        .maybeSingle();
+      categoryName = global?.category_name as string | undefined;
+    }
+
+    if (categoryName) {
       // Only auto-fill if the category is valid for this household
-      const isValid = categories.some((c) => c.name === data.category_name);
+      const isValid = categories.some((c) => c.name === categoryName);
       if (isValid) {
-        setFormData((prev) => ({ ...prev, category: data.category_name }));
+        setFormData((prev) => ({ ...prev, category: categoryName! }));
         setCategoryAutoFilled(true);
       }
     }
@@ -503,11 +526,17 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
             <input
               id="vendor"
               type="text"
+              list="addexpense-vendors"
               value={formData.vendor}
               onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
               placeholder={t('addExpense.vendorPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
             />
+            <datalist id="addexpense-vendors">
+              {uniqueVendorNames(vendorCatalog).map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
           </div>
 
           <div>

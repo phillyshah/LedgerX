@@ -33,6 +33,30 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v6.6',
+    version: 'v6.6',
+    date: '2026-04-29',
+    title: {
+      'en': 'Vendor catalog with auto-fill',
+      'pt-BR': 'Catálogo de fornecedores com preenchimento automático',
+    },
+    body: {
+      'en':
+        "When you type a vendor name on Add Transaction, the field now " +
+        "autocompletes from a shared catalog — vendors you've used before " +
+        "plus globals an admin set up. Picking a known vendor auto-fills " +
+        "the category. Admins can curate the global catalog (and any " +
+        "household-specific overrides) under Manage Vendors in the admin nav.",
+      'pt-BR':
+        'Ao digitar um fornecedor em Adicionar Transação, o campo agora ' +
+        'se completa automaticamente a partir de um catálogo compartilhado ' +
+        '— fornecedores que você já usou mais os globais que o admin ' +
+        'configurou. Escolher um fornecedor conhecido preenche a ' +
+        'categoria. Administradores gerenciam o catálogo global (e ' +
+        'sobrescritas por residência) em Fornecedores no menu admin.',
+    },
+  },
+  {
     id: 'v6.5',
     version: 'v6.5',
     date: '2026-04-29',
