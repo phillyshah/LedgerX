@@ -3,28 +3,32 @@ import { pdfFirstPageToJpeg } from './pdfToImage';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+/**
+ * Lean receipt OCR result. Receipt extraction intentionally returns only
+ * the four fields needed to pin a receipt to a transaction — itemized
+ * contents, tax, tip, payment method, and amount-heuristic categories were
+ * dropped (see extract-receipt edge function comment for rationale).
+ *
+ * Category auto-fill is owned by the vendor catalog (vendor_category_map)
+ * via lookupVendorCategory in AddExpense.tsx — not by OCR guesses.
+ *
+ * Invoice OCR (scanInvoice) intentionally remains full-detail.
+ */
 export interface ReceiptData {
   vendor_name: string | null;
   total_amount: number | null;
   transaction_date: string | null;
-  category: string | null;
   handwritten_notes: string | null;
-  tax_amount: number | null;
-  tip_amount: number | null;
-  payment_method: string | null;
-  items_summary: string | null;
 }
 
+/**
+ * Builds the auto-appended notes string from OCR. With the lean schema this
+ * is now just the handwritten-notes pass-through — but we keep it as a
+ * function so the call site in AddExpense.tsx doesn't need to know whether
+ * it's appending one field or many.
+ */
 export function formatReceiptNotes(data: ReceiptData): string {
-  const lines: string[] = [];
-  if (data.tax_amount != null) lines.push(`Tax: $${data.tax_amount.toFixed(2)}`);
-  if (data.tip_amount != null) lines.push(`Tip: $${data.tip_amount.toFixed(2)}`);
-  if (data.payment_method) {
-    lines.push(`Payment: ${data.payment_method.charAt(0).toUpperCase() + data.payment_method.slice(1)}`);
-  }
-  if (data.items_summary) lines.push(`Items: ${data.items_summary}`);
-  if (data.handwritten_notes) lines.push(`[Handwritten] ${data.handwritten_notes}`);
-  return lines.join('\n');
+  return data.handwritten_notes ? `[Handwritten] ${data.handwritten_notes}` : '';
 }
 
 /**

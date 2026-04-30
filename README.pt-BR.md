@@ -114,9 +114,16 @@ O LedgerX pode ler seu recibo e preencher o formulário automaticamente.
    - Nome do fornecedor
    - Valor total
    - Data
-   - Categoria
-   - Impostos, gorjeta, forma de pagamento e resumo dos itens (quando visíveis)
+   - Quaisquer anotações manuscritas no recibo
 3. Revise os campos preenchidos e ajuste o que a leitura não captou.
+
+A leitura de recibos foi simplificada para esses quatro campos — não
+tenta detalhar itens, impostos, gorjeta ou forma de pagamento. A
+categoria é preenchida automaticamente com base no fornecedor (veja
+**Mapeamento Fornecedor → Categoria**), evitando confirmar palpites do
+OCR. Notas fiscais funcionam de forma diferente — enviar uma nota
+fiscal continua extraindo o conjunto completo (número, período de
+serviço, data de vencimento etc.).
 
 ### Dicas para melhores resultados
 

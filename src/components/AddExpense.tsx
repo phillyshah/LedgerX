@@ -151,13 +151,17 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   };
 
   const applyReceiptData = (data: ReceiptData) => {
+    // Lean OCR returns only vendor / total / date / handwritten notes.
+    // Category is intentionally NOT pulled from OCR — vendor-catalog
+    // lookup owns that. The existing useEffect that watches `formData.vendor`
+    // will fire lookupVendorCategory automatically once setFormData below
+    // updates the vendor, so no direct call is needed here.
     const enhanced = formatReceiptNotes(data);
     setFormData((prev) => ({
       ...prev,
       vendor: data.vendor_name || prev.vendor,
       total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
       expense_date: data.transaction_date || prev.expense_date,
-      category: data.category || prev.category,
       notes: enhanced
         ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
         : prev.notes,

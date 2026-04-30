@@ -118,9 +118,16 @@ LedgerX can read your receipt and fill in the form automatically.
    - Vendor name
    - Total amount
    - Date
-   - Category
-   - Tax, tip, payment method, and itemized summary (when visible)
+   - Any handwritten notes on the receipt
 3. Review the auto-filled fields and adjust anything the scan missed.
+
+The receipt scanner deliberately stays focused on these four fields — it
+won't try to itemize what was eaten or break out tax, tip, or payment
+method. Category is auto-filled separately based on the vendor (see
+**Vendor → Category mapping**), so you don't have to confirm a category
+the OCR guessed. Invoices are different — uploading an invoice still
+extracts the full set of invoice fields (number, service period, due
+date, etc.).
 
 ### Tips for best results
 

@@ -7,23 +7,24 @@ const corsHeaders = {
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// Lean receipt OCR — extract only what's truly necessary.
+// Per product direction: receipts don't need itemized contents, tax/tip
+// breakdown, payment method, or category guesses. Those add OpenAI tokens
+// and force users to verify fields they don't care about. Vendor + total +
+// date pin the receipt to a transaction; handwritten notes capture context
+// the user added by hand. The form's vendor catalog (separate feature) now
+// owns category auto-fill, so the model doesn't need to guess.
+//
+// Note: invoice OCR (extract-invoice) intentionally remains full-detail —
+// invoices are higher-stakes and benefit from extracting service period,
+// invoice number, due date, and a description.
 const PROMPT = `Analyze this receipt image and extract the following fields as json:
 - vendor_name: the store or business name
 - total_amount: the total amount as a number (float with decimal precision, e.g. 42.50)
 - transaction_date: the date in YYYY-MM-DD format
-- category: one of "airfare", "car_rental", "parking_tolls_taxi", "lodging", "personal_meals", "business_meals", "other"
 - handwritten_notes: any handwritten text detected on the receipt (null if none)
-- tax_amount: the tax amount as a number (null if not visible)
-- tip_amount: the tip/gratuity amount as a number (null if not visible)
-- payment_method: one of "cash", "credit", "debit" (null if not determinable)
-- items_summary: a brief plain-text summary of items purchased, e.g. "2 coffees, 1 sandwich". Do NOT list individual prices. For meals, just summarize the food/drink items. (null if not determinable)
 
-Category rules for meals:
-- Meals under $20 default to "personal_meals"
-- Meals $20 or more, or with business context (e.g. mentions of clients, meetings, business), default to "business_meals"
-- Non-meal items should use the appropriate category or "other"
-
-If a field cannot be determined, use null.`;
+If a field cannot be determined, use null. Do not extract individual line items, tax, tip, or payment method.`;
 
 async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -34,7 +35,9 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
     },
     body: JSON.stringify({
       model,
-      max_tokens: 400,
+      // Lean prompt returns only 4 fields (vendor, total, date, handwritten).
+      // 200 tokens is comfortably above the largest realistic response.
+      max_tokens: 200,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -68,10 +71,10 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
 function parseExtracted(content: string) {
   const extracted = JSON.parse(content);
 
-  for (const field of ["total_amount", "tax_amount", "tip_amount"]) {
-    if (extracted[field] != null) {
-      extracted[field] = parseFloat(String(extracted[field]));
-    }
+  // Coerce total_amount to a number; the lean prompt only emits this one
+  // numeric field. Old callers may still receive nulls for missing fields.
+  if (extracted.total_amount != null) {
+    extracted.total_amount = parseFloat(String(extracted.total_amount));
   }
 
   return extracted;
