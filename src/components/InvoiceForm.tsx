@@ -24,9 +24,20 @@ interface ImageItem {
   preview: string;
 }
 
+export interface InvoiceFormInitialData {
+  vendor_name?: string;
+  invoice_number?: string;
+  amount?: string;
+  description?: string;
+  invoice_date?: string;
+  /** Storage paths of attachments forwarded via email */
+  attachment_paths?: string[];
+}
+
 interface InvoiceFormProps {
   onClose: () => void;
   onSaved: () => void;
+  initialData?: InvoiceFormInitialData;
 }
 
 const today = () => {
@@ -34,7 +45,7 @@ const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
+export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps) {
   const { user } = useAuth();
   const { t } = useT();
 
@@ -43,12 +54,12 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const [formData, setFormData] = useState({
     household_id: '',
     category_id: '',
-    invoice_number: '',
-    amount: '',
+    invoice_number: initialData?.invoice_number ?? '',
+    amount: initialData?.amount ?? '',
     currency: 'USD',
-    description: '',
-    service_date_start: today(),
-    service_date_end: today(),
+    description: initialData?.description ?? '',
+    service_date_start: initialData?.invoice_date ?? today(),
+    service_date_end: initialData?.invoice_date ?? today(),
   });
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);

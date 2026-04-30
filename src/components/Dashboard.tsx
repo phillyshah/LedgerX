@@ -5,8 +5,8 @@ import { useExpenses } from '../hooks/useExpenses';
 import { useInvoices } from '../hooks/useInvoices';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
-import { AddExpense } from './AddExpense';
-import { InvoiceForm } from './InvoiceForm';
+import { AddExpense, type AddExpenseInitialData } from './AddExpense';
+import { InvoiceForm, type InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
 import { ExportData } from './ExportData';
 import { Reports } from './Reports';
@@ -17,6 +17,8 @@ import { SpendingCharts } from './SpendingCharts';
 import { HelpModal } from './HelpModal';
 import { BellButton } from './BellButton';
 import { WhatsNewModal } from './WhatsNewModal';
+import { EmailInboxPanel } from './EmailInboxPanel';
+import type { InboxItem } from '../hooks/useEmailInbox';
 import { APP_VERSION } from '../version';
 
 export function Dashboard() {
@@ -29,6 +31,8 @@ export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [expenseInitialData, setExpenseInitialData] = useState<AddExpenseInitialData | undefined>();
+  const [invoiceInitialData, setInvoiceInitialData] = useState<InvoiceFormInitialData | undefined>();
 
   // Regular users and contractors only ever see receipts they personally
   // submitted — no commingling with other household members. Admins and
@@ -39,6 +43,29 @@ export function Dashboard() {
 
   const handleExpenseAdded = () => {
     reloadExpenses();
+  };
+
+  const handleInboxExpense = (item: InboxItem) => {
+    setExpenseInitialData({
+      vendor: item.prefilled.vendor_name ?? undefined,
+      total: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
+      expense_date: item.prefilled.transaction_date ?? undefined,
+      notes: item.prefilled.handwritten_notes ?? undefined,
+      attachment_paths: item.attachment_paths,
+    });
+    setShowAddExpense(true);
+  };
+
+  const handleInboxInvoice = (item: InboxItem) => {
+    setInvoiceInitialData({
+      vendor_name: item.prefilled.vendor_name ?? undefined,
+      invoice_number: item.prefilled.invoice_number ?? undefined,
+      amount: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
+      description: item.prefilled.description ?? undefined,
+      invoice_date: item.prefilled.invoice_date ?? undefined,
+      attachment_paths: item.attachment_paths,
+    });
+    setShowInvoiceForm(true);
   };
 
   const handleSignOut = async () => {
@@ -138,6 +165,12 @@ export function Dashboard() {
             </button>
           </div>
 
+          {/* Email inbox — forwarded receipts/invoices awaiting review */}
+          <EmailInboxPanel
+            onOpenExpense={handleInboxExpense}
+            onOpenInvoice={handleInboxInvoice}
+          />
+
           {/* Invoice section */}
           <section>
             <h2 className="text-base font-semibold text-slate-900 mb-3">{t('invoice.myInvoices')}</h2>
@@ -160,10 +193,18 @@ export function Dashboard() {
         </main>
 
         {showAddExpense && (
-          <AddExpense onClose={() => setShowAddExpense(false)} onSaved={handleExpenseAdded} />
+          <AddExpense
+            onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
+            onSaved={handleExpenseAdded}
+            initialData={expenseInitialData}
+          />
         )}
         {showInvoiceForm && (
-          <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={reloadInvoices} />
+          <InvoiceForm
+            onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); }}
+            onSaved={reloadInvoices}
+            initialData={invoiceInitialData}
+          />
         )}
         {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
@@ -220,13 +261,20 @@ export function Dashboard() {
             loading={loading}
             onReload={reloadExpenses}
           />
+
+          {/* Email inbox — forwarded receipts awaiting review + sender address manager */}
+          <EmailInboxPanel
+            onOpenExpense={handleInboxExpense}
+            onOpenInvoice={handleInboxInvoice}
+          />
         </div>
       </main>
 
       {showAddExpense && (
         <AddExpense
-          onClose={() => setShowAddExpense(false)}
+          onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
           onSaved={handleExpenseAdded}
+          initialData={expenseInitialData}
         />
       )}
 

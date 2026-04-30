@@ -25,7 +25,6 @@
   "common.retry": "Retry",
   "common.uncategorized": "Uncategorized",
   "common.version": "Version",
-
   "auth.title": "LedgerX",
   "auth.tagline": "Simplified Transaction Management",
   "auth.signIn": "Sign In",
@@ -50,14 +49,12 @@
   "auth.resetNoEmail": "No email on file for this account. Contact an admin to reset your password.",
   "auth.resetSent": "If an account with that username has an email on file, a reset link has been sent.",
   "auth.error.generic": "An error occurred",
-
   "dashboard.addTransaction": "Add Transaction",
   "dashboard.addTransactionHint": "Log a receipt or expense",
   "dashboard.exportData": "Export Data",
   "dashboard.reports": "Reports",
   "dashboard.yourSubmissions": "My Receipts",
   "dashboard.contractorTagline": "Submit receipts quickly and easily.",
-
   "summary.thisMonth": "This Month",
   "summary.lastMonth": "Last Month",
   "summary.topCategory": "Top Category",
@@ -66,7 +63,6 @@
   "summary.firstMonth": "First month tracking",
   "summary.noData": "No data",
   "summary.thisMonthSmall": "this month",
-
   "expenses.heading": "Transactions",
   "expenses.searchPlaceholder": "Search vendor, category, notes...",
   "expenses.clearAll": "Clear all",
@@ -91,7 +87,6 @@
   "expenses.confirmDelete": "Are you sure you want to delete this transaction?",
   "expenses.submittedBy": "submitted by",
   "expenses.paidBadge": "Paid",
-
   "addExpense.title": "Add Transaction",
   "addExpense.subtitle": "Enter transactions continuously. The form stays open after each save.",
   "addExpense.saved": "Saved",
@@ -128,7 +123,6 @@
   "templates.saveAsTemplate": "Save as template",
   "templates.namePlaceholder": "Template name (e.g. Monthly Rent)",
   "templates.confirmDelete": "Delete the template \"{name}\"?",
-
   "editExpense.title": "Edit Transaction",
   "editExpense.deleteConfirm": "Delete this transaction?",
   "editExpense.deleted": "Deleted",
@@ -149,7 +143,6 @@
   "editExpense.close": "close",
   "editExpense.editTitle": "Edit",
   "editExpense.deleteTitle": "Delete",
-
   "settings.title": "Settings",
   "settings.language": "Display Language",
   "settings.languageHelp": "Affects menus, buttons, and labels across the app.",
@@ -170,7 +163,6 @@
   "settings.passwordUpdated": "Password updated successfully",
   "settings.failedEmail": "Failed to update email",
   "settings.failedPassword": "Failed to change password",
-
   "export.title": "Export Data",
   "export.subtitle": "Download your transactions in CSV or PDF format.",
   "export.household": "Household",
@@ -186,7 +178,6 @@
   "export.download": "Download",
   "export.generating": "Generating...",
   "export.failed": "Export failed. Please try again.",
-
   "reports.title": "Reports",
   "reports.subtitle": "Filter and analyze your spending.",
   "reports.household": "Household",
@@ -232,7 +223,6 @@
   "reports.resetZoom": "Reset zoom",
   "reports.reset": "reset",
   "reports.loadingImage": "Loading image...",
-
   "export.sortBy": "Sort By",
   "export.sortDate": "Date",
   "export.sortHousehold": "Household, then Date",
@@ -249,7 +239,6 @@
   "export.csvPdfHelp": "Your data will be exported as a CSV file and a PDF with all receipt images included.",
   "export.exporting": "Exporting...",
   "export.exportBtn": "Export",
-
   "admin.analyticsTitle": "Analytics Dashboard",
   "admin.analyticsDesc": "Platform-wide reporting and insights",
   "admin.exportReport": "Export Report",
@@ -281,7 +270,6 @@
   "admin.markUnpaid": "Mark as unpaid",
   "admin.unnamedTx": "Unnamed Transaction",
   "admin.failedExport": "Failed to export data. Please try again.",
-
   "admin.hh.newHousehold": "New Household",
   "admin.hh.subtitleLong": "Create and manage households and their members.",
   "admin.hh.createHousehold": "Create Household",
@@ -303,7 +291,6 @@
   "admin.hh.deleteConfirm": "Delete this household? All transactions will be moved to Uncategorized.",
   "admin.hh.failedDelete": "Failed to delete household: {message}",
   "admin.hh.unexpectedDelete": "An unexpected error occurred while deleting the household.",
-
   "admin.cat.subtitle": "Manage expense categories available to all users.",
   "admin.cat.newCategory": "New Category",
   "admin.cat.addCategory": "Add Category",
@@ -323,7 +310,6 @@
   "admin.cat.duplicate": "Category already exists",
   "admin.cat.failedAssign": "Failed to assign category",
   "admin.cat.globalBadge": "Global",
-
   "admin.users.noUsers": "No users found.",
   "admin.users.userIdPlaceholder": "johndoe",
   "admin.users.passwordPlaceholder": "Minimum 6 characters",
@@ -336,7 +322,6 @@
   "admin.users.assignHouseholdsTitle": "Assign Households",
   "admin.users.languageTitle": "Language",
   "admin.users.roleTitle": "Role",
-
   "admin.uncat.title": "Uncategorized Transactions",
   "admin.uncat.subtitleLong": "Transactions with missing households or invalid categories. Re-allocate them to restore proper organization.",
   "admin.uncat.allClean": "All Clean!",
@@ -353,7 +338,6 @@
   "admin.uncat.saving": "Saving...",
   "admin.uncat.reallocate": "Re-allocate",
   "admin.uncat.fullEdit": "Full Edit",
-
   "admin.manageUsers": "User Management",
   "admin.manageUsersSubtitle": "Manage user accounts and admin privileges.",
   "admin.role": "Role",
@@ -387,7 +371,6 @@
   "admin.failedCreate": "Failed to create user",
   "admin.failedPassword": "Failed to change password",
   "admin.failedSaveHouseholds": "Failed to save households",
-
   "admin.manageHouseholds": "Households",
   "admin.manageHouseholdsSubtitle": "Create and manage shared households.",
   "admin.createHousehold": "Create Household",
@@ -396,7 +379,6 @@
   "admin.featureNPI": "Surgeon NPI Lookup",
   "admin.members": "Members",
   "admin.addMember": "Add Member",
-
   "admin.manageCategories": "Categories",
   "admin.manageCategoriesSubtitle": "Define expense categories.",
   "admin.manageVendors": "Vendors",
@@ -424,26 +406,21 @@
   "admin.addCategory": "Add Category",
   "admin.global": "Global",
   "admin.scopedTo": "Scoped to",
-
   "admin.analytics": "Analytics",
   "admin.analyticsSubtitle": "Spending across all households.",
   "admin.totalSpending": "Total Spending",
   "admin.totalTransactions": "Total Transactions",
   "admin.byCategory": "By Category",
   "admin.byHousehold": "By Household",
-
   "admin.uncategorized": "Uncategorized",
   "admin.uncategorizedSubtitle": "Review and categorize unassigned transactions.",
   "admin.bulkAssign": "Bulk Assign",
-
   "help.title": "Help & User Guide",
   "help.footer": "Press {esc} or click outside to close",
-
   "charts.monthlySpending": "Monthly Spending",
   "charts.byCategory": "Spending by Category",
   "charts.last6Months": "Last 6 months",
   "charts.noData": "No spending data yet.",
-
   "invoice.submitInvoice": "Submit Invoice",
   "invoice.submitInvoiceHint": "Upload a PDF or photo",
   "invoice.myInvoices": "My Invoices",
@@ -509,7 +486,6 @@
   "invoice.dateServiceEndBeforeStart": "End date must be on or after the start date.",
   "invoice.dupTitle": "Invoice number already used in this property",
   "invoice.dupHint": "An invoice with this number was already submitted for this household. You can still save — just double-check it isn't already there.",
-
   "adminInvoices.title": "Contractor Invoices",
   "adminInvoices.subtitle": "Review contractor invoice submissions.",
   "adminInvoices.allStatuses": "All Statuses",
@@ -563,18 +539,33 @@
   "adminInvoices.detailClickToOpen": "Click to open",
   "adminInvoices.detailClose": "Close",
   "adminInvoices.loadingImages": "Loading...",
-
   "admin.contractorInvoices": "Contractor Invoices",
   "admin.myTransactions": "My Transactions",
   "common.deleting": "Deleting…",
   "invoice.confirmDelete": "Delete this invoice? This cannot be undone.",
   "invoice.detailDelete": "Delete invoice",
   "adminInvoices.actionDelete": "Delete invoice",
-
   "admin.hh.propertyType": "Property Type",
   "admin.hh.propertyTypeNone": "— Not Set —",
   "admin.hh.propertyTypeResidential": "Residential",
   "admin.hh.propertyTypeCommercial": "Commercial",
   "admin.hh.propertyTypeVacation": "Vacation Rental",
-  "admin.hh.propertyTypeOther": "Other"
+  "admin.hh.propertyTypeOther": "Other",
+  "inbox.pendingTitle": "Email Inbox",
+  "inbox.kindExpense": "Receipt",
+  "inbox.kindInvoice": "Invoice",
+  "inbox.from": "From",
+  "inbox.vendor": "Vendor",
+  "inbox.amount": "Amount",
+  "inbox.date": "Date",
+  "inbox.invoiceNo": "Invoice #",
+  "inbox.reviewAndAccept": "Review & Accept",
+  "inbox.discard": "Discard",
+  "inbox.senderEmailsTitle": "Email Forwarding",
+  "inbox.senderEmailsHelp": "Add the email addresses you'll forward receipts or invoices from. When mail arrives at receipts@90ten.life from one of these addresses, it will appear here for review.",
+  "inbox.registered": "registered",
+  "inbox.addSender": "Add address",
+  "inbox.senderEmailPlaceholder": "you@example.com",
+  "inbox.senderLabelPlaceholder": "Label (optional)",
+  "inbox.senderDuplicate": "That address is already registered."
 }

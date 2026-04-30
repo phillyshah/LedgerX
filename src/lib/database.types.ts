@@ -389,6 +389,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_sender_emails: {
+        Row: {
+          id: string;
+          user_id: string;
+          email: string;
+          label: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          email: string;
+          label?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          email?: string;
+          label?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      email_inbox: {
+        Row: {
+          id: string;
+          user_id: string;
+          from_email: string;
+          subject: string | null;
+          received_at: string;
+          attachment_paths: string[];
+          kind: 'expense' | 'invoice';
+          prefilled: Record<string, unknown>;
+          status: 'pending' | 'accepted' | 'discarded';
+          message_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          from_email: string;
+          subject?: string | null;
+          received_at?: string;
+          attachment_paths?: string[];
+          kind?: 'expense' | 'invoice';
+          prefilled?: Record<string, unknown>;
+          status?: 'pending' | 'accepted' | 'discarded';
+          message_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          from_email?: string;
+          subject?: string | null;
+          received_at?: string;
+          attachment_paths?: string[];
+          kind?: 'expense' | 'invoice';
+          prefilled?: Record<string, unknown>;
+          status?: 'pending' | 'accepted' | 'discarded';
+          message_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       transaction_templates: {
         Row: {
           id: string;
@@ -601,6 +667,10 @@ export interface Database {
       admin_set_invoice_category: {
         Args: { p_invoice_id: string; p_category_id: string | null };
         Returns: undefined;
+      };
+      resolve_sender_email: {
+        Args: { p_email: string };
+        Returns: string | null;
       };
       // Admin: vendors
       admin_upsert_vendor_mapping: {

@@ -25,7 +25,6 @@
   "common.retry": "Tentar novamente",
   "common.uncategorized": "Sem categoria",
   "common.version": "Versão",
-
   "auth.title": "LedgerX",
   "auth.tagline": "Gestão Simplificada de Transações",
   "auth.signIn": "Entrar",
@@ -50,14 +49,12 @@
   "auth.resetNoEmail": "Nenhum e-mail cadastrado para esta conta. Contate um administrador para redefinir sua senha.",
   "auth.resetSent": "Se existir uma conta com esse usuário e e-mail cadastrado, um link de redefinição foi enviado.",
   "auth.error.generic": "Ocorreu um erro",
-
   "dashboard.addTransaction": "Adicionar Transação",
   "dashboard.addTransactionHint": "Registrar um recibo ou despesa",
   "dashboard.exportData": "Exportar Dados",
   "dashboard.reports": "Relatórios",
   "dashboard.yourSubmissions": "Meus Recibos",
   "dashboard.contractorTagline": "Envie recibos de forma rápida e simples.",
-
   "summary.thisMonth": "Este Mês",
   "summary.lastMonth": "Mês Passado",
   "summary.topCategory": "Categoria Principal",
@@ -66,7 +63,6 @@
   "summary.firstMonth": "Primeiro mês registrado",
   "summary.noData": "Sem dados",
   "summary.thisMonthSmall": "este mês",
-
   "expenses.heading": "Transações",
   "expenses.searchPlaceholder": "Buscar fornecedor, categoria, observações...",
   "expenses.clearAll": "Limpar tudo",
@@ -91,7 +87,6 @@
   "expenses.confirmDelete": "Tem certeza que deseja excluir esta transação?",
   "expenses.submittedBy": "enviado por",
   "expenses.paidBadge": "Pago",
-
   "addExpense.title": "Adicionar Transação",
   "addExpense.subtitle": "Registre transações em sequência. O formulário permanece aberto após cada salvamento.",
   "addExpense.saved": "Salvo",
@@ -128,7 +123,6 @@
   "templates.saveAsTemplate": "Salvar como modelo",
   "templates.namePlaceholder": "Nome do modelo (ex. Aluguel Mensal)",
   "templates.confirmDelete": "Excluir o modelo \"{name}\"?",
-
   "editExpense.title": "Editar Transação",
   "editExpense.deleteConfirm": "Excluir esta transação?",
   "editExpense.deleted": "Excluída",
@@ -149,7 +143,6 @@
   "editExpense.close": "fechar",
   "editExpense.editTitle": "Editar",
   "editExpense.deleteTitle": "Excluir",
-
   "settings.title": "Configurações",
   "settings.language": "Idioma de Exibição",
   "settings.languageHelp": "Afeta menus, botões e rótulos em todo o aplicativo.",
@@ -170,7 +163,6 @@
   "settings.passwordUpdated": "Senha atualizada com sucesso",
   "settings.failedEmail": "Falha ao atualizar o e-mail",
   "settings.failedPassword": "Falha ao alterar a senha",
-
   "export.title": "Exportar Dados",
   "export.subtitle": "Baixe suas transações em CSV ou PDF.",
   "export.household": "Grupo",
@@ -186,7 +178,6 @@
   "export.download": "Baixar",
   "export.generating": "Gerando...",
   "export.failed": "Falha na exportação. Tente novamente.",
-
   "reports.title": "Relatórios",
   "reports.subtitle": "Filtre e analise seus gastos.",
   "reports.household": "Grupo",
@@ -232,7 +223,6 @@
   "reports.resetZoom": "Redefinir zoom",
   "reports.reset": "redefinir",
   "reports.loadingImage": "Carregando imagem...",
-
   "export.sortBy": "Ordenar Por",
   "export.sortDate": "Data",
   "export.sortHousehold": "Grupo, depois Data",
@@ -249,7 +239,6 @@
   "export.csvPdfHelp": "Seus dados serão exportados como um arquivo CSV e um PDF com todas as imagens dos recibos.",
   "export.exporting": "Exportando...",
   "export.exportBtn": "Exportar",
-
   "admin.analyticsTitle": "Painel de Análises",
   "admin.analyticsDesc": "Relatórios e insights de toda a plataforma",
   "admin.exportReport": "Exportar Relatório",
@@ -281,7 +270,6 @@
   "admin.markUnpaid": "Desfazer marcação de pago",
   "admin.unnamedTx": "Transação Sem Nome",
   "admin.failedExport": "Falha ao exportar dados. Tente novamente.",
-
   "admin.hh.newHousehold": "Novo Grupo",
   "admin.hh.subtitleLong": "Crie e gerencie grupos e seus membros.",
   "admin.hh.createHousehold": "Criar Grupo",
@@ -303,7 +291,6 @@
   "admin.hh.deleteConfirm": "Excluir este grupo? Todas as transações serão movidas para Sem categoria.",
   "admin.hh.failedDelete": "Falha ao excluir grupo: {message}",
   "admin.hh.unexpectedDelete": "Ocorreu um erro inesperado ao excluir o grupo.",
-
   "admin.cat.subtitle": "Gerencie as categorias de despesas disponíveis para todos os usuários.",
   "admin.cat.newCategory": "Nova Categoria",
   "admin.cat.addCategory": "Adicionar Categoria",
@@ -323,7 +310,6 @@
   "admin.cat.duplicate": "Categoria já existe",
   "admin.cat.failedAssign": "Falha ao atribuir categoria",
   "admin.cat.globalBadge": "Global",
-
   "admin.users.noUsers": "Nenhum usuário encontrado.",
   "admin.users.userIdPlaceholder": "joaosilva",
   "admin.users.passwordPlaceholder": "Mínimo de 6 caracteres",
@@ -336,7 +322,6 @@
   "admin.users.assignHouseholdsTitle": "Atribuir Grupos",
   "admin.users.languageTitle": "Idioma",
   "admin.users.roleTitle": "Função",
-
   "admin.uncat.title": "Transações Sem Categoria",
   "admin.uncat.subtitleLong": "Transações com grupos ausentes ou categorias inválidas. Realoque-as para restaurar a organização adequada.",
   "admin.uncat.allClean": "Tudo Limpo!",
@@ -353,7 +338,6 @@
   "admin.uncat.saving": "Salvando...",
   "admin.uncat.reallocate": "Realocar",
   "admin.uncat.fullEdit": "Edição Completa",
-
   "admin.manageUsers": "Gestão de Usuários",
   "admin.manageUsersSubtitle": "Gerencie contas e privilégios de administrador.",
   "admin.role": "Função",
@@ -387,7 +371,6 @@
   "admin.failedCreate": "Falha ao criar usuário",
   "admin.failedPassword": "Falha ao alterar a senha",
   "admin.failedSaveHouseholds": "Falha ao salvar grupos",
-
   "admin.manageHouseholds": "Grupos",
   "admin.manageHouseholdsSubtitle": "Crie e gerencie grupos compartilhados.",
   "admin.createHousehold": "Criar Grupo",
@@ -396,7 +379,6 @@
   "admin.featureNPI": "Consulta de NPI de Cirurgião",
   "admin.members": "Membros",
   "admin.addMember": "Adicionar Membro",
-
   "admin.manageCategories": "Categorias",
   "admin.manageCategoriesSubtitle": "Defina categorias de despesas.",
   "admin.manageVendors": "Fornecedores",
@@ -424,26 +406,21 @@
   "admin.addCategory": "Adicionar Categoria",
   "admin.global": "Global",
   "admin.scopedTo": "Restrito a",
-
   "admin.analytics": "Análises",
   "admin.analyticsSubtitle": "Gastos em todos os grupos.",
   "admin.totalSpending": "Total Gasto",
   "admin.totalTransactions": "Total de Transações",
   "admin.byCategory": "Por Categoria",
   "admin.byHousehold": "Por Grupo",
-
   "admin.uncategorized": "Sem categoria",
   "admin.uncategorizedSubtitle": "Revise e categorize transações sem categoria.",
   "admin.bulkAssign": "Atribuir em Lote",
-
   "help.title": "Ajuda e Guia do Usuário",
   "help.footer": "Pressione {esc} ou clique fora para fechar",
-
   "charts.monthlySpending": "Gastos Mensais",
   "charts.byCategory": "Gastos por Categoria",
   "charts.last6Months": "Últimos 6 meses",
   "charts.noData": "Ainda não há dados de gastos.",
-
   "invoice.submitInvoice": "Enviar Nota Fiscal",
   "invoice.submitInvoiceHint": "Envie um PDF ou foto",
   "invoice.myInvoices": "Minhas Notas Fiscais",
@@ -509,7 +486,6 @@
   "invoice.dateServiceEndBeforeStart": "A data de término deve ser igual ou posterior à data de início.",
   "invoice.dupTitle": "Número de nota fiscal já usado neste imóvel",
   "invoice.dupHint": "Uma nota fiscal com esse número já foi enviada para esta residência. Você ainda pode salvar — só confira se já não está lá.",
-
   "adminInvoices.title": "Notas Fiscais de Prestadores",
   "adminInvoices.subtitle": "Revisar notas fiscais enviadas por prestadores.",
   "adminInvoices.allStatuses": "Todos os Status",
@@ -563,18 +539,33 @@
   "adminInvoices.detailClickToOpen": "Clique para abrir",
   "adminInvoices.detailClose": "Fechar",
   "adminInvoices.loadingImages": "Carregando...",
-
   "admin.contractorInvoices": "Notas Fiscais",
   "admin.myTransactions": "Minhas Transações",
   "common.deleting": "Excluindo…",
   "invoice.confirmDelete": "Excluir esta nota fiscal? Esta ação não pode ser desfeita.",
   "invoice.detailDelete": "Excluir nota fiscal",
   "adminInvoices.actionDelete": "Excluir nota fiscal",
-
   "admin.hh.propertyType": "Tipo de Propriedade",
   "admin.hh.propertyTypeNone": "— Não Definido —",
   "admin.hh.propertyTypeResidential": "Residencial",
   "admin.hh.propertyTypeCommercial": "Comercial",
   "admin.hh.propertyTypeVacation": "Aluguel de Temporada",
-  "admin.hh.propertyTypeOther": "Outro"
+  "admin.hh.propertyTypeOther": "Outro",
+  "inbox.pendingTitle": "Caixa de Entrada",
+  "inbox.kindExpense": "Recibo",
+  "inbox.kindInvoice": "Nota Fiscal",
+  "inbox.from": "De",
+  "inbox.vendor": "Fornecedor",
+  "inbox.amount": "Valor",
+  "inbox.date": "Data",
+  "inbox.invoiceNo": "Nota #",
+  "inbox.reviewAndAccept": "Revisar e Aceitar",
+  "inbox.discard": "Descartar",
+  "inbox.senderEmailsTitle": "Encaminhamento por E-mail",
+  "inbox.senderEmailsHelp": "Adicione os endereços de e-mail a partir dos quais você vai encaminhar recibos ou notas fiscais. Quando chegar um e-mail em receipts@90ten.life desses endereços, ele aparecerá aqui para revisão.",
+  "inbox.registered": "cadastrados",
+  "inbox.addSender": "Adicionar endereço",
+  "inbox.senderEmailPlaceholder": "voce@exemplo.com",
+  "inbox.senderLabelPlaceholder": "Rótulo (opcional)",
+  "inbox.senderDuplicate": "Esse endereço já está cadastrado."
 }

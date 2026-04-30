@@ -27,12 +27,22 @@ interface ImageItem {
   preview: string;
 }
 
+export interface AddExpenseInitialData {
+  vendor?: string;
+  total?: string;
+  expense_date?: string;
+  notes?: string;
+  /** Storage paths of attachments forwarded via email */
+  attachment_paths?: string[];
+}
+
 interface AddExpenseProps {
   onClose: () => void;
   onSaved: () => void;
+  initialData?: AddExpenseInitialData;
 }
 
-export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
+export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const { user } = useAuth();
   const { t } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -42,13 +52,14 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   // triggers the existing useEffect that calls lookupVendorCategory and
   // auto-fills the category.
   const { vendors: vendorCatalog } = useVendorCatalog();
+  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
   const [formData, setFormData] = useState({
     household_id: '',
-    expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
-    vendor: '',
-    total: '',
+    expense_date: initialData?.expense_date ?? todayStr,
+    vendor: initialData?.vendor ?? '',
+    total: initialData?.total ?? '',
     category: '',
-    notes: '',
+    notes: initialData?.notes ?? '',
   });
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
