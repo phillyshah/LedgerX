@@ -33,6 +33,31 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v6.8',
+    version: 'v6.8',
+    date: '2026-04-29',
+    title: {
+      'en': 'Save as template + one-tap reuse',
+      'pt-BR': 'Salvar como modelo + reuso em um toque',
+    },
+    body: {
+      'en':
+        "Tick \"Save as template\" at the bottom of Add Transaction or " +
+        "Submit Invoice and give it a name (\"Monthly Rent\", \"Internet " +
+        "Bill\", etc.). Next time, tap \"Use a saved template\" at the top " +
+        "of the form to pre-fill every field in one click. Templates are " +
+        "private to your account — no shared confusion about whose rent " +
+        "template is the right one this month.",
+      'pt-BR':
+        'Marque "Salvar como modelo" na parte inferior de Adicionar ' +
+        'Transação ou Enviar Nota Fiscal e dê um nome ("Aluguel Mensal", ' +
+        '"Conta de Internet" etc.). Da próxima vez, toque em "Usar um ' +
+        'modelo salvo" no topo do formulário para preencher todos os ' +
+        'campos com um clique. Modelos são privados da sua conta — sem ' +
+        'confusão sobre qual modelo de aluguel é o correto este mês.',
+    },
+  },
+  {
     id: 'v6.7',
     version: 'v6.7',
     date: '2026-04-29',

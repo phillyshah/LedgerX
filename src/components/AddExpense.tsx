@@ -7,6 +7,8 @@ import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScan
 import { useVendorCatalog, uniqueVendorNames } from '../hooks/useVendorCatalog';
 import { findExpenseDuplicates, type ExpenseDuplicate } from '../lib/duplicates';
 import { AlertTriangle } from 'lucide-react';
+import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
+import type { TransactionTemplate } from '../hooks/useTemplates';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 
@@ -59,6 +61,11 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   // on (household, vendor, total, date) tuples that are fully populated;
   // anything earlier in the form's lifecycle is a guaranteed false positive.
   const [duplicateMatches, setDuplicateMatches] = useState<ExpenseDuplicate[]>([]);
+  // "Save as template" state — only persisted on submit, alongside the
+  // expense save. Hidden until the user checks the box.
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templatesRefresh, setTemplatesRefresh] = useState(0);
   const [showNPILookup, setShowNPILookup] = useState(false);
   const [npiInitialQuery, setNpiInitialQuery] = useState('');
   const [npiInitialResults, setNpiInitialResults] = useState<NPIResult[] | undefined>(undefined);
@@ -394,6 +401,27 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         upsertVendorCategory(formData.vendor, formData.category, formData.household_id);
       }
 
+      // Persist as a template if the user opted in. We do this after the
+      // expense saves so a template is never created for a half-failed
+      // submission. Owner = current user; templates aren't shared.
+      if (saveAsTemplate && templateName.trim()) {
+        await supabase.from('transaction_templates').insert({
+          owner_id: user.id,
+          kind: 'expense',
+          name: templateName.trim(),
+          household_id: formData.household_id || null,
+          vendor: formData.vendor || null,
+          amount: parseFloat(formData.total) || null,
+          category: formData.category || null,
+          notes: formData.notes || null,
+        });
+        // Reset toggle so a follow-up entry doesn't accidentally
+        // double-save the template.
+        setSaveAsTemplate(false);
+        setTemplateName('');
+        setTemplatesRefresh((n) => n + 1);
+      }
+
       onSaved();
       setJustSaved(true);
       setCategoryAutoFilled(false);
@@ -497,6 +525,20 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <TemplatePicker
+            kind="expense"
+            refreshKey={templatesRefresh}
+            onPick={(tpl) => {
+              setFormData((prev) => ({
+                ...prev,
+                household_id: tpl.household_id ?? prev.household_id,
+                vendor: tpl.vendor ?? prev.vendor,
+                total: tpl.amount != null ? tpl.amount.toFixed(2) : prev.total,
+                category: tpl.category ?? prev.category,
+                notes: tpl.notes ?? prev.notes,
+              }));
+            }}
+          />
           {/* Possible-duplicate warning — non-blocking. We render it
               above all form fields so the user sees it before reaching
               the Save button, but they can still save through it. */}
@@ -715,6 +757,13 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
               )}
             </div>
           </div>
+
+          <SaveAsTemplateToggle
+            checked={saveAsTemplate}
+            onChange={setSaveAsTemplate}
+            templateName={templateName}
+            onTemplateNameChange={setTemplateName}
+          />
 
           <div className="flex gap-3 pt-2">
             <button

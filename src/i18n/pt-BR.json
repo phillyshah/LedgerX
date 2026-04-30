@@ -120,6 +120,12 @@
   "addExpense.dupOneTitle": "Parece uma possível duplicata",
   "addExpense.dupManyTitle": "{count} possíveis duplicatas já enviadas",
   "addExpense.dupHint": "Encontramos um recibo com o mesmo fornecedor, valor e data nesta residência. Você ainda pode salvar — só confira se já não está lá.",
+  "templates.useTemplate": "Usar um modelo salvo",
+  "templates.expand": "{count} salvos",
+  "templates.collapse": "Esconder",
+  "templates.saveAsTemplate": "Salvar como modelo",
+  "templates.namePlaceholder": "Nome do modelo (ex. Aluguel Mensal)",
+  "templates.confirmDelete": "Excluir o modelo \"{name}\"?",
 
   "editExpense.title": "Editar Transação",
   "editExpense.deleteConfirm": "Excluir esta transação?",

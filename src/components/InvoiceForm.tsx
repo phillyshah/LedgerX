@@ -6,6 +6,7 @@ import { compressImage } from '../lib/imageCompression';
 import { scanInvoice } from '../lib/invoiceScanner';
 import { X, Upload, Check, Loader2, Plus, FileText, AlertTriangle } from 'lucide-react';
 import { findInvoiceDuplicates, type InvoiceDuplicate } from '../lib/duplicates';
+import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
 
 interface Household {
   id: string;
@@ -58,6 +59,10 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   // Possible-duplicate matches by invoice_number within the household.
   // Non-blocking warning (same UX shape as AddExpense).
   const [duplicateMatches, setDuplicateMatches] = useState<InvoiceDuplicate[]>([]);
+  // Template state (parallel to AddExpense). Owner-scoped via RLS.
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templatesRefresh, setTemplatesRefresh] = useState(0);
 
   useEffect(() => {
     if (!formData.household_id || !formData.invoice_number.trim()) {
@@ -298,6 +303,26 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
         });
       }
 
+      // Persist as a template if the user opted in. invoice_number is
+      // intentionally never copied to the template — the next submission
+      // always needs a fresh number, and a stored number would trigger
+      // the duplicate-warning banner on every reuse.
+      if (user && saveAsTemplate && templateName.trim()) {
+        await supabase.from('transaction_templates').insert({
+          owner_id: user.id,
+          kind: 'invoice',
+          name: templateName.trim(),
+          household_id: formData.household_id || null,
+          amount: parseFloat(formData.amount) || null,
+          currency: formData.currency || 'USD',
+          category_id: formData.category_id || null,
+          description: formData.description || null,
+        });
+        setSaveAsTemplate(false);
+        setTemplateName('');
+        setTemplatesRefresh((n) => n + 1);
+      }
+
       onSaved();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
@@ -364,6 +389,24 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+          <TemplatePicker
+            kind="invoice"
+            refreshKey={templatesRefresh}
+            onPick={(tpl) => {
+              setFormData((prev) => ({
+                ...prev,
+                household_id: tpl.household_id ?? prev.household_id,
+                category_id: tpl.category_id ?? prev.category_id,
+                amount: tpl.amount != null ? tpl.amount.toFixed(2) : prev.amount,
+                currency: tpl.currency || prev.currency,
+                description: tpl.description ?? prev.description,
+                // Intentionally NOT pre-filling invoice_number — every
+                // submission needs a fresh number; copying from a template
+                // would create instant duplicate-warning hits.
+              }));
+            }}
+          />
 
           {/* Possible-duplicate warning — non-blocking. Match is by
               invoice_number within the chosen household; the same
@@ -606,6 +649,13 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
               )}
             </div>
           </div>
+
+          <SaveAsTemplateToggle
+            checked={saveAsTemplate}
+            onChange={setSaveAsTemplate}
+            templateName={templateName}
+            onTemplateNameChange={setTemplateName}
+          />
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">

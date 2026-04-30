@@ -138,6 +138,38 @@ date, etc.).
 
 ---
 
+## Templates (Save Once, Reuse Forever)
+<!-- roles: contractor, member, admin -->
+
+For recurring entries (rent, utilities, monthly retainers, weekly
+cleaning), save a template once and reuse it in one click.
+
+### Saving a template
+
+1. On **Add Transaction** or **Submit Invoice**, fill the form as usual.
+2. Tick **Save as template** at the bottom of the form and give it a
+   name like "Monthly Rent" or "Comcast Internet".
+3. Hit **Save** — the transaction saves *and* the template is stored.
+
+### Using a template
+
+1. Open **Add Transaction** or **Submit Invoice**.
+2. The **Use a saved template** panel at the top of the form shows
+   your saved templates as chips (only when you have at least one).
+3. Tap a template — every applicable field pre-fills. Adjust whatever
+   needs adjusting (date, amount drift) and save.
+
+### Notes
+
+- Templates are **private to your account** — they don't leak across
+  household members. No "is this the right rent template this month?"
+  arguments.
+- For invoices, the **invoice number** is intentionally not stored on
+  the template — every submission needs a fresh number.
+- Delete a template with the trash icon next to its chip.
+
+---
+
 ## Possible-Duplicate Warning
 <!-- roles: contractor, member, admin -->
 

@@ -120,6 +120,12 @@
   "addExpense.dupOneTitle": "Looks like a possible duplicate",
   "addExpense.dupManyTitle": "{count} possible duplicates already submitted",
   "addExpense.dupHint": "We found a receipt with the same vendor, amount, and date in this household. You can still save — just double-check it isn't already there.",
+  "templates.useTemplate": "Use a saved template",
+  "templates.expand": "{count} saved",
+  "templates.collapse": "Hide",
+  "templates.saveAsTemplate": "Save as template",
+  "templates.namePlaceholder": "Template name (e.g. Monthly Rent)",
+  "templates.confirmDelete": "Delete the template \"{name}\"?",
 
   "editExpense.title": "Edit Transaction",
   "editExpense.deleteConfirm": "Delete this transaction?",

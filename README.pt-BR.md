@@ -134,6 +134,39 @@ serviço, data de vencimento etc.).
 
 ---
 
+## Modelos (Salve uma vez, Reuse sempre)
+<!-- roles: contractor, member, admin -->
+
+Para entradas recorrentes (aluguel, utilidades, retainer mensal,
+limpeza semanal), salve um modelo uma vez e reutilize em um clique.
+
+### Salvando um modelo
+
+1. Em **Adicionar Transação** ou **Enviar Nota Fiscal**, preencha o
+   formulário normalmente.
+2. Marque **Salvar como modelo** na parte inferior e dê um nome
+   ("Aluguel Mensal", "Internet Comcast" etc.).
+3. Toque em **Salvar** — a transação é salva *e* o modelo também.
+
+### Usando um modelo
+
+1. Abra **Adicionar Transação** ou **Enviar Nota Fiscal**.
+2. O painel **Usar um modelo salvo** no topo do formulário mostra seus
+   modelos como chips (apenas quando você tem ao menos um salvo).
+3. Toque em um modelo — todos os campos aplicáveis se preenchem.
+   Ajuste o que precisar (data, variação de valor) e salve.
+
+### Notas
+
+- Modelos são **privados da sua conta** — não vazam entre membros da
+  residência. Sem confusão sobre qual modelo de aluguel é o correto
+  este mês.
+- Para notas fiscais, o **número da nota** intencionalmente não é
+  armazenado no modelo — cada envio precisa de um número novo.
+- Remova um modelo pelo ícone de lixeira ao lado do chip.
+
+---
+
 ## Aviso de Possível Duplicata
 <!-- roles: contractor, member, admin -->
 
