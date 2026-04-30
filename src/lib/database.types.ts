@@ -177,7 +177,7 @@ export interface Database {
           description: string;
           service_date_start: string;
           service_date_end: string;
-          status: 'pending' | 'approved' | 'paid' | 'rejected';
+          status: 'pending' | 'paid';
           admin_notes: string | null;
           image_path: string | null;
           image_mime: string | null;
@@ -186,6 +186,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           paid_at: string | null;
+          category_id: string | null;
         };
         Insert: {
           id?: string;
@@ -206,6 +207,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;
+          category_id?: string | null;
         };
         Update: {
           id?: string;
@@ -226,6 +228,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           paid_at?: string | null;
+          category_id?: string | null;
         };
         Relationships: [
           {
@@ -320,6 +323,7 @@ export interface Database {
           user_id: string;
           is_admin: boolean;
           is_contractor: boolean;
+          is_household_admin: boolean;
           created_at: string;
         };
         Insert: {
@@ -327,6 +331,7 @@ export interface Database {
           user_id: string;
           is_admin?: boolean;
           is_contractor?: boolean;
+          is_household_admin?: boolean;
           created_at?: string;
         };
         Update: {
@@ -334,6 +339,7 @@ export interface Database {
           user_id?: string;
           is_admin?: boolean;
           is_contractor?: boolean;
+          is_household_admin?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -362,24 +368,72 @@ export interface Database {
       vendor_category_map: {
         Row: {
           id: string;
-          household_id: string;
+          household_id: string | null;
           vendor_name: string;
           category_name: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          household_id: string;
+          household_id?: string | null;
           vendor_name: string;
           category_name: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          household_id?: string;
+          household_id?: string | null;
           vendor_name?: string;
           category_name?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      transaction_templates: {
+        Row: {
+          id: string;
+          owner_id: string;
+          kind: 'expense' | 'invoice';
+          name: string;
+          household_id: string | null;
+          vendor: string | null;
+          amount: number | null;
+          currency: string;
+          category: string | null;
+          category_id: string | null;
+          description: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          kind: 'expense' | 'invoice';
+          name: string;
+          household_id?: string | null;
+          vendor?: string | null;
+          amount?: number | null;
+          currency?: string;
+          category?: string | null;
+          category_id?: string | null;
+          description?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          kind?: 'expense' | 'invoice';
+          name?: string;
+          household_id?: string | null;
+          vendor?: string | null;
+          amount?: number | null;
+          currency?: string;
+          category?: string | null;
+          category_id?: string | null;
+          description?: string | null;
+          notes?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -466,12 +520,13 @@ export interface Database {
           username: string;
           is_admin: boolean;
           is_contractor: boolean;
+          is_household_admin: boolean;
           preferred_language: string;
           created_at: string;
         }>;
       };
       admin_update_user_role: {
-        Args: { p_user_id: string; p_is_admin: boolean; p_is_contractor: boolean };
+        Args: { p_user_id: string; p_is_admin: boolean; p_is_contractor: boolean; p_is_household_admin: boolean };
         Returns: undefined;
       };
       admin_update_user_language: {
@@ -541,6 +596,15 @@ export interface Database {
       // Admin: invoices
       admin_update_invoice_status: {
         Args: { p_invoice_id: string; p_status: string; p_admin_notes?: string };
+        Returns: undefined;
+      };
+      admin_set_invoice_category: {
+        Args: { p_invoice_id: string; p_category_id: string | null };
+        Returns: undefined;
+      };
+      // Admin: vendors
+      admin_upsert_vendor_mapping: {
+        Args: { p_vendor_name: string; p_category_name: string; p_household_id?: string | null };
         Returns: undefined;
       };
     };

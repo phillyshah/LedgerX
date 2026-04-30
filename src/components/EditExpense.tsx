@@ -204,7 +204,6 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
       vendor: data.vendor_name || prev.vendor,
       total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
       expense_date: data.transaction_date || prev.expense_date,
-      category: data.category || prev.category,
       notes: enhanced
         ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
         : prev.notes,

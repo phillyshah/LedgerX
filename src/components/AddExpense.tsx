@@ -8,7 +8,6 @@ import { useVendorCatalog, uniqueVendorNames } from '../hooks/useVendorCatalog';
 import { findExpenseDuplicates, type ExpenseDuplicate } from '../lib/duplicates';
 import { AlertTriangle } from 'lucide-react';
 import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
-import type { TransactionTemplate } from '../hooks/useTemplates';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 
