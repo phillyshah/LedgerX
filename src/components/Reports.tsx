@@ -5,11 +5,9 @@ import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-r
 import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
 import { useT } from '../hooks/useT';
-
-interface Household {
-  id: string;
-  name: string;
-}
+import { ZoomableImage } from './shared/ZoomableImage';
+import { loadUserHouseholds, loadAllHouseholds } from '../lib/queries';
+import type { Household } from '../types/expense';
 
 interface Category {
   id: string;
@@ -35,7 +33,6 @@ interface ReportsProps {
 }
 
 export function Reports({ onClose }: ReportsProps) {
-  console.log('Reports component rendered');
   const { user } = useAuth();
   const { t, locale } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -55,7 +52,6 @@ export function Reports({ onClose }: ReportsProps) {
   const [error, setError] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageZoom, setImageZoom] = useState(1);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -99,33 +95,9 @@ export function Reports({ onClose }: ReportsProps) {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      const isAdmin = rolesData?.is_admin ?? false;
-      let hh: Household[] = [];
-
-      if (isAdmin) {
-        const { data: allHH, error: hhErr } = await supabase
-          .from('households')
-          .select('id, name')
-          .order('name');
-        if (hhErr) { setError(t('reports.failedLoadHouseholds')); return; }
-        hh = (allHH ?? []) as Household[];
-      } else {
-        const { data: memberData, error: memberError } = await supabase
-          .from('household_members')
-          .select('household_id, households(id, name)')
-          .eq('user_id', user.id);
-
-        if (memberError) {
-          console.error('Error loading households:', memberError);
-          setError(t('reports.failedLoadHouseholdsRetry'));
-          return;
-        }
-
-        hh = (memberData || [])
-          .map((item: any) => item.households)
-          .filter(Boolean) as unknown as Household[];
-      }
-
+      const hh = rolesData?.is_admin
+        ? await loadAllHouseholds()
+        : await loadUserHouseholds(user.id);
       setHouseholds(hh);
 
       // Load categories: global + household-specific for user's households
@@ -545,57 +517,12 @@ export function Reports({ onClose }: ReportsProps) {
               </button>
             </div>
             <div className="p-6 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setImageZoom((z) => Math.min(3, z + 0.25))}
-                  className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
-                  title={t('reports.zoomIn')}
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageZoom((z) => Math.max(0.5, z - 0.25))}
-                  className="px-3 py-1 bg-emerald-900 text-white rounded-lg"
-                  title={t('reports.zoomOut')}
-                >
-                  −
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageZoom(1)}
-                  className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg"
-                  title={t('reports.resetZoom')}
-                >
-                  {t('reports.reset')}
-                </button>
-              </div>
               {imageUrl ? (
-                <div
-                  className="max-w-full max-h-[70vh] overflow-auto"
-                  onWheel={(e) => {
-                    if (e.ctrlKey) {
-                      e.preventDefault();
-                      setImageZoom((z) => {
-                        const next = z + (e.deltaY < 0 ? 0.1 : -0.1);
-                        return Math.min(3, Math.max(0.5, next));
-                      });
-                    }
-                  }}
-                >
-                  <img
-                    src={imageUrl}
-                    alt="Receipt"
-                    style={{
-                      transform: `scale(${imageZoom})`,
-                      transformOrigin: 'center center',
-                      width: '100%',
-                      height: 'auto',
-                    }}
-                    className="block mx-auto"
-                  />
-                </div>
+                <ZoomableImage
+                  src={imageUrl}
+                  alt="Receipt"
+                  containerClassName="max-w-full max-h-[70vh] overflow-auto"
+                />
               ) : (
                 <div className="text-slate-500">{t('reports.loadingImage')}</div>
               )}

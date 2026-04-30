@@ -3,29 +3,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
-import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
+import { useReceiptScanner, applyReceiptDataToForm } from '../hooks/useReceiptScanner';
+import { loadUserHouseholds, loadHouseholdCategories } from '../lib/queries';
+import { todayDateString } from '../lib/dateUtils';
 import { useVendorCatalog, uniqueVendorNames } from '../hooks/useVendorCatalog';
 import { findExpenseDuplicates, type ExpenseDuplicate } from '../lib/duplicates';
 import { AlertTriangle } from 'lucide-react';
 import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
-
-interface Household {
-  id: string;
-  name: string;
-  features_enabled?: Record<string, boolean> | null;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface ImageItem {
-  file: File;
-  preview: string;
-}
+import type { Household, Category, ImageItem } from '../types/expense';
 
 export interface AddExpenseInitialData {
   vendor?: string;
@@ -52,7 +39,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   // triggers the existing useEffect that calls lookupVendorCategory and
   // auto-fills the category.
   const { vendors: vendorCatalog } = useVendorCatalog();
-  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+  const todayStr = todayDateString();
   const [formData, setFormData] = useState({
     household_id: '',
     expense_date: initialData?.expense_date ?? todayStr,
@@ -64,9 +51,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [_categoryAutoFilled, setCategoryAutoFilled] = useState(false);
+  const { scanning, scanError, setScanError, scan } = useReceiptScanner();
   // Possible-duplicate warning. Empty array = no banner. We only check
   // on (household, vendor, total, date) tuples that are fully populated;
   // anything earlier in the form's lifecycle is a guaranteed false positive.
@@ -82,12 +67,18 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const [npiSearching, setNpiSearching] = useState(false);
 
   useEffect(() => {
-    loadOptions();
+    if (!user) return;
+    loadUserHouseholds(user.id).then((hh) => {
+      setHouseholds(hh);
+      if (hh.length === 1) {
+        setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
+      }
+    });
   }, [user]);
 
   useEffect(() => {
     if (formData.household_id) {
-      loadCategoriesForHousehold(formData.household_id);
+      loadHouseholdCategories(formData.household_id).then(setCategories);
     }
   }, [formData.household_id]);
 
@@ -170,57 +161,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     return () => clearTimeout(timer);
   }, [formData.household_id, formData.vendor, formData.total, formData.expense_date]);
 
-  const loadOptions = async () => {
-    if (!user) return;
-
-    const householdRes = await supabase
-      .from('household_members')
-      .select('household_id, households(id, name, features_enabled)')
-      .eq('user_id', user.id);
-
-    if (householdRes.data) {
-      const hh = householdRes.data
-        .map((item) => item.households)
-        .filter(Boolean) as unknown as Household[];
-      setHouseholds(hh);
-      if (hh.length === 1) {
-        setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
-      }
-    }
-  };
-
-  const loadCategoriesForHousehold = async (householdId: string) => {
-    // Get categories assigned to this household via junction table
-    const { data: junctionData } = await supabase
-      .from('category_households')
-      .select('categories(id, name)')
-      .eq('household_id', householdId);
-
-    const junctionCats = (junctionData || [])
-      .map((r) => r.categories)
-      .filter(Boolean) as unknown as Category[];
-
-    // Also get global categories (household_id IS NULL, available to all)
-    const { data: globalCats } = await supabase
-      .from('categories')
-      .select('id, name')
-      .is('household_id', null)
-      .order('name');
-
-    // Merge junction-assigned + global, deduplicate
-    const all = [...junctionCats, ...(globalCats || [])];
-    const seen = new Set<string>();
-    const unique = all
-      .filter((c) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    setCategories(unique);
-  };
-
   const lookupVendorCategory = async (vendor: string, householdId: string) => {
     // Try the household-scoped mapping first; fall back to the
     // admin-curated global catalog if there's no household entry. This
@@ -251,7 +191,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       const isValid = categories.some((c) => c.name === categoryName);
       if (isValid) {
         setFormData((prev) => ({ ...prev, category: categoryName! }));
-        setCategoryAutoFilled(true);
       }
     }
   };
@@ -266,42 +205,12 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       );
   };
 
-  const applyReceiptData = (data: ReceiptData) => {
-    // Lean OCR returns only vendor / total / date / handwritten notes.
-    // Category is intentionally NOT pulled from OCR — vendor-catalog
-    // lookup owns that. The existing useEffect that watches `formData.vendor`
-    // will fire lookupVendorCategory automatically once setFormData below
-    // updates the vendor, so no direct call is needed here.
-    const enhanced = formatReceiptNotes(data);
-    setFormData((prev) => ({
-      ...prev,
-      vendor: data.vendor_name || prev.vendor,
-      total: data.total_amount != null ? data.total_amount.toFixed(2) : prev.total,
-      expense_date: data.transaction_date || prev.expense_date,
-      notes: enhanced
-        ? prev.notes ? `${prev.notes}\n${enhanced}` : enhanced
-        : prev.notes,
-    }));
-  };
-
+  // Lean OCR returns vendor / total / date / handwritten notes. Category is
+  // intentionally NOT pulled from OCR — the vendor-catalog lookup owns that
+  // (the useEffect on formData.vendor will fire after this updates).
   const handleScanReceipt = async (file: File) => {
-    setScanning(true);
-    setScanError(null);
-    try {
-      // OpenAI uses detail:"low" → 512px internal. Compress images to cut
-      // upload time; PDFs are passed straight through (scanReceipt rasterizes
-      // page 1 to a JPEG via pdfFirstPageToJpeg before sending).
-      const ocrFile = file.type.startsWith('image/')
-        ? await compressImage(file, 0.3, 800, 800)
-        : file;
-      const data = await scanReceipt(ocrFile);
-      applyReceiptData(data);
-    } catch (error) {
-      console.error('Receipt scan error:', error);
-      setScanError(error instanceof Error ? error.message : t('addExpense.failedScan'));
-    } finally {
-      setScanning(false);
-    }
+    const data = await scan(file);
+    if (data) applyReceiptDataToForm(setFormData, data);
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -355,7 +264,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     }));
     setImages([]);
     setScanError(null);
-    setCategoryAutoFilled(false);
   };
 
   const saveExpense = async () => {
@@ -486,7 +394,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
 
       onSaved();
       setJustSaved(true);
-      setCategoryAutoFilled(false);
       setTimeout(() => setJustSaved(false), 2000);
       return true;
     } catch (error) {

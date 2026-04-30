@@ -1,26 +1,32 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
-import { ManageHouseholds } from './ManageHouseholds';
-import { ManageCategories } from './ManageCategories';
-import { ManageVendors } from './ManageVendors';
-import { AdminAnalytics } from './AdminAnalytics';
-import { UncategorizedTransactions } from './UncategorizedTransactions';
-import { ManageUsers } from './ManageUsers';
-import { AdminInvoices } from './AdminInvoices';
-import { Reports } from '../Reports';
-import { AddExpense } from '../AddExpense';
-import { InvoiceForm } from '../InvoiceForm';
 import { ExpenseList } from '../ExpenseList';
-import { HelpModal } from '../HelpModal';
 import { BellButton } from '../BellButton';
-import { WhatsNewModal } from '../WhatsNewModal';
 import { APP_VERSION } from '../../version';
 import { LogoText } from '../LogoText';
 import { useExpenses } from '../../hooks/useExpenses';
 import { BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X, HelpCircle, HardHat, Plus, Receipt, Bell, Store } from 'lucide-react';
 import { hasUnreadReleases, LAST_SEEN_KEY } from '../../i18n/releaseNotes';
-import { useEffect } from 'react';
+
+// Each admin sub-view and modal mounts only on click, so lazy-loading keeps
+// the initial admin chunk small. (One sub-view active at a time.)
+const ManageHouseholds = lazy(() => import('./ManageHouseholds').then((m) => ({ default: m.ManageHouseholds })));
+const ManageCategories = lazy(() => import('./ManageCategories').then((m) => ({ default: m.ManageCategories })));
+const ManageVendors = lazy(() => import('./ManageVendors').then((m) => ({ default: m.ManageVendors })));
+const AdminAnalytics = lazy(() => import('./AdminAnalytics').then((m) => ({ default: m.AdminAnalytics })));
+const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions').then((m) => ({ default: m.UncategorizedTransactions })));
+const ManageUsers = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
+const AdminInvoices = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
+const Reports = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
+const AddExpense = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
+const InvoiceForm = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
+const HelpModal = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
+const WhatsNewModal = lazy(() => import('../WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
+
+function ViewSkeleton() {
+  return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
+}
 
 type AdminView = 'households' | 'categories' | 'vendors' | 'uncategorized' | 'users' | 'invoices' | 'reports' | 'my-transactions';
 // Analytics and Reports are launched as modal overlays from the nav, not as
@@ -282,12 +288,14 @@ export function AdminLayout() {
               </button>
             </div>
           )}
-          {activeView === 'households' && <ManageHouseholds />}
-          {activeView === 'categories' && <ManageCategories />}
-          {activeView === 'vendors' && <ManageVendors />}
-          {activeView === 'uncategorized' && <UncategorizedTransactions />}
-          {activeView === 'users' && <ManageUsers />}
-          {activeView === 'invoices' && <AdminInvoices />}
+          <Suspense fallback={<ViewSkeleton />}>
+            {activeView === 'households' && <ManageHouseholds />}
+            {activeView === 'categories' && <ManageCategories />}
+            {activeView === 'vendors' && <ManageVendors />}
+            {activeView === 'uncategorized' && <UncategorizedTransactions />}
+            {activeView === 'users' && <ManageUsers />}
+            {activeView === 'invoices' && <AdminInvoices />}
+          </Suspense>
           {activeView === 'my-transactions' && (
             <ExpenseList
               expenses={expenses}
@@ -301,17 +309,18 @@ export function AdminLayout() {
         </div>
       </main>
 
-      {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
-      {showReports && <Reports onClose={() => setShowReports(false)} />}
-
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
-      {showAddExpense && (
-        <AddExpense onClose={() => setShowAddExpense(false)} onSaved={reloadExpenses} />
-      )}
-      {showInvoiceForm && (
-        <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={() => { /* AdminInvoices reloads when opened */ }} />
-      )}
+      <Suspense fallback={null}>
+        {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
+        {showReports && <Reports onClose={() => setShowReports(false)} />}
+        {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+        {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+        {showAddExpense && (
+          <AddExpense onClose={() => setShowAddExpense(false)} onSaved={reloadExpenses} />
+        )}
+        {showInvoiceForm && (
+          <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={() => { /* AdminInvoices reloads when opened */ }} />
+        )}
+      </Suspense>
     </div>
   );
 }
