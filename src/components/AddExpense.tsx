@@ -91,6 +91,45 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     }
   }, [formData.household_id]);
 
+  // When opened from the email inbox, hydrate the images list with the
+  // forwarded attachments so the user can see what they're approving and so
+  // a re-upload happens at save time (the existing save flow re-uploads from
+  // the File object — which means the email-inbox copy stays in storage and
+  // a fresh copy lands under the household's normal path).
+  useEffect(() => {
+    const paths = initialData?.attachment_paths;
+    if (!paths || paths.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const loaded: ImageItem[] = [];
+      for (const p of paths) {
+        try {
+          const { data, error } = await supabase.storage.from('receipts').download(p);
+          if (error || !data) continue;
+          const filename = p.split('/').pop() || 'attachment';
+          const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+          const mime =
+            data.type ||
+            (ext === 'pdf' ? 'application/pdf'
+              : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+              : ext === 'png' ? 'image/png'
+              : ext === 'webp' ? 'image/webp'
+              : 'application/octet-stream');
+          const file = new File([data], filename, { type: mime });
+          const preview = mime.startsWith('image/') ? URL.createObjectURL(file) : '';
+          loaded.push({ file, preview });
+        } catch {
+          /* swallow per-file errors */
+        }
+      }
+      if (!cancelled && loaded.length > 0) setImages(loaded);
+    })();
+    return () => { cancelled = true; };
+    // Only run on mount with the initial paths — the user can subsequently
+    // remove/add images via the normal handlers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-populate category when vendor changes (debounced to avoid firing on every keystroke)
   useEffect(() => {
     if (!formData.vendor || !formData.household_id || formData.category) return;

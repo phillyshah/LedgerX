@@ -251,6 +251,12 @@ export function Dashboard() {
             </button>
           </div>
 
+          {/* Email inbox — forwarded receipts awaiting review (shown only when items exist) */}
+          <EmailInboxPanel
+            onOpenExpense={handleInboxExpense}
+            onOpenInvoice={handleInboxInvoice}
+          />
+
           <DashboardSummary expenses={expenses} loading={loading} />
 
           <SpendingCharts expenses={expenses} loading={loading} />
@@ -260,12 +266,6 @@ export function Dashboard() {
             households={households}
             loading={loading}
             onReload={reloadExpenses}
-          />
-
-          {/* Email inbox — forwarded receipts awaiting review + sender address manager */}
-          <EmailInboxPanel
-            onOpenExpense={handleInboxExpense}
-            onOpenInvoice={handleInboxInvoice}
           />
         </div>
       </main>

@@ -94,6 +94,40 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
     loadData();
   }, [user]);
 
+  // Hydrate images from forwarded-email attachment paths (mirror of the
+  // same logic in AddExpense). Runs once on mount.
+  useEffect(() => {
+    const paths = initialData?.attachment_paths;
+    if (!paths || paths.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const loaded: ImageItem[] = [];
+      for (const p of paths) {
+        try {
+          const { data, error } = await supabase.storage.from('receipts').download(p);
+          if (error || !data) continue;
+          const filename = p.split('/').pop() || 'attachment';
+          const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+          const mime =
+            data.type ||
+            (ext === 'pdf' ? 'application/pdf'
+              : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+              : ext === 'png' ? 'image/png'
+              : ext === 'webp' ? 'image/webp'
+              : 'application/octet-stream');
+          const file = new File([data], filename, { type: mime });
+          const preview = mime.startsWith('image/') ? URL.createObjectURL(file) : '';
+          loaded.push({ file, preview });
+        } catch {
+          /* swallow per-file errors */
+        }
+      }
+      if (!cancelled && loaded.length > 0) setImages(loaded);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadData = async () => {
     if (!user) return;
     const [memberRes, catRes, catHhRes] = await Promise.all([

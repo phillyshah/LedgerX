@@ -90,10 +90,13 @@ function InboxCard({
     return `$${n.toFixed(2)}`;
   }
 
+  const hasPrefilled =
+    !!p.vendor_name || p.total_amount != null || !!dateStr || !!p.invoice_number;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-start gap-3 px-4 pt-4 pb-3">
+      <div className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
         <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
           item.kind === 'invoice' ? 'bg-purple-100' : 'bg-emerald-100'
         }`}>
@@ -108,52 +111,62 @@ function InboxCard({
             }`}>
               {item.kind === 'invoice' ? t('inbox.kindInvoice') : t('inbox.kindExpense')}
             </span>
-            <span className="text-xs text-slate-400 truncate">{t('inbox.from')} {item.from_email}</span>
+            <span className="text-xs text-slate-400 truncate min-w-0">{t('inbox.from')} {item.from_email}</span>
           </div>
           {item.subject && (
-            <p className="text-sm text-slate-600 mt-0.5 truncate">{item.subject}</p>
+            <p className="text-sm text-slate-600 mt-1 break-words line-clamp-2 sm:line-clamp-1">{item.subject}</p>
           )}
         </div>
         <button
           onClick={() => onDiscard(item.id)}
           className="flex-shrink-0 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
           title={t('inbox.discard')}
+          aria-label={t('inbox.discard')}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* OCR prefilled data */}
-      <div className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        {p.vendor_name && (
-          <>
-            <span className="text-slate-500">{t('inbox.vendor')}</span>
-            <span className="font-medium text-slate-800 truncate">{p.vendor_name}</span>
-          </>
-        )}
-        {p.total_amount != null && (
-          <>
-            <span className="text-slate-500">{t('inbox.amount')}</span>
-            <span className="font-medium text-slate-800">{fmtAmount(p.total_amount)}</span>
-          </>
-        )}
-        {dateStr && (
-          <>
-            <span className="text-slate-500">{t('inbox.date')}</span>
-            <span className="font-medium text-slate-800">{fmtDate(dateStr)}</span>
-          </>
-        )}
-        {p.invoice_number && (
-          <>
-            <span className="text-slate-500">{t('inbox.invoiceNo')}</span>
-            <span className="font-medium text-slate-800">{p.invoice_number}</span>
-          </>
-        )}
-      </div>
+      {hasPrefilled && (
+        <div className="px-3 sm:px-4 pb-3 grid grid-cols-[auto_1fr] gap-x-3 sm:gap-x-4 gap-y-1 text-sm">
+          {p.vendor_name && (
+            <>
+              <span className="text-slate-500">{t('inbox.vendor')}</span>
+              <span className="font-medium text-slate-800 truncate min-w-0">{p.vendor_name}</span>
+            </>
+          )}
+          {p.total_amount != null && (
+            <>
+              <span className="text-slate-500">{t('inbox.amount')}</span>
+              <span className="font-medium text-slate-800">{fmtAmount(p.total_amount)}</span>
+            </>
+          )}
+          {dateStr && (
+            <>
+              <span className="text-slate-500">{t('inbox.date')}</span>
+              <span className="font-medium text-slate-800">{fmtDate(dateStr)}</span>
+            </>
+          )}
+          {p.invoice_number && (
+            <>
+              <span className="text-slate-500">{t('inbox.invoiceNo')}</span>
+              <span className="font-medium text-slate-800 truncate min-w-0">{p.invoice_number}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* No-OCR notice (e.g., PDF that couldn't be auto-read) */}
+      {!hasPrefilled && item.attachment_paths.length > 0 && (
+        <div className="mx-3 sm:mx-4 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+          {t('inbox.manualEntryNeeded')}
+        </div>
+      )}
 
       {/* Attachments */}
       {item.attachment_paths.length > 0 && (
-        <div className="px-4 pb-3 flex gap-2 flex-wrap">
+        <div className="px-3 sm:px-4 pb-3 flex gap-2 flex-wrap">
           {item.attachment_paths.map(p => (
             <AttachmentThumb key={p} path={p} />
           ))}
@@ -161,10 +174,10 @@ function InboxCard({
       )}
 
       {/* Actions */}
-      <div className="px-4 pb-4 flex gap-2">
+      <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex gap-2">
         <button
           onClick={() => onOpenForm(item)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all"
+          className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
         >
           <ExternalLink className="w-4 h-4" />
           {t('inbox.reviewAndAccept')}

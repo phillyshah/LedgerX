@@ -33,6 +33,33 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.3',
+    version: 'v7.3',
+    date: '2026-04-30',
+    title: {
+      'en': 'Email inbox fixes + mobile polish',
+      'pt-BR': 'Correções na caixa de entrada de e-mail + ajustes para celular',
+    },
+    body: {
+      'en':
+        "Fixed two issues with email-forwarded receipts: the attachment " +
+        "thumbnails now show in your inbox, and tapping \"Review & Accept\" " +
+        "actually opens the form with the receipt or invoice attached. We " +
+        "also tightened the inbox cards on mobile so the subject line wraps " +
+        "instead of getting cut off, and added a clear notice when an " +
+        "attachment couldn't be auto-read so you know to fill the fields " +
+        "in by hand.",
+      'pt-BR':
+        'Corrigimos dois problemas com recibos enviados por e-mail: as ' +
+        'miniaturas dos anexos agora aparecem na sua caixa de entrada, e ' +
+        'tocar em "Revisar e Aceitar" realmente abre o formulário com o ' +
+        'recibo ou nota anexado. Também ajustamos os cartões da caixa de ' +
+        'entrada no celular para que o assunto quebre em várias linhas em ' +
+        'vez de ser cortado, e adicionamos um aviso claro quando um anexo ' +
+        'não pôde ser lido automaticamente.',
+    },
+  },
+  {
     id: 'v7.1',
     version: 'v7.1',
     date: '2026-04-30',

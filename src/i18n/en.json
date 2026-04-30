@@ -560,6 +560,7 @@
   "inbox.date": "Date",
   "inbox.invoiceNo": "Invoice #",
   "inbox.reviewAndAccept": "Review & Accept",
+  "inbox.manualEntryNeeded": "Couldn't auto-read this attachment — tap Review & Accept and fill in the details by hand.",
   "inbox.discard": "Discard",
   "inbox.senderEmailsTitle": "Email Forwarding",
   "inbox.senderEmailsHelp": "Add the email addresses you'll forward receipts or invoices from. When mail arrives at receipts@90ten.life from one of these addresses, it will appear here for review.",
