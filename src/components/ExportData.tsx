@@ -97,13 +97,14 @@ export function ExportData({ onClose }: ExportDataProps) {
     return `${count} categories`;
   };
 
-  // Loose typing: Supabase client surfaces `never` for query rows in this codebase,
-  // so a generic would collapse to `never[]` and break property access in the loop.
-  const sortExpenses = (expenses: any[], householdMap: Map<string, string>): any[] => {
+  const sortExpenses = (
+    expenses: Record<string, unknown>[],
+    householdMap: Map<string, string>,
+  ): Record<string, unknown>[] => {
     return [...expenses].sort((a, b) => {
-      const dateCompare = (b.expense_date || '').localeCompare(a.expense_date || '');
-      const householdCompare = (householdMap.get(a.household_id) || '').localeCompare(householdMap.get(b.household_id) || '');
-      const categoryCompare = (a.category || '').localeCompare(b.category || '');
+      const dateCompare = String(b.expense_date || '').localeCompare(String(a.expense_date || ''));
+      const householdCompare = (householdMap.get(String(a.household_id)) || '').localeCompare(householdMap.get(String(b.household_id)) || '');
+      const categoryCompare = String(a.category || '').localeCompare(String(b.category || ''));
 
       switch (sortBy) {
         case 'household':
@@ -152,7 +153,10 @@ export function ExportData({ onClose }: ExportDataProps) {
       const { data: expensesData, error } = await query;
       if (error) throw error;
 
-      const expenses = sortExpenses(expensesData || [], householdMap);
+      const expenses = sortExpenses(
+        (expensesData ?? []) as unknown as Record<string, unknown>[],
+        householdMap,
+      );
 
       // CSV
       const csvContent = buildExpenseCsv(expenses, householdMap, 'pic_id');
