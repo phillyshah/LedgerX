@@ -94,8 +94,10 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
     loadData();
   }, [user]);
 
-  // Hydrate images from forwarded-email attachment paths (mirror of the
-  // same logic in AddExpense). Runs once on mount.
+  // Hydrate images from forwarded-email attachment paths and auto-run OCR
+  // on the first one — same shape as a direct upload. handleScanInvoice
+  // accepts both images and PDFs (the edge function handles PDFs via
+  // pdfFirstPageToJpeg in scanInvoice).
   useEffect(() => {
     const paths = initialData?.attachment_paths;
     if (!paths || paths.length === 0) return;
@@ -116,13 +118,19 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
               : ext === 'webp' ? 'image/webp'
               : 'application/octet-stream');
           const file = new File([data], filename, { type: mime });
-          const preview = mime.startsWith('image/') ? URL.createObjectURL(file) : '';
+          const preview = URL.createObjectURL(file);
           loaded.push({ file, preview });
         } catch {
           /* swallow per-file errors */
         }
       }
-      if (!cancelled && loaded.length > 0) setImages(loaded);
+      if (cancelled || loaded.length === 0) return;
+      setImages(loaded);
+      const hasPrefill =
+        !!initialData?.vendor_name ||
+        !!initialData?.amount ||
+        !!initialData?.invoice_date;
+      if (!hasPrefill) handleScanInvoice(loaded[0].file);
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -633,14 +641,22 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {images.map((img, index) => (
                       <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-200">
-                        {img.file.type === 'application/pdf' ? (
-                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
-                            <FileText className="w-8 h-8 text-red-400" />
-                            <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
-                          </div>
-                        ) : (
-                          <img src={img.preview} alt={`Invoice ${index + 1}`} className="w-full h-32 object-cover" />
-                        )}
+                        <a
+                          href={img.preview}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block hover:opacity-90 transition-opacity"
+                          title={t('invoice.viewFull')}
+                        >
+                          {img.file.type === 'application/pdf' ? (
+                            <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                              <FileText className="w-8 h-8 text-red-400" />
+                              <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
+                            </div>
+                          ) : (
+                            <img src={img.preview} alt={`Invoice ${index + 1}`} className="w-full h-32 object-cover" />
+                          )}
+                        </a>
                         <button
                           type="button"
                           onClick={() => removeImage(index)}

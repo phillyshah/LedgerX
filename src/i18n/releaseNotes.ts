@@ -33,6 +33,33 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.4',
+    version: 'v7.4',
+    date: '2026-04-30',
+    title: {
+      'en': 'You pick: receipt or invoice',
+      'pt-BR': 'Você escolhe: recibo ou nota fiscal',
+    },
+    body: {
+      'en':
+        "Each item in your email inbox now has two clear buttons — " +
+        "\"Review as Receipt\" and \"Review as Invoice\" — so the system " +
+        "doesn't have to guess what you forwarded. The form runs full OCR " +
+        "after you pick (works for both images and PDFs), so vendor, amount, " +
+        "and date pre-fill themselves the same way as a direct upload. You " +
+        "can also click any attachment thumbnail in the form to open it " +
+        "full-size in a new tab.",
+      'pt-BR':
+        'Cada item da sua caixa de entrada de e-mail agora tem dois botões ' +
+        'claros — "Revisar como Recibo" e "Revisar como Nota Fiscal" — ' +
+        'então o sistema não precisa adivinhar o que você encaminhou. O ' +
+        'formulário roda o OCR completo depois da sua escolha (funciona ' +
+        'para imagens e PDFs), então fornecedor, valor e data são ' +
+        'preenchidos automaticamente. Você também pode clicar em qualquer ' +
+        'miniatura de anexo no formulário para abrir em tamanho original.',
+    },
+  },
+  {
     id: 'v7.3',
     version: 'v7.3',
     date: '2026-04-30',

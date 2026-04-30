@@ -92,10 +92,10 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   }, [formData.household_id]);
 
   // When opened from the email inbox, hydrate the images list with the
-  // forwarded attachments so the user can see what they're approving and so
-  // a re-upload happens at save time (the existing save flow re-uploads from
-  // the File object — which means the email-inbox copy stays in storage and
-  // a fresh copy lands under the household's normal path).
+  // forwarded attachments and run OCR on the first one — same shape as a
+  // direct upload via handleImageChange. The save flow later re-uploads
+  // from the File object, so the email-inbox copy stays in storage and a
+  // fresh copy lands under the household path.
   useEffect(() => {
     const paths = initialData?.attachment_paths;
     if (!paths || paths.length === 0) return;
@@ -116,17 +116,27 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
               : ext === 'webp' ? 'image/webp'
               : 'application/octet-stream');
           const file = new File([data], filename, { type: mime });
-          const preview = mime.startsWith('image/') ? URL.createObjectURL(file) : '';
+          // Use blob URL for both image and PDF previews — clicking opens
+          // either inline or in the browser's PDF viewer.
+          const preview = URL.createObjectURL(file);
           loaded.push({ file, preview });
         } catch {
           /* swallow per-file errors */
         }
       }
-      if (!cancelled && loaded.length > 0) setImages(loaded);
+      if (cancelled || loaded.length === 0) return;
+      setImages(loaded);
+      // Auto-OCR the first attachment exactly the way handleImageChange
+      // does for a direct upload. scanReceipt rasterizes PDFs internally,
+      // so we don't need a separate path. Only fire when the form fields
+      // arrived empty — if the user already had server-side OCR data from
+      // the inbound function, don't clobber it.
+      const hasPrefill =
+        !!initialData?.vendor || !!initialData?.total || !!initialData?.expense_date;
+      if (!hasPrefill) handleScanReceipt(loaded[0].file);
     })();
     return () => { cancelled = true; };
-    // Only run on mount with the initial paths — the user can subsequently
-    // remove/add images via the normal handlers.
+    // Only run on mount with the initial paths.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -275,12 +285,15 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   };
 
   const handleScanReceipt = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
     setScanning(true);
     setScanError(null);
     try {
-      // OpenAI uses detail:"low" → 512px internal — send a smaller copy to cut upload time
-      const ocrFile = await compressImage(file, 0.3, 800, 800);
+      // OpenAI uses detail:"low" → 512px internal. Compress images to cut
+      // upload time; PDFs are passed straight through (scanReceipt rasterizes
+      // page 1 to a JPEG via pdfFirstPageToJpeg before sending).
+      const ocrFile = file.type.startsWith('image/')
+        ? await compressImage(file, 0.3, 800, 800)
+        : file;
       const data = await scanReceipt(ocrFile);
       applyReceiptData(data);
     } catch (error) {
@@ -737,14 +750,22 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {images.map((img, index) => (
                       <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-200">
-                        {img.file.type === 'application/pdf' ? (
-                          <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
-                            <FileText className="w-8 h-8 text-red-400" />
-                            <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
-                          </div>
-                        ) : (
-                          <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
-                        )}
+                        <a
+                          href={img.preview}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block hover:opacity-90 transition-opacity"
+                          title={t('addExpense.viewFull')}
+                        >
+                          {img.file.type === 'application/pdf' ? (
+                            <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
+                              <FileText className="w-8 h-8 text-red-400" />
+                              <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
+                            </div>
+                          ) : (
+                            <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                          )}
+                        </a>
                         <button
                           type="button"
                           onClick={() => removeImage(index)}

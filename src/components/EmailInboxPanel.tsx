@@ -66,55 +66,29 @@ function AttachmentThumb({ path }: { path: string }) {
 function InboxCard({
   item,
   onDiscard,
-  onOpenForm,
+  onOpenAs,
   t,
 }: {
   item: InboxItem;
   onDiscard: (id: string) => void;
-  onOpenForm: (item: InboxItem) => void;
+  onOpenAs: (item: InboxItem, as: 'expense' | 'invoice') => void;
   t: (k: string) => string;
 }) {
-  const p = item.prefilled;
-  const dateStr = p.transaction_date ?? p.invoice_date ?? null;
-
-  function fmtDate(iso: string | null): string {
-    if (!iso) return '—';
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString(undefined, {
-      month: 'short', day: 'numeric', year: 'numeric',
-    });
-  }
-
-  function fmtAmount(n: number | null | undefined): string {
-    if (n == null) return '—';
-    return `$${n.toFixed(2)}`;
-  }
-
-  const hasPrefilled =
-    !!p.vendor_name || p.total_amount != null || !!dateStr || !!p.invoice_number;
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header */}
+      {/* Header — kind-agnostic now; user picks at action time */}
       <div className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
-        <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
-          item.kind === 'invoice' ? 'bg-purple-100' : 'bg-emerald-100'
-        }`}>
-          <Mail className={`w-4 h-4 ${item.kind === 'invoice' ? 'text-purple-600' : 'text-emerald-600'}`} />
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-100">
+          <Mail className="w-4 h-4 text-emerald-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              item.kind === 'invoice'
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-emerald-100 text-emerald-700'
-            }`}>
-              {item.kind === 'invoice' ? t('inbox.kindInvoice') : t('inbox.kindExpense')}
-            </span>
-            <span className="text-xs text-slate-400 truncate min-w-0">{t('inbox.from')} {item.from_email}</span>
-          </div>
+          <span className="text-xs text-slate-500 truncate block">
+            {t('inbox.from')} {item.from_email}
+          </span>
           {item.subject && (
-            <p className="text-sm text-slate-600 mt-1 break-words line-clamp-2 sm:line-clamp-1">{item.subject}</p>
+            <p className="text-sm font-medium text-slate-800 mt-0.5 break-words line-clamp-2 sm:line-clamp-1">
+              {item.subject}
+            </p>
           )}
         </div>
         <button
@@ -127,44 +101,7 @@ function InboxCard({
         </button>
       </div>
 
-      {/* OCR prefilled data */}
-      {hasPrefilled && (
-        <div className="px-3 sm:px-4 pb-3 grid grid-cols-[auto_1fr] gap-x-3 sm:gap-x-4 gap-y-1 text-sm">
-          {p.vendor_name && (
-            <>
-              <span className="text-slate-500">{t('inbox.vendor')}</span>
-              <span className="font-medium text-slate-800 truncate min-w-0">{p.vendor_name}</span>
-            </>
-          )}
-          {p.total_amount != null && (
-            <>
-              <span className="text-slate-500">{t('inbox.amount')}</span>
-              <span className="font-medium text-slate-800">{fmtAmount(p.total_amount)}</span>
-            </>
-          )}
-          {dateStr && (
-            <>
-              <span className="text-slate-500">{t('inbox.date')}</span>
-              <span className="font-medium text-slate-800">{fmtDate(dateStr)}</span>
-            </>
-          )}
-          {p.invoice_number && (
-            <>
-              <span className="text-slate-500">{t('inbox.invoiceNo')}</span>
-              <span className="font-medium text-slate-800 truncate min-w-0">{p.invoice_number}</span>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* No-OCR notice (e.g., PDF that couldn't be auto-read) */}
-      {!hasPrefilled && item.attachment_paths.length > 0 && (
-        <div className="mx-3 sm:mx-4 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
-          {t('inbox.manualEntryNeeded')}
-        </div>
-      )}
-
-      {/* Attachments */}
+      {/* Attachments — clickable thumbs to view source before deciding kind */}
       {item.attachment_paths.length > 0 && (
         <div className="px-3 sm:px-4 pb-3 flex gap-2 flex-wrap">
           {item.attachment_paths.map(p => (
@@ -173,14 +110,22 @@ function InboxCard({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex gap-2">
+      {/* Actions — user decides receipt vs invoice; we OCR after the form
+          opens so the answer is correct for whichever path they pick. */}
+      <div className="px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button
-          onClick={() => onOpenForm(item)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
+          onClick={() => onOpenAs(item, 'expense')}
+          className="flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
         >
           <ExternalLink className="w-4 h-4" />
-          {t('inbox.reviewAndAccept')}
+          {t('inbox.reviewAsReceipt')}
+        </button>
+        <button
+          onClick={() => onOpenAs(item, 'invoice')}
+          className="flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
+        >
+          <ExternalLink className="w-4 h-4" />
+          {t('inbox.reviewAsInvoice')}
         </button>
       </div>
     </div>
@@ -200,12 +145,12 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
   const [refresh, setRefresh] = useState(0);
   const { items, loading, discard } = useEmailInbox(refresh);
 
-  const handleOpenForm = (item: InboxItem) => {
-    if (item.kind === 'invoice') {
-      onOpenInvoice(item);
-    } else {
-      onOpenExpense(item);
-    }
+  // User picks receipt vs invoice on each card now (the auto-detected
+  // `item.kind` is no longer used for routing — it was a guess). This
+  // matches the user's preference: "no guessing we need to do."
+  const handleOpenAs = (item: InboxItem, as: 'expense' | 'invoice') => {
+    if (as === 'invoice') onOpenInvoice(item);
+    else onOpenExpense(item);
   };
 
   const handleDiscard = async (id: string) => {
@@ -235,7 +180,7 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
             key={item.id}
             item={item}
             onDiscard={handleDiscard}
-            onOpenForm={handleOpenForm}
+            onOpenAs={handleOpenAs}
             t={t}
           />
         ))
