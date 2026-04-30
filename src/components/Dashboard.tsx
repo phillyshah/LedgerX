@@ -18,7 +18,9 @@ import { HelpModal } from './HelpModal';
 import { BellButton } from './BellButton';
 import { WhatsNewModal } from './WhatsNewModal';
 import { EmailInboxPanel } from './EmailInboxPanel';
-import type { InboxItem } from '../hooks/useEmailInbox';
+import { CollapsibleSection } from './CollapsibleSection';
+import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
+import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react';
 import { APP_VERSION } from '../version';
 
 export function Dashboard() {
@@ -40,6 +42,11 @@ export function Dashboard() {
   // ownOnly) and are routed elsewhere by App.tsx, so they aren't affected.
   const { expenses, households, loading, reloadExpenses } = useExpenses(undefined, { ownOnly: true });
   const { invoices, loading: invoicesLoading, reloadInvoices } = useInvoices();
+  // Used only to know whether to surface the email-inbox section. The
+  // EmailInboxPanel runs its own copy of this hook for live state — both
+  // share Supabase's underlying fetch result so the cost is negligible.
+  const { items: inboxItems } = useEmailInbox(0);
+  const inboxCount = inboxItems.length;
 
   const handleExpenseAdded = () => {
     reloadExpenses();
@@ -165,31 +172,48 @@ export function Dashboard() {
             </button>
           </div>
 
-          {/* Email inbox — forwarded receipts/invoices awaiting review */}
-          <EmailInboxPanel
-            onOpenExpense={handleInboxExpense}
-            onOpenInvoice={handleInboxInvoice}
-          />
+          {/* Email inbox — forwarded receipts/invoices awaiting review.
+              Only surfaces when there's at least one pending item. */}
+          <CollapsibleSection
+            storageKey="contractor.inbox"
+            title={t('inbox.pendingTitle')}
+            icon={<Mail className="w-4 h-4" />}
+            meta={inboxCount > 0 ? `${inboxCount}` : undefined}
+            hidden={inboxCount === 0}
+          >
+            <EmailInboxPanel
+              onOpenExpense={handleInboxExpense}
+              onOpenInvoice={handleInboxInvoice}
+            />
+          </CollapsibleSection>
 
-          {/* Invoice section */}
-          <section>
-            <h2 className="text-base font-semibold text-slate-900 mb-3">{t('invoice.myInvoices')}</h2>
+          <CollapsibleSection
+            storageKey="contractor.invoices"
+            title={t('invoice.myInvoices')}
+            icon={<FileSignature className="w-4 h-4" />}
+          >
             <InvoiceList
               invoices={invoices}
               loading={invoicesLoading}
               onReload={reloadInvoices}
             />
-          </section>
+          </CollapsibleSection>
 
-          {/* Receipt submissions — ExpenseList renders its own card header */}
-          <ExpenseList
-            expenses={expenses}
-            households={households}
-            loading={loading}
-            onReload={reloadExpenses}
-            ownSubmissionsOnly
-            hideFilters
-          />
+          <CollapsibleSection
+            storageKey="contractor.submissions"
+            title={t('dashboard.yourSubmissions')}
+            icon={<ListChecks className="w-4 h-4" />}
+          >
+            <ExpenseList
+              expenses={expenses}
+              households={households}
+              loading={loading}
+              onReload={reloadExpenses}
+              ownSubmissionsOnly
+              hideFilters
+              hideHeader
+            />
+          </CollapsibleSection>
         </main>
 
         {showAddExpense && (
@@ -251,22 +275,50 @@ export function Dashboard() {
             </button>
           </div>
 
-          {/* Email inbox — forwarded receipts awaiting review (shown only when items exist) */}
-          <EmailInboxPanel
-            onOpenExpense={handleInboxExpense}
-            onOpenInvoice={handleInboxInvoice}
-          />
+          {/* Email inbox — only surfaces when at least one pending item */}
+          <CollapsibleSection
+            storageKey="dashboard.inbox"
+            title={t('inbox.pendingTitle')}
+            icon={<Mail className="w-4 h-4" />}
+            meta={inboxCount > 0 ? `${inboxCount}` : undefined}
+            hidden={inboxCount === 0}
+          >
+            <EmailInboxPanel
+              onOpenExpense={handleInboxExpense}
+              onOpenInvoice={handleInboxInvoice}
+            />
+          </CollapsibleSection>
 
-          <DashboardSummary expenses={expenses} loading={loading} />
+          <CollapsibleSection
+            storageKey="dashboard.summary"
+            title={t('dashboard.summaryTitle')}
+            icon={<Inbox className="w-4 h-4" />}
+          >
+            <DashboardSummary expenses={expenses} loading={loading} />
+          </CollapsibleSection>
 
-          <SpendingCharts expenses={expenses} loading={loading} />
+          <CollapsibleSection
+            storageKey="dashboard.charts"
+            title={t('dashboard.chartsTitle')}
+            icon={<BarChart3 className="w-4 h-4" />}
+          >
+            <SpendingCharts expenses={expenses} loading={loading} />
+          </CollapsibleSection>
 
-          <ExpenseList
-            expenses={expenses}
-            households={households}
-            loading={loading}
-            onReload={reloadExpenses}
-          />
+          <CollapsibleSection
+            storageKey="dashboard.transactions"
+            title={t('expenses.heading')}
+            icon={<ListChecks className="w-4 h-4" />}
+            meta={expenses.length > 0 ? `${expenses.length}` : undefined}
+          >
+            <ExpenseList
+              expenses={expenses}
+              households={households}
+              loading={loading}
+              onReload={reloadExpenses}
+              hideHeader
+            />
+          </CollapsibleSection>
         </div>
       </main>
 

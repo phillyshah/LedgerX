@@ -17,8 +17,8 @@
  * remove the addresses they forward from.
  */
 
-import { useState, useEffect } from 'react';
-import { Mail, FileText, X, Loader2, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mail, FileText, X, Loader2, ChevronDown, Receipt, FileSignature } from 'lucide-react';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
 import { supabase } from '../lib/supabase';
 import { useT } from '../hooks/useT';
@@ -110,24 +110,82 @@ function InboxCard({
         </div>
       )}
 
-      {/* Actions — user decides receipt vs invoice; we OCR after the form
-          opens so the answer is correct for whichever path they pick. */}
-      <div className="px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <button
-          onClick={() => onOpenAs(item, 'expense')}
-          className="flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
-        >
-          <ExternalLink className="w-4 h-4" />
-          {t('inbox.reviewAsReceipt')}
-        </button>
-        <button
-          onClick={() => onOpenAs(item, 'invoice')}
-          className="flex items-center justify-center gap-2 py-3 sm:py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-[0.98] text-white text-sm font-semibold transition-all"
-        >
-          <ExternalLink className="w-4 h-4" />
-          {t('inbox.reviewAsInvoice')}
-        </button>
+      {/* Actions — compact split button. The user picks receipt vs invoice;
+          we OCR after the form opens so the answer is correct either way. */}
+      <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex justify-end">
+        <ReviewMenu item={item} onOpenAs={onOpenAs} t={t} />
       </div>
+    </div>
+  );
+}
+
+// ── Review menu (small split button → dropdown) ───────────────────────────────
+function ReviewMenu({
+  item,
+  onOpenAs,
+  t,
+}: {
+  item: InboxItem;
+  onOpenAs: (item: InboxItem, as: 'expense' | 'invoice') => void;
+  t: (k: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click and Escape
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative inline-block" ref={wrapRef}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-medium transition-all"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {t('inbox.review')}
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-10"
+          role="menu"
+        >
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onOpenAs(item, 'expense'); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-emerald-50 transition-colors"
+            role="menuitem"
+          >
+            <Receipt className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span className="flex-1">{t('inbox.reviewAsReceipt')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onOpenAs(item, 'invoice'); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-purple-50 transition-colors border-t border-slate-100"
+            role="menuitem"
+          >
+            <FileSignature className="w-4 h-4 text-purple-600 flex-shrink-0" />
+            <span className="flex-1">{t('inbox.reviewAsInvoice')}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -161,14 +219,10 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
   // Only render when there are pending items
   if (!loading && items.length === 0) return null;
 
+  // The wrapping CollapsibleSection on the dashboard provides the section
+  // title — we just render the cards directly here.
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Mail className="w-4 h-4 text-emerald-600" />
-        <h3 className="text-sm font-semibold text-slate-700">
-          {t('inbox.pendingTitle')}{items.length > 0 ? ` (${items.length})` : ''}
-        </h3>
-      </div>
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
           <Loader2 className="w-4 h-4 animate-spin" />

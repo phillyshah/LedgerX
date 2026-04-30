@@ -15,9 +15,12 @@ interface ExpenseListProps {
   ownSubmissionsOnly?: boolean;
   /** When true, hides the filter bar entirely (contractor minimal view). */
   hideFilters?: boolean;
+  /** When true, drops the internal h2 — caller is providing a section
+   *  header (e.g. CollapsibleSection on the dashboard). */
+  hideHeader?: boolean;
 }
 
-export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideFilters = false }: ExpenseListProps) {
+export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideFilters = false, hideHeader = false }: ExpenseListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -155,22 +158,25 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Header */}
+        {/* Header — collapses entirely when both header and filters are hidden */}
+        {!(hideHeader && hideFilters) && (
         <div className="p-5 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-slate-900">
-              {ownSubmissionsOnly ? t('dashboard.yourSubmissions') : t('expenses.heading')}
-            </h2>
-            {hasAnyFilter && !hideFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
-              >
-                <X className="w-3 h-3" />
-                {t('expenses.clearAll')}
-              </button>
-            )}
-          </div>
+          {!hideHeader && (
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {ownSubmissionsOnly ? t('dashboard.yourSubmissions') : t('expenses.heading')}
+              </h2>
+              {hasAnyFilter && !hideFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" />
+                  {t('expenses.clearAll')}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Search bar + filter toggle — hidden in contractor-minimal view */}
           {!hideFilters && (
@@ -296,6 +302,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
           </>
           )}
         </div>
+        )}
 
         {/* Results info bar */}
         {hasAnyFilter && !hideFilters && (

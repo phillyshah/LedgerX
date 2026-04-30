@@ -33,6 +33,33 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.5',
+    version: 'v7.5',
+    date: '2026-04-30',
+    title: {
+      'en': 'Tidier dashboard + smaller review menu',
+      'pt-BR': 'Painel mais arrumado + menu de revisão menor',
+    },
+    body: {
+      'en':
+        "Each section on the dashboard — Email Inbox, Summary, Spending " +
+        "charts, and Transactions — now has a small chevron next to its " +
+        "title that lets you collapse or expand it. Your choices stick " +
+        "across reloads on this device. We also shrunk the inbox " +
+        "\"Review\" action down to a single compact button with a " +
+        "dropdown for Receipt vs Invoice, so the cards don't dominate " +
+        "the page anymore.",
+      'pt-BR':
+        'Cada seção do painel — Caixa de Entrada, Resumo, Gráficos de ' +
+        'gastos e Transações — agora tem uma pequena seta ao lado do ' +
+        'título que permite recolher ou expandir. Suas escolhas ficam ' +
+        'salvas neste dispositivo. Também encolhemos o botão "Revisar" ' +
+        'da caixa de entrada para um botão compacto com menu suspenso ' +
+        'entre Recibo e Nota Fiscal, então os cartões não dominam mais ' +
+        'a página.',
+    },
+  },
+  {
     id: 'v7.4',
     version: 'v7.4',
     date: '2026-04-30',
