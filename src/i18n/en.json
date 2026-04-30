@@ -117,6 +117,9 @@
   "addExpense.failedFile": "Failed to process file. Please try another file.",
   "addExpense.failedSave": "Failed to add transaction. Please try again.",
   "addExpense.failedScan": "Failed to scan receipt",
+  "addExpense.dupOneTitle": "Looks like a possible duplicate",
+  "addExpense.dupManyTitle": "{count} possible duplicates already submitted",
+  "addExpense.dupHint": "We found a receipt with the same vendor, amount, and date in this household. You can still save — just double-check it isn't already there.",
 
   "editExpense.title": "Edit Transaction",
   "editExpense.deleteConfirm": "Delete this transaction?",
@@ -496,6 +499,8 @@
   "invoice.adminNotes": "Admin Notes",
   "invoice.submittedOn": "Submitted",
   "invoice.dateServiceEndBeforeStart": "End date must be on or after the start date.",
+  "invoice.dupTitle": "Invoice number already used in this property",
+  "invoice.dupHint": "An invoice with this number was already submitted for this household. You can still save — just double-check it isn't already there.",
 
   "adminInvoices.title": "Contractor Invoices",
   "adminInvoices.subtitle": "Review contractor invoice submissions.",

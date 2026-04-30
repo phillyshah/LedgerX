@@ -138,6 +138,21 @@ date, etc.).
 
 ---
 
+## Possible-Duplicate Warning
+<!-- roles: contractor, member, admin -->
+
+If you upload a receipt with the same vendor, total, and date (±1 day)
+as one already in this household, an amber banner appears at the top
+of the form. Same idea for invoices, matched by invoice number within
+the property.
+
+The warning is **non-blocking** — if you really do mean to submit
+(say, two identical-amount lunches at the same restaurant on different
+days, or a re-issue of an invoice with the same number), just save
+anyway. It's a heads-up, not a wall.
+
+---
+
 ## Vendor → Category Mapping (Vendor Catalog)
 <!-- roles: contractor, member, admin -->
 

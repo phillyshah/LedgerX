@@ -4,7 +4,8 @@ import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanInvoice } from '../lib/invoiceScanner';
-import { X, Upload, Check, Loader2, Plus, FileText } from 'lucide-react';
+import { X, Upload, Check, Loader2, Plus, FileText, AlertTriangle } from 'lucide-react';
+import { findInvoiceDuplicates, type InvoiceDuplicate } from '../lib/duplicates';
 
 interface Household {
   id: string;
@@ -54,6 +55,24 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
+  // Possible-duplicate matches by invoice_number within the household.
+  // Non-blocking warning (same UX shape as AddExpense).
+  const [duplicateMatches, setDuplicateMatches] = useState<InvoiceDuplicate[]>([]);
+
+  useEffect(() => {
+    if (!formData.household_id || !formData.invoice_number.trim()) {
+      setDuplicateMatches([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const matches = await findInvoiceDuplicates({
+        householdId: formData.household_id,
+        invoiceNumber: formData.invoice_number,
+      });
+      setDuplicateMatches(matches);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.household_id, formData.invoice_number]);
 
   useEffect(() => {
     loadData();
@@ -345,6 +364,19 @@ export function InvoiceForm({ onClose, onSaved }: InvoiceFormProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+          {/* Possible-duplicate warning — non-blocking. Match is by
+              invoice_number within the chosen household; the same
+              number for the same property strongly suggests a re-submit. */}
+          {duplicateMatches.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 items-start">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-amber-800">
+                <p className="font-medium">{t('invoice.dupTitle')}</p>
+                <p className="text-xs text-amber-700 mt-1">{t('invoice.dupHint')}</p>
+              </div>
+            </div>
+          )}
 
           {/* Property / Household */}
           <div>

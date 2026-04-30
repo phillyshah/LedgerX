@@ -117,6 +117,9 @@
   "addExpense.failedFile": "Falha ao processar o arquivo. Tente outro arquivo.",
   "addExpense.failedSave": "Falha ao adicionar a transação. Tente novamente.",
   "addExpense.failedScan": "Falha ao ler o recibo",
+  "addExpense.dupOneTitle": "Parece uma possível duplicata",
+  "addExpense.dupManyTitle": "{count} possíveis duplicatas já enviadas",
+  "addExpense.dupHint": "Encontramos um recibo com o mesmo fornecedor, valor e data nesta residência. Você ainda pode salvar — só confira se já não está lá.",
 
   "editExpense.title": "Editar Transação",
   "editExpense.deleteConfirm": "Excluir esta transação?",
@@ -496,6 +499,8 @@
   "invoice.adminNotes": "Observações do Administrador",
   "invoice.submittedOn": "Enviada em",
   "invoice.dateServiceEndBeforeStart": "A data de término deve ser igual ou posterior à data de início.",
+  "invoice.dupTitle": "Número de nota fiscal já usado neste imóvel",
+  "invoice.dupHint": "Uma nota fiscal com esse número já foi enviada para esta residência. Você ainda pode salvar — só confira se já não está lá.",
 
   "adminInvoices.title": "Notas Fiscais de Prestadores",
   "adminInvoices.subtitle": "Revisar notas fiscais enviadas por prestadores.",

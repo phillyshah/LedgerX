@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanReceipt, formatReceiptNotes, ReceiptData } from '../lib/receiptScanner';
 import { useVendorCatalog, uniqueVendorNames } from '../hooks/useVendorCatalog';
+import { findExpenseDuplicates, type ExpenseDuplicate } from '../lib/duplicates';
+import { AlertTriangle } from 'lucide-react';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 
@@ -53,6 +55,10 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [_categoryAutoFilled, setCategoryAutoFilled] = useState(false);
+  // Possible-duplicate warning. Empty array = no banner. We only check
+  // on (household, vendor, total, date) tuples that are fully populated;
+  // anything earlier in the form's lifecycle is a guaranteed false positive.
+  const [duplicateMatches, setDuplicateMatches] = useState<ExpenseDuplicate[]>([]);
   const [showNPILookup, setShowNPILookup] = useState(false);
   const [npiInitialQuery, setNpiInitialQuery] = useState('');
   const [npiInitialResults, setNpiInitialResults] = useState<NPIResult[] | undefined>(undefined);
@@ -76,6 +82,27 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
     }, 500);
     return () => clearTimeout(timer);
   }, [formData.vendor, formData.household_id]);
+
+  // Possible-duplicate detection. Same debounce shape as the category
+  // lookup so typing doesn't fire a query per keystroke. The banner is
+  // non-blocking: even if a match is found, the user can still save.
+  useEffect(() => {
+    const total = parseFloat(formData.total);
+    if (!formData.household_id || !formData.expense_date || !Number.isFinite(total) || total <= 0) {
+      setDuplicateMatches([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const matches = await findExpenseDuplicates({
+        householdId: formData.household_id,
+        vendor: formData.vendor || null,
+        total,
+        expenseDate: formData.expense_date,
+      });
+      setDuplicateMatches(matches);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.household_id, formData.vendor, formData.total, formData.expense_date]);
 
   const loadOptions = async () => {
     if (!user) return;
@@ -470,6 +497,23 @@ export function AddExpense({ onClose, onSaved }: AddExpenseProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Possible-duplicate warning — non-blocking. We render it
+              above all form fields so the user sees it before reaching
+              the Save button, but they can still save through it. */}
+          {duplicateMatches.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 items-start">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <div className="text-sm text-amber-800">
+                <p className="font-medium">
+                  {duplicateMatches.length === 1
+                    ? t('addExpense.dupOneTitle')
+                    : t('addExpense.dupManyTitle', { count: duplicateMatches.length })}
+                </p>
+                <p className="text-xs text-amber-700 mt-1">{t('addExpense.dupHint')}</p>
+              </div>
+            </div>
+          )}
+
           <div>
             <label htmlFor="household" className="block text-sm font-medium text-slate-700 mb-2">
               {t('addExpense.household')}

@@ -134,6 +134,21 @@ serviço, data de vencimento etc.).
 
 ---
 
+## Aviso de Possível Duplicata
+<!-- roles: contractor, member, admin -->
+
+Se você enviar um recibo com o mesmo fornecedor, total e data (±1 dia)
+de outro já registrado nesta residência, um aviso âmbar aparece no
+topo do formulário. Lógica equivalente para notas fiscais, comparando
+pelo número dentro do imóvel.
+
+O aviso **não bloqueia** — se for mesmo intencional (por exemplo, dois
+almoços de mesmo valor no mesmo restaurante em dias diferentes, ou
+reemissão de uma nota fiscal com o mesmo número), basta salvar. É um
+aviso, não uma barreira.
+
+---
+
 ## Mapeamento Fornecedor → Categoria (Catálogo de Fornecedores)
 <!-- roles: contractor, member, admin -->
 

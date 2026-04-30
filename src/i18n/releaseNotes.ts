@@ -33,6 +33,31 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v6.7',
+    version: 'v6.7',
+    date: '2026-04-29',
+    title: {
+      'en': 'Possible-duplicate warning on upload',
+      'pt-BR': 'Aviso de possível duplicata no envio',
+    },
+    body: {
+      'en':
+        "If you upload a receipt with the same vendor, amount, and date " +
+        "(±1 day) as one already in this household, an amber banner now " +
+        "appears at the top of the form so you can spot a re-upload before " +
+        "saving. Same logic for invoices, matched by invoice number within " +
+        "the property. The warning is non-blocking — if you really do mean " +
+        "to submit, just hit Save.",
+      'pt-BR':
+        'Se você enviar um recibo com o mesmo fornecedor, valor e data ' +
+        '(±1 dia) de outro já registrado nesta residência, um aviso âmbar ' +
+        'aparece no topo do formulário para você identificar um reenvio ' +
+        'antes de salvar. A mesma lógica vale para notas fiscais, comparando ' +
+        'pelo número dentro do imóvel. O aviso não bloqueia — se for ' +
+        'mesmo intencional, basta clicar Salvar.',
+    },
+  },
+  {
     id: 'v6.6',
     version: 'v6.6',
     date: '2026-04-29',
