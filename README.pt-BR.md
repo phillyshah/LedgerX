@@ -284,7 +284,9 @@ Contas de administrador veem um **Painel de Administração** no lugar do Painel
 
 - Total de gastos e número de transações em todas as residências
 - Detalhamento de gastos por categoria com gráficos
-- Filtrável por intervalo de datas e residência
+- Filtrável por intervalo de datas, residência, categoria **e remetente**
+- O filtro de remetente exibe um chip **Somente eu** mais um chip por pessoa que enviou despesas no período — combine qualquer seleção para limitar gráficos, totais, a lista de transações recentes e a exportação CSV/PDF
+- Cada linha da lista de transações também mostra o @usuário do remetente, deixando claro quem registrou cada item
 - Exporte qualquer visualização em CSV ou PDF
 
 ### Gerenciar Residências

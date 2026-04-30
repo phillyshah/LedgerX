@@ -27,7 +27,11 @@ export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const { expenses, households, loading, reloadExpenses } = useExpenses();
+  // Regular users and contractors only ever see receipts they personally
+  // submitted — no commingling with other household members. Admins and
+  // household admins use AdminLayout (which calls useExpenses without
+  // ownOnly) and are routed elsewhere by App.tsx, so they aren't affected.
+  const { expenses, households, loading, reloadExpenses } = useExpenses(undefined, { ownOnly: true });
   const { invoices, loading: invoicesLoading, reloadInvoices } = useInvoices();
 
   const handleExpenseAdded = () => {

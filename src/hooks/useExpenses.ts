@@ -3,7 +3,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Expense, Household } from '../types/expense';
 
-export function useExpenses(refreshKey?: number) {
+interface UseExpensesOptions {
+  /**
+   * When true, the underlying Postgres query is scoped to expenses the
+   * signed-in user personally created (`created_by = auth.uid()`). This is
+   * defense-in-depth for non-admin views: the Dashboard renders charts and
+   * a recent-transactions list against this hook's output, so filtering at
+   * the wire level prevents other household members' data from ever
+   * crossing the network — not just being hidden in the UI.
+   *
+   * Admins and household admins should leave this off — they need the full
+   * household-scoped view to do their job.
+   */
+  ownOnly?: boolean;
+}
+
+export function useExpenses(refreshKey?: number, options: UseExpensesOptions = {}) {
+  const { ownOnly = false } = options;
   const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -32,11 +48,17 @@ export function useExpenses(refreshKey?: number) {
       return;
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('expenses')
       .select('id, expense_date, vendor, total, currency, category, notes, transcript, household_id, image_path, image_mime, image_width, image_height, created_by, paid_at')
       .in('household_id', householdIds)
       .order('expense_date', { ascending: false });
+
+    if (ownOnly) {
+      query = query.eq('created_by', user.id);
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       // Resolve submitter usernames in a single round-trip. We avoid a PostgREST
@@ -64,7 +86,7 @@ export function useExpenses(refreshKey?: number) {
       );
     }
     setLoading(false);
-  }, [user]);
+  }, [user, ownOnly]);
 
   useEffect(() => {
     loadExpenses();

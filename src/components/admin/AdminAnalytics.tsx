@@ -7,6 +7,7 @@ import { EditExpense } from '../EditExpense';
 import { SpendingCharts } from '../SpendingCharts';
 import type { Expense as ExpenseType } from '../../types/expense';
 import { useT } from '../../hooks/useT';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Expense {
   id: string;
@@ -24,7 +25,13 @@ interface Expense {
   image_width: number | null;
   image_height: number | null;
   created_by: string | null;
+  submitter_username?: string;
   paid_at: string | null;
+}
+
+interface Submitter {
+  id: string;
+  username: string;
 }
 
 interface Household {
@@ -53,13 +60,18 @@ interface AdminAnalyticsProps {
 
 export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
   const { t, locale } = useT();
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [submitters, setSubmitters] = useState<Submitter[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'30d' | '90d' | 'ytd' | 'custom'>('30d');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  // Submitter filter is a multi-select over user IDs. Empty = no filter (show
+  // everyone). Includes the current user's own ID when "Just me" is toggled.
+  const [submitterFilter, setSubmitterFilter] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -114,10 +126,35 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
 
     if (expenseData && householdData) {
       const householdMap = new Map(householdData.map((h) => [h.id, h.name]));
+
+      // Resolve submitter usernames in a single round-trip so the submitter
+      // filter chips can be labeled with @handles instead of UUIDs, and so
+      // each transaction row displays who submitted it.
+      const submitterIds = [
+        ...new Set(expenseData.map((e) => e.created_by).filter((v): v is string => !!v)),
+      ];
+      let usernameMap = new Map<string, string>();
+      if (submitterIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, username')
+          .in('id', submitterIds);
+        usernameMap = new Map((profiles || []).map((p) => [p.id, p.username]));
+      }
+
+      // Build a sorted, de-duplicated list of submitters who appear in the
+      // current date-range slice. The list is what powers the chip toggles
+      // — it changes as the user picks a different date window.
+      const submitterList: Submitter[] = submitterIds
+        .map((id) => ({ id, username: usernameMap.get(id) || id.slice(0, 8) }))
+        .sort((a, b) => a.username.localeCompare(b.username));
+      setSubmitters(submitterList);
+
       setExpenses(
         expenseData.map((e) => ({
           ...e,
           household_name: householdMap.get(e.household_id ?? '') || 'Unknown',
+          submitter_username: e.created_by ? usernameMap.get(e.created_by) : undefined,
         }))
       );
     }
@@ -152,6 +189,12 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
   if (categoryFilter.length > 0) {
     filteredExpenses = filteredExpenses.filter((e) =>
       e.category ? categoryFilter.includes(e.category) : categoryFilter.includes('Uncategorized')
+    );
+  }
+
+  if (submitterFilter.length > 0) {
+    filteredExpenses = filteredExpenses.filter((e) =>
+      e.created_by ? submitterFilter.includes(e.created_by) : false
     );
   }
 
@@ -204,8 +247,13 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
 
       let dataToExport = exportData;
       if (categoryFilter.length > 0) {
-        dataToExport = exportData.filter((e) =>
+        dataToExport = dataToExport.filter((e) =>
           e.category ? categoryFilter.includes(e.category) : categoryFilter.includes('Uncategorized')
+        );
+      }
+      if (submitterFilter.length > 0) {
+        dataToExport = dataToExport.filter((e) =>
+          e.created_by ? submitterFilter.includes(e.created_by) : false
         );
       }
 
@@ -359,6 +407,14 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
     );
   };
 
+  const toggleSubmitter = (submitterId: string) => {
+    setSubmitterFilter((prev) =>
+      prev.includes(submitterId)
+        ? prev.filter((s) => s !== submitterId)
+        : [...prev, submitterId]
+    );
+  };
+
   const handleDateRangeChange = (newRange: '30d' | '90d' | 'ytd' | 'custom') => {
     if (newRange === 'custom') {
       setShowCustomDateModal(true);
@@ -485,6 +541,54 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
         </div>
       </div>
 
+      {submitters.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-medium text-slate-700">{t('admin.filterBySubmitter')}</p>
+            {submitterFilter.length > 0 && (
+              <button
+                onClick={() => setSubmitterFilter([])}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                {t('admin.clearAll')}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {/* "Just me" leads the chip row when the signed-in user has any
+                submissions in this date window — gives admins a one-click path
+                to their own data without scanning the username list. */}
+            {user && submitters.some((s) => s.id === user.id) && (
+              <button
+                onClick={() => toggleSubmitter(user.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  submitterFilter.includes(user.id)
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-300'
+                }`}
+              >
+                {t('admin.justMe')}
+              </button>
+            )}
+            {submitters
+              .filter((s) => s.id !== user?.id)
+              .map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => toggleSubmitter(s.id)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    submitterFilter.includes(s.id)
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-300'
+                  }`}
+                >
+                  @{s.username}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <StatCard icon={DollarSign} label={t('admin.totalAmount')} value={fmt(totalAmount)} />
         <StatCard icon={Receipt} label={t('admin.transactions')} value={transactionCount.toString()} />
@@ -545,7 +649,7 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString(locale)}
@@ -554,6 +658,11 @@ export function AdminAnalytics({ onClose }: AdminAnalyticsProps = {}) {
                       <Home className="w-3 h-3" />
                       {expense.household_name}
                     </span>
+                    {expense.submitter_username && (
+                      <span className="text-xs text-slate-500">
+                        @{expense.submitter_username}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">

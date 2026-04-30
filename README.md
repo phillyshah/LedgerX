@@ -288,7 +288,9 @@ Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 
 - Total spending and transaction count across all households
 - Spending breakdown by category with charts
-- Filterable by date range and household
+- Filterable by date range, household, category, **and submitter**
+- Submitter filter shows a **Just me** chip plus one chip per other person who submitted in the date window — toggle any combination to scope charts, totals, the recent-transactions list, and the CSV/PDF export
+- Each transaction row in the list also shows the submitter's @username, so it's clear who entered what
 - Export any view as CSV or PDF
 
 ### Manage Households

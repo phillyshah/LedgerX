@@ -247,6 +247,8 @@
   "admin.customRange": "Custom Range",
   "admin.selectRange": "Select Range",
   "admin.filterByCategory": "Filter by Category:",
+  "admin.filterBySubmitter": "Filter by Submitter:",
+  "admin.justMe": "Just me",
   "admin.clearAll": "Clear all",
   "admin.totalAmount": "Total Amount",
   "admin.transactions": "Transactions",

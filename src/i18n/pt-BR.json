@@ -247,6 +247,8 @@
   "admin.customRange": "Intervalo Personalizado",
   "admin.selectRange": "Selecionar Intervalo",
   "admin.filterByCategory": "Filtrar por Categoria:",
+  "admin.filterBySubmitter": "Filtrar por Remetente:",
+  "admin.justMe": "Somente eu",
   "admin.clearAll": "Limpar tudo",
   "admin.totalAmount": "Valor Total",
   "admin.transactions": "Transações",
