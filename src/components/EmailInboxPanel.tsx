@@ -75,7 +75,7 @@ function InboxCard({
   t: (k: string) => string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
       {/* Header — kind-agnostic now; user picks at action time */}
       <div className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
         <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-100">
