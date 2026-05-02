@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
-import { compressImage } from '../lib/imageCompression';
+import { prepareImageItem, readImageDimensions } from '../lib/imagePicker';
 import { useReceiptScanner, applyReceiptDataToForm } from '../hooks/useReceiptScanner';
 import { loadUserHouseholds, loadAllHouseholds, loadHouseholdCategories } from '../lib/queries';
 import { ZoomableImage } from './shared/ZoomableImage';
@@ -138,21 +138,12 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
 
     for (const file of Array.from(files)) {
       try {
-        let fileToUse = file;
-        if (file.type.startsWith('image/')) {
-          fileToUse = await compressImage(file, 2);
-        }
-        const preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(fileToUse);
-        });
-
-        setNewImages((prev) => [...prev, { file: fileToUse, preview }]);
+        const item = await prepareImageItem(file);
+        setNewImages((prev) => [...prev, item]);
 
         // Auto-scan first new image if no existing images
         if (existingImages.length === 0 && newImages.length === 0 && file.type.startsWith('image/')) {
-          handleScanReceipt(fileToUse);
+          handleScanReceipt(item.file);
         }
       } catch (error) {
         console.error('Error processing file:', error);
@@ -248,19 +239,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
           continue;
         }
 
-        let w: number | null = null;
-        let h: number | null = null;
-        if (imgItem.file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = imgItem.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              w = img.width;
-              h = img.height;
-              resolve(null);
-            };
-          });
-        }
+        const { width: w, height: h } = await readImageDimensions(imgItem);
 
         await supabase.from('expense_images').insert({
           expense_id: expense.id,
