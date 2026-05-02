@@ -33,6 +33,29 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.7',
+    version: 'v7.7',
+    date: '2026-05-02',
+    title: {
+      'en': 'Code cleanup + smarter vendor handling',
+      'pt-BR': 'Limpeza de código + melhor gestão de fornecedores',
+    },
+    body: {
+      'en':
+        "Removed the automatic vendor-to-category learning that ran silently " +
+        "on every save — it was the source of recent save errors and is no " +
+        "longer needed now that the global vendor catalog handles auto-fill. " +
+        "Also cleaned up duplicated internal code to keep the app fast and " +
+        "easier to maintain.",
+      'pt-BR':
+        "Removemos o aprendizado automático de fornecedor para categoria que " +
+        "rodava silenciosamente a cada salvamento — era a causa dos erros " +
+        "recentes e não é mais necessário, pois o catálogo global de " +
+        "fornecedores já cuida do preenchimento automático. Também limpamos " +
+        "código interno duplicado para manter o app rápido e fácil de manter.",
+    },
+  },
+  {
     id: 'v7.6',
     version: 'v7.6',
     date: '2026-05-02',
