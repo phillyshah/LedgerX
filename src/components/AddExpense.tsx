@@ -197,12 +197,17 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
 
   const upsertVendorCategory = async (vendor: string, category: string, householdId: string) => {
     if (!vendor || !category) return;
-    await supabase
-      .from('vendor_category_map')
-      .upsert(
-        { household_id: householdId, vendor_name: vendor, category_name: category, updated_at: new Date().toISOString() },
-        { onConflict: 'household_id,vendor_name' }
-      );
+    // Direct PostgREST upsert can't target the partial unique index on
+    // (household_id, lower(vendor_name)) added in the v6.6 vendor catalog
+    // migration — it rejects with 400 when given literal column names that
+    // don't match an exact index. Route through the SECURITY DEFINER RPC
+    // instead.
+    const { error } = await supabase.rpc('upsert_vendor_category', {
+      p_household_id: householdId,
+      p_vendor_name: vendor,
+      p_category_name: category,
+    });
+    if (error) console.error('upsert_vendor_category failed', error);
   };
 
   // Lean OCR returns vendor / total / date / handwritten notes. Category is

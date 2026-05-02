@@ -33,6 +33,31 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.6',
+    version: 'v7.6',
+    date: '2026-05-02',
+    title: {
+      'en': 'Vendor auto-fill works again',
+      'pt-BR': 'Preenchimento automático do fornecedor voltou a funcionar',
+    },
+    body: {
+      'en':
+        "When you save a transaction, the app remembers which category " +
+        "you picked for that vendor and auto-fills it next time. A " +
+        "schema tweak a few days ago quietly broke that learning step, " +
+        "so it had been failing in the background. Fixed — your saves " +
+        "now memorize vendor → category like before, and the noisy " +
+        "console errors during save are gone.",
+      'pt-BR':
+        "Quando você salva uma transação, o app lembra qual categoria " +
+        "você escolheu para aquele fornecedor e preenche automaticamente " +
+        "na próxima vez. Uma alteração no esquema de alguns dias atrás " +
+        "quebrou silenciosamente esse aprendizado. Corrigido — seus " +
+        "salvamentos agora memorizam fornecedor → categoria como antes, " +
+        "e os erros barulhentos no console durante o salvamento sumiram.",
+    },
+  },
+  {
     id: 'v7.5',
     version: 'v7.5',
     date: '2026-04-30',
