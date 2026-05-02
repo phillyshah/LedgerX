@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { X, Download, ChevronDown } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
+import { compressForPDF, addImageToPDF, pdfGridLayout, addReportHeader } from '../lib/pdfUtils';
 import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
 import { useT } from '../hooks/useT';
 
@@ -200,17 +200,7 @@ export function ExportData({ onClose }: ExportDataProps) {
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
 
-      const addPageHeader = () => {
-        pdf.setFontSize(16);
-        pdf.text('Transaction Report', margin, margin);
-
-        pdf.setFontSize(9);
-        pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
-
-        return margin + 20;
-      };
-
-      let contentStartY = addPageHeader();
+      let contentStartY = addReportHeader(pdf, startDate, endDate, margin);
       const { cols, colGap, rowGap, cellWidth, cellHeight, maxPerPage } = pdfGridLayout(pageWidth, pageHeight, margin, contentStartY);
 
       let txIndex = 0;
@@ -220,7 +210,7 @@ export function ExportData({ onClose }: ExportDataProps) {
 
         if (txIndex >= maxPerPage) {
           pdf.addPage();
-          contentStartY = addPageHeader();
+          contentStartY = addReportHeader(pdf, startDate, endDate, margin);
           txIndex = 0;
         }
 

@@ -237,7 +237,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const resetForm = () => {
     setFormData((prev) => ({
       household_id: prev.household_id,
-      expense_date: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`,
+      expense_date: todayDateString(),
       vendor: '',
       total: '',
       category: '',

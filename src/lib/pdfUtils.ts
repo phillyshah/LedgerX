@@ -53,10 +53,16 @@ export function addImageToPDF(
   );
 }
 
-/**
- * Standard 2-column grid constants for A4 PDFs.
- * Returns cell dimensions given the Y where content starts.
- */
+/** Writes the standard "Transaction Report / Period:" header and returns the next Y. */
+export function addReportHeader(pdf: jsPDF, startDate: string, endDate: string, margin = 20): number {
+  pdf.setFontSize(16);
+  pdf.text('Transaction Report', margin, margin);
+  pdf.setFontSize(9);
+  pdf.text(`Period: ${startDate} to ${endDate}`, margin, margin + 10);
+  return margin + 20;
+}
+
+/** Standard 2-column grid constants for A4 PDFs. Returns cell dimensions given the Y where content starts. */
 export function pdfGridLayout(
   pageWidth: number,
   pageHeight: number,
