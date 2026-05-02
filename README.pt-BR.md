@@ -433,6 +433,18 @@ Seu administrador pode adicioná-lo a mais residências. Cada residência tem su
 
 Contas de administrador veem um **Painel de Administração** no lugar do Painel normal.
 
+O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX, Sino (Novidades), Ajuda e Sair — consistente com todos os outros tipos de usuário. Abaixo dele, a barra lateral cuida da navegação e a área principal exibe a visualização ativa.
+
+**Tela inicial:** Ao entrar como administrador, você cai em uma tela de comando central com:
+- **Ações Rápidas** — botões Adicionar Transação e Enviar Nota Fiscal
+- **Ir para** — atalhos para Sem categoria, Notas Fiscais, Minhas Transações, Análises e Relatórios
+- **Configuração** — atalhos para Grupos, Categorias, Fornecedores e Usuários
+
+**Navegação na barra lateral:**
+- **Início** — retorna à tela de comando de qualquer visualização
+- **Gerenciar** (recolhível) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
+- Sem categoria · Notas Fiscais · Minhas Transações · Análises · Relatórios
+
 ### Análises
 
 - Total de gastos e número de transações em todas as residências

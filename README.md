@@ -436,6 +436,18 @@ Your admin can add you to additional households. Each household has its own tran
 
 Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 
+The admin panel has a **full-width dark header** at the top with the LedgerX logo, Bell (What's New), Help, and Sign Out — consistent with all other user types. Below it, a sidebar handles navigation and the main area shows the active view.
+
+**Home screen:** When you sign in as a full admin, you land on a command-center home screen with:
+- **Quick Actions** — Add Transaction and Submit Invoice buttons
+- **Navigate to** — tiles for Uncategorized, Invoices, My Transactions, Analytics, and Reports
+- **Configuration** — tiles for Households, Categories, Vendors, and Users
+
+**Sidebar navigation:**
+- **Home** — returns to the command center from any view
+- **Manage** (collapsible) — expands to show Households, Categories, Vendors, and Users
+- Uncategorized · Invoices · My Transactions · Analytics · Reports
+
 ### Analytics
 
 - Total spending and transaction count across all households

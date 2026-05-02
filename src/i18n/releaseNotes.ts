@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.9',
+    version: 'v7.9',
+    date: '2026-05-01',
+    title: {
+      'en': 'Cleaner admin panel',
+      'pt-BR': 'Painel admin mais limpo',
+    },
+    body: {
+      'en':
+        'The admin panel has a new home screen with quick actions and navigation tiles. ' +
+        'The sidebar is now organized with a collapsible Manage group. ' +
+        'Sign out moved to the top-right header, consistent with all other views.',
+      'pt-BR':
+        'O painel admin tem uma nova tela inicial com ações rápidas e atalhos de navegação. ' +
+        'A barra lateral agora tem um grupo "Gerenciar" recolhível. ' +
+        'O botão de sair foi movido para o cabeçalho superior direito, consistente com todas as outras telas.',
+    },
+  },
+  {
     id: 'v7.8',
     version: 'v7.8',
     date: '2026-05-01',
