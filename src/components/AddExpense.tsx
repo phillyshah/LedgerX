@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageCompression';
+import { prepareImageItem, readImageDimensions } from '../lib/imagePicker';
 import { useReceiptScanner, applyReceiptDataToForm } from '../hooks/useReceiptScanner';
 import { loadUserHouseholds, loadHouseholdCategories } from '../lib/queries';
 import { todayDateString } from '../lib/dateUtils';
@@ -209,21 +209,12 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
 
     for (const file of Array.from(files)) {
       try {
-        let fileToUse = file;
-        if (file.type.startsWith('image/')) {
-          fileToUse = await compressImage(file, 2);
-        }
-        const preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(fileToUse);
-        });
-
-        setImages((prev) => [...prev, { file: fileToUse, preview }]);
+        const item = await prepareImageItem(file);
+        setImages((prev) => [...prev, item]);
 
         // Auto-scan only the first image added when form fields are empty
         if (images.length === 0 && file.type.startsWith('image/')) {
-          handleScanReceipt(fileToUse);
+          handleScanReceipt(item.file);
         }
       } catch (error) {
         console.error('Error processing file:', error);
@@ -279,16 +270,9 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
         if (!uploadError) {
           imagePath = fileName;
           imageMime = firstImg.file.type;
-
-          const img = new Image();
-          img.src = firstImg.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              imageWidth = img.width;
-              imageHeight = img.height;
-              resolve(null);
-            };
-          });
+          const dims = await readImageDimensions(firstImg);
+          imageWidth = dims.width;
+          imageHeight = dims.height;
         }
       }
 
@@ -331,20 +315,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
           uploadedPath = fileName;
         }
 
-        // Get dimensions
-        let w: number | null = null;
-        let h: number | null = null;
-        if (imgItem.file.type.startsWith('image/')) {
-          const img = new Image();
-          img.src = imgItem.preview;
-          await new Promise((resolve) => {
-            img.onload = () => {
-              w = img.width;
-              h = img.height;
-              resolve(null);
-            };
-          });
-        }
+        const { width: w, height: h } = await readImageDimensions(imgItem);
 
         await supabase.from('expense_images').insert({
           expense_id: expenseData.id,

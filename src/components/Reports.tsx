@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout } from '../lib/pdfUtils';
+import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
 import { useT } from '../hooks/useT';
 import { ZoomableImage } from './shared/ZoomableImage';
 import { loadUserHouseholds, loadAllHouseholds } from '../lib/queries';
@@ -188,29 +189,10 @@ export function Reports({ onClose }: ReportsProps) {
       );
 
       // CSV
-      const csvContent = [
-        ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(','),
-        ...sortedExpenses.map((expense) => [
-          `"${expense.id || ''}"`,
-          `"${expense.expense_date}"`,
-          `"${expense.vendor || ''}"`,
-          `"${expense.total}"`,
-          `"${expense.currency || 'USD'}"`,
-          `"${expense.category || ''}"`,
-          `"${householdMap.get(expense.household_id ?? '') || ''}"`,
-          `"${expense.notes || ''}"`,
-        ].join(','))
-      ].join('\n');
-
-      const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-      const csvUrl = window.URL.createObjectURL(csvBlob);
-      const csvLink = document.createElement('a');
-      csvLink.href = csvUrl;
-      csvLink.download = `ledgerx-report-${startDate}-to-${endDate}.csv`;
-      document.body.appendChild(csvLink);
-      csvLink.click();
-      document.body.removeChild(csvLink);
-      window.URL.revokeObjectURL(csvUrl);
+      downloadBlob(
+        new Blob([buildExpenseCsv(sortedExpenses, householdMap, 'id')], { type: 'text/csv' }),
+        `ledgerx-report-${startDate}-to-${endDate}.csv`,
+      );
 
       // PDF
       const pdf = new jsPDF();
