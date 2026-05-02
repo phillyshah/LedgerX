@@ -11,6 +11,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Visão Geral do Painel](#visão-geral-do-painel)
 - [Adicionar uma Transação](#adicionar-uma-transação)
 - [Leitura de Recibos e OCR](#leitura-de-recibos-e-ocr)
+- [Caixa de Entrada de E-mail (Encaminhar Recibos)](#caixa-de-entrada-de-e-mail-encaminhar-recibos)
 - [Visualizar, Editar e Pesquisar Transações](#visualizar-editar-e-pesquisar-transações)
 - [Enviar Recibos](#enviar-recibos)
 - [Gráficos de Gastos](#gráficos-de-gastos)
@@ -81,6 +82,12 @@ Quatro cartões no topo mostram um panorama rápido dos gastos:
 | **Relatórios** | Mostra relatórios de gastos filtrados |
 
 Se você pertence a várias residências, use o **seletor de residência** para alternar entre elas. Tudo — transações, exportações, gráficos — fica restrito à residência selecionada.
+
+### Seções Recolhíveis
+
+Cada área principal do Painel — **Caixa de Entrada**, **Resumo**, **Gráficos de gastos** e **Transações** — tem uma pequena seta (▾) ao lado do título. Toque no título da seção para recolher; toque novamente para expandir. Suas escolhas ficam salvas neste dispositivo entre recargas, então você pode ocultar as partes que não usa no dia a dia e manter a página arrumada.
+
+A seção **Caixa de Entrada** só aparece quando há pelo menos um item encaminhado aguardando revisão.
 
 ---
 
@@ -204,6 +211,51 @@ A entrada específica da residência sempre vence sobre a global.
 admin — adicionar mapeamentos, editar categorias, excluir entradas
 ruins, ou **promover** uma entrada de residência a global com um clique.
 A página tem busca e filtro de escopo (Todos / Global / Residência).
+
+---
+
+## Caixa de Entrada de E-mail (Encaminhar Recibos)
+<!-- roles: contractor, member, admin -->
+
+Você pode enviar qualquer recibo ou nota fiscal direto para o LedgerX por e-mail — sem foto, sem etapa de upload. Encaminhe para **receipts@90ten.life** e ele aparece no seu Painel para revisão.
+
+### Configuração inicial: Cadastre seu endereço de envio
+
+Antes que o e-mail encaminhado apareça na sua caixa, você precisa informar ao LedgerX quais endereços você usará para enviar. É isso que vincula a mensagem recebida à sua conta.
+
+1. Abra **Configurações** (ícone de engrenagem, canto superior direito do Painel).
+2. Role até **Encaminhamento por E-mail**.
+3. Digite o endereço de e-mail a partir do qual você encaminhará (ex.: `voce@gmail.com`), opcionalmente nomeie ("Pessoal", "Trabalho") e clique em **Adicionar endereço**.
+4. Repita para outros endereços que você possa usar.
+
+E-mails de endereços não cadastrados são silenciosamente ignorados — apenas os endereços que você adicionou aparecem na sua caixa.
+
+### Encaminhando um recibo ou nota fiscal
+
+1. No seu cliente de e-mail, encontre o recibo ou nota que deseja registrar.
+2. Encaminhe para **receipts@90ten.life**. A maioria dos clientes envia os anexos automaticamente. PDFs e imagens são suportados.
+3. Em até ~5 minutos, um cartão aparece na seção **Caixa de Entrada** do seu Painel.
+
+### Revisar e Aceitar
+
+Cada item pendente é mostrado como um cartão com:
+
+- O endereço do remetente e o assunto
+- Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba)
+- Um botão pequeno **Revisar ▾** à direita
+
+Toque em **Revisar ▾** e escolha o tipo do item:
+
+| Escolha | O que acontece |
+|---|---|
+| **Revisar como Recibo** | Abre **Adicionar Transação**, baixa o anexo e roda o OCR — fornecedor, valor e data são preenchidos automaticamente. |
+| **Revisar como Nota Fiscal** | Abre **Enviar Nota Fiscal** com o anexo e os campos fornecedor / valor / número da nota / data preenchidos pelo OCR. |
+
+A partir daí o formulário se comporta exatamente como um envio direto — confira os campos, ajuste o que estiver fora e clique em **Salvar**. O anexo é re-enviado para o caminho normal da residência, então fica permanentemente associado à transação ou nota resultante.
+
+Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar.
+
+> **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
 
 ---
 
@@ -350,6 +402,10 @@ Adicionar um e-mail à sua conta libera a **redefinição de senha por conta pr�
 1. Abra Configurações.
 2. Digite sua nova senha em **Alterar Senha**.
 3. Clique em **Alterar Senha** para salvar.
+
+### Encaminhamento por E-mail
+
+A parte inferior de Configurações também contém o gerenciador de **Encaminhamento por E-mail** — cadastre os endereços a partir dos quais você vai encaminhar recibos e notas fiscais, veja o que está cadastrado e remova os que não usa mais. Veja a seção [Caixa de Entrada de E-mail](#caixa-de-entrada-de-e-mail-encaminhar-recibos) para o fluxo completo.
 
 ---
 

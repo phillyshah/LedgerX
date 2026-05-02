@@ -33,6 +33,29 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v7.8',
+    version: 'v7.8',
+    date: '2026-05-01',
+    title: {
+      'en': 'Help docs caught up',
+      'pt-BR': 'Ajuda em dia',
+    },
+    body: {
+      'en':
+        "The in-app Help (?) panel and the README now cover everything " +
+        "shipped recently: forwarding receipts by email, registering " +
+        "sender addresses in Settings, the new \"Review ▾\" picker on " +
+        "inbox cards, and the collapsible Dashboard sections. Open Help " +
+        "any time you want a refresher.",
+      'pt-BR':
+        'O painel de Ajuda (?) dentro do app e o README agora cobrem ' +
+        'tudo que foi lançado recentemente: encaminhamento de recibos ' +
+        'por e-mail, cadastro de remetentes em Configurações, o novo ' +
+        'seletor "Revisar ▾" nos cartões da caixa de entrada e as ' +
+        'seções recolhíveis do Painel. Abra a Ajuda quando precisar.',
+    },
+  },
+  {
     id: 'v7.7',
     version: 'v7.7',
     date: '2026-05-02',

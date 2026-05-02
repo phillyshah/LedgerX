@@ -11,6 +11,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Dashboard Overview](#dashboard-overview)
 - [Adding a Transaction](#adding-a-transaction)
 - [Receipt Scanning & OCR](#receipt-scanning--ocr)
+- [Email Inbox (Forward Receipts by Email)](#email-inbox-forward-receipts-by-email)
 - [Viewing Editing & Searching Transactions](#viewing-editing--searching-transactions)
 - [Uploading Receipts](#uploading-receipts)
 - [Spending Charts](#spending-charts)
@@ -85,6 +86,12 @@ Four cards at the top give you an at-a-glance spending snapshot:
 | **Reports** | View filtered spending reports |
 
 If you belong to multiple households, use the **household selector** to switch between them. Everything — transactions, exports, charts — is scoped to the selected household.
+
+### Collapsible Sections
+
+Each major area on the Dashboard — **Email Inbox**, **Summary**, **Spending charts**, **Transactions** — has a small chevron (▾) next to its title. Tap the section title to collapse it; tap again to expand. Your choices stick on this device across reloads, so you can hide the parts you don't use day-to-day and keep the page tidy.
+
+The **Email Inbox** section only appears when you have at least one forwarded item waiting to be reviewed.
 
 ---
 
@@ -206,6 +213,51 @@ The household-specific entry always wins over the global if both exist.
 — add new mappings, edit categories, delete bad entries, or **promote**
 a household-specific entry to a global with one click. The page also
 shows a search field and a scope filter (All / Global / Household).
+
+---
+
+## Email Inbox (Forward Receipts by Email)
+<!-- roles: contractor, member, admin -->
+
+You can email any receipt or invoice straight into LedgerX — no photo, no upload step. Forward it to **receipts@90ten.life** and it shows up on your Dashboard for review.
+
+### One-time setup: Register your sender address
+
+Before forwarded mail will appear in your inbox, you need to tell LedgerX which email addresses you'll be sending from. This is what links incoming mail to your account.
+
+1. Open **Settings** (gear icon, top-right of the Dashboard).
+2. Scroll to **Email Forwarding**.
+3. Type the email address you'll forward from (e.g. `you@gmail.com`), optionally label it ("Personal", "Work"), and click **Add address**.
+4. Repeat for any other addresses you might forward from.
+
+Mail from unregistered addresses is silently ignored — only addresses you've added land in your inbox.
+
+### Forwarding a receipt or invoice
+
+1. In your email client, find the receipt or invoice you want to log.
+2. Forward it to **receipts@90ten.life**. Most email apps put any attachments through automatically. PDFs and image attachments are supported.
+3. Within ~5 minutes, a card appears in the **Email Inbox** section of your Dashboard.
+
+### Reviewing & accepting
+
+Each pending item is shown as a card with:
+
+- The sender address and subject line
+- Clickable thumbnails of any attachments (image or PDF — opens full-size in a new tab)
+- A small **Review ▾** button on the right
+
+Tap **Review ▾** and pick what kind of item it is:
+
+| Choice | What happens |
+|---|---|
+| **Review as Receipt** | Opens **Add Transaction**, downloads the attachment, and runs OCR — vendor, amount, and date pre-fill themselves. |
+| **Review as Invoice** | Opens **Submit Invoice** with the attachment and OCR'd vendor / amount / invoice number / date pre-filled. |
+
+The form behaves exactly like a fresh upload from there — review the fields, tweak anything that's off, then **Save**. The attachment is re-uploaded under your household's normal path, so it's permanently associated with the resulting transaction or invoice.
+
+If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it.
+
+> **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
 
 ---
 
@@ -353,6 +405,10 @@ Adding an email to your account unlocks **self-service password reset** — so y
 1. Open Settings.
 2. Enter your new password under **Change Password**.
 3. Click **Change Password** to save.
+
+### Email Forwarding
+
+The bottom of Settings also contains the **Email Forwarding** manager — register the addresses you'll forward receipts and invoices from, see what's currently registered, and remove ones you no longer use. See the [Email Inbox](#email-inbox-forward-receipts-by-email) section for the full workflow.
 
 ---
 
