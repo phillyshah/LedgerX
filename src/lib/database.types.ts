@@ -678,12 +678,6 @@ export interface Database {
         Returns: undefined;
       };
       // Member: memorize vendor → category pair on save (works around the
-      // partial unique index in 20260429000000_vendor_catalog.sql that
-      // PostgREST direct-upsert can't target by literal column names).
-      upsert_vendor_category: {
-        Args: { p_household_id: string; p_vendor_name: string; p_category_name: string };
-        Returns: undefined;
-      };
     };
   };
 }

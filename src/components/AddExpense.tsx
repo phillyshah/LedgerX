@@ -195,21 +195,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     }
   };
 
-  const upsertVendorCategory = async (vendor: string, category: string, householdId: string) => {
-    if (!vendor || !category) return;
-    // Direct PostgREST upsert can't target the partial unique index on
-    // (household_id, lower(vendor_name)) added in the v6.6 vendor catalog
-    // migration — it rejects with 400 when given literal column names that
-    // don't match an exact index. Route through the SECURITY DEFINER RPC
-    // instead.
-    const { error } = await supabase.rpc('upsert_vendor_category', {
-      p_household_id: householdId,
-      p_vendor_name: vendor,
-      p_category_name: category,
-    });
-    if (error) console.error('upsert_vendor_category failed', error);
-  };
-
   // Lean OCR returns vendor / total / date / handwritten notes. Category is
   // intentionally NOT pulled from OCR — the vendor-catalog lookup owns that
   // (the useEffect on formData.vendor will fire after this updates).
@@ -369,11 +354,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
           image_height: h,
           display_order: i,
         });
-      }
-
-      // Update vendor-to-category mapping for future auto-fill
-      if (formData.vendor && formData.category) {
-        upsertVendorCategory(formData.vendor, formData.category, formData.household_id);
       }
 
       // Persist as a template if the user opted in. We do this after the
