@@ -13,7 +13,6 @@ interface AuthContextType {
   preferredLanguage: Language;
   setPreferredLanguage: (lang: Language) => Promise<void>;
   isRecoveryMode: boolean;
-  signUp: (username: string, password: string, realEmail?: string, preferredLanguage?: Language) => Promise<void>;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   requestPasswordReset: (username: string) => Promise<{ sent: boolean; noEmail: boolean }>;
@@ -100,25 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (username: string, password: string, realEmail?: string, lang?: Language) => {
-    const email = `${username}@ledgerx.local`;
-    const language = lang ?? preferredLanguage;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          preferred_language: language,
-          ...(realEmail ? { real_email: realEmail } : {}),
-        }
-      }
-    });
-    if (error) throw error;
-    setPreferredLanguageState(language);
-    try { localStorage.setItem(LANG_STORAGE_KEY, language); } catch { /* ignore */ }
-  };
-
   const signIn = async (username: string, password: string) => {
     const { data: email, error: lookupError } = await supabase.rpc('get_user_email_by_username', { p_username: username });
 
@@ -168,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin, isContractor, isHouseholdAdmin,
       preferredLanguage, setPreferredLanguage,
       isRecoveryMode,
-      signUp, signIn, signOut, requestPasswordReset, resetPassword,
+      signIn, signOut, requestPasswordReset, resetPassword,
     }}>
       {children}
     </AuthContext.Provider>

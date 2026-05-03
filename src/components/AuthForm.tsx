@@ -10,13 +10,9 @@ import { APP_VERSION } from '../version';
 
 const WalkthroughModal = lazy(() => import('./WalkthroughModal').then(m => ({ default: m.WalkthroughModal })));
 
-type AuthMode = 'signin' | 'signup';
-
 export function AuthForm() {
-  const [mode, setMode] = useState<AuthMode>('signin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,8 +22,7 @@ export function AuthForm() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotUsername, setForgotUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
-  const { signIn, signUp, requestPasswordReset, preferredLanguage, setPreferredLanguage } = useAuth();
-  const [signupLanguage, setSignupLanguage] = useState<Language>(preferredLanguage);
+  const { signIn, requestPasswordReset, preferredLanguage, setPreferredLanguage } = useAuth();
   const { t } = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,11 +31,7 @@ export function AuthForm() {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
-        await signUp(username, password, email || undefined, signupLanguage);
-      } else {
-        await signIn(username, password);
-      }
+      await signIn(username, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.error.generic'));
     } finally {
@@ -71,7 +62,6 @@ export function AuthForm() {
   const onHeaderLanguageChange = (lang: Language) => {
     // Pre-auth language switch — no user yet, just update state + localStorage.
     void setPreferredLanguage(lang);
-    setSignupLanguage(lang);
   };
 
   return (
@@ -146,30 +136,8 @@ export function AuthForm() {
             </>
           ) : (
             <>
-              <div className="flex gap-1 mb-6 bg-green-700 rounded-2xl p-1">
-                <button
-                  type="button"
-                  onClick={() => setMode('signin')}
-                  className={`flex-1 py-2.5 px-3 rounded-xl font-medium transition-all text-sm ${
-                    mode === 'signin'
-                      ? 'bg-green-600 text-white shadow-sm'
-                      : 'text-green-300 hover:text-white'
-                  }`}
-                >
-                  {t('auth.signIn')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('signup')}
-                  className={`flex-1 py-2.5 px-3 rounded-xl font-medium transition-all text-sm ${
-                    mode === 'signup'
-                      ? 'bg-green-600 text-white shadow-sm'
-                      : 'text-green-300 hover:text-white'
-                  }`}
-                >
-                  {t('auth.signUp')}
-                </button>
-              </div>
+              <h2 className="text-xl font-bold text-white mb-1">{t('auth.signIn')}</h2>
+              <p className="text-sm text-green-300 mb-6">{t('auth.signInPrompt')}</p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -190,42 +158,6 @@ export function AuthForm() {
                   <p className="text-xs text-green-300 mt-1">{t('auth.userIdHelp')}</p>
                 </div>
 
-                {mode === 'signup' && (
-                  <>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-2">
-                        {t('auth.email')} <span className="text-green-400 font-normal">({t('common.optional')})</span>
-                      </label>
-                      <input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        autoComplete="email"
-                        className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
-                        placeholder={t('auth.emailPlaceholder')}
-                      />
-                      <p className="text-xs text-green-300 mt-1">{t('auth.emailHelp')}</p>
-                    </div>
-
-                    <div>
-                      <label htmlFor="language" className="block text-sm font-medium text-green-100 mb-2">
-                        {t('common.language')}
-                      </label>
-                      <select
-                        id="language"
-                        value={signupLanguage}
-                        onChange={(e) => onHeaderLanguageChange(e.target.value as Language)}
-                        className="w-full px-4 py-3 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900"
-                      >
-                        {LANGUAGES.map(l => (
-                          <option key={l.code} value={l.code}>{l.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                )}
-
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-green-100 mb-2">
                     {t('auth.password')}
@@ -238,7 +170,7 @@ export function AuthForm() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={6}
-                      autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                      autoComplete="current-password"
                       className="w-full px-4 py-3 pr-12 bg-white border border-green-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-500"
                       placeholder="••••••••"
                     />
@@ -268,25 +200,22 @@ export function AuthForm() {
                   disabled={loading}
                   className="w-full py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  {loading ? t('common.loading') : mode === 'signup' ? t('auth.signUp') : t('auth.signIn')}
+                  {loading ? t('common.loading') : t('auth.signIn')}
                 </button>
 
-                {mode === 'signin' && (
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => { setShowForgotPassword(true); setError(''); }}
-                      className="text-sm text-green-300 hover:text-white transition-all"
-                    >
-                      {t('auth.forgotPassword')}
-                    </button>
-                  </div>
-                )}
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgotPassword(true); setError(''); }}
+                    className="text-sm text-green-300 hover:text-white transition-all"
+                  >
+                    {t('auth.forgotPassword')}
+                  </button>
+                </div>
               </form>
 
-              {/* Pre-auth language switcher (sign-in panel) */}
-              {mode === 'signin' && (
-                <div className="mt-5 flex justify-center gap-2 text-xs">
+              {/* Pre-auth language switcher */}
+              <div className="mt-5 flex justify-center gap-2 text-xs">
                   {LANGUAGES.map(l => (
                     <button
                       key={l.code}
@@ -302,7 +231,6 @@ export function AuthForm() {
                     </button>
                   ))}
                 </div>
-              )}
             </>
           )}
         </div>
