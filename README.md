@@ -55,6 +55,10 @@ LedgerX is built for households and small teams that want a shared, organized wa
 
 > **Note:** LedgerX uses username-based login — no email required to sign in. If you don't have an account yet, ask your admin to create one for you.
 
+### First time here? Take the tour
+
+The login screen has a **Take a quick tour** button that opens a 7-step walkthrough — receipt capture, email forwarding, organization, charts, and settings. The first time you visit the app it opens automatically, but you can launch it again any time, in English or Portuguese.
+
 **Forgot your password?**
 
 If you've added an email to your account (in Settings), click **Forgot password?** on the login screen and a reset link will be emailed to you. If you haven't set an email yet, ask your admin to reset it.

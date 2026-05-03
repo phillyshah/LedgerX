@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Tag, Trash2 } from 'lucide-react';
+import { X, FileText, Tag, Trash2, FileSignature, Plus } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
 
 interface InvoiceListProps {
   invoices: ContractorInvoice[];
   loading: boolean;
   onReload: () => void;
+  /** Optional CTA — when set, the empty state shows a primary "Submit invoice"
+   *  button that calls this. Without it, the empty state stays static. */
+  onAdd?: () => void;
 }
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
@@ -33,7 +36,7 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function InvoiceList({ invoices, loading, onReload }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
@@ -77,11 +80,18 @@ export function InvoiceList({ invoices, loading, onReload }: InvoiceListProps) {
     setLoadingDetail(false);
   };
 
-  // Submitter-only delete. RLS allows DELETE only when auth.uid() = created_by
-  // (or the user is a full admin), so even if this button were rendered for
-  // someone else, the row wouldn't actually go away.
+  // Submitter-only delete with two-tap confirm. RLS allows DELETE only when
+  // auth.uid() = created_by (or the user is a full admin), so even if this
+  // button were rendered for someone else, the row wouldn't actually go away.
+  const [armedDelete, setArmedDelete] = useState(false);
+
   const deleteInvoice = async (inv: ContractorInvoice) => {
-    if (!confirm(t('invoice.confirmDelete'))) return;
+    if (!armedDelete) {
+      setArmedDelete(true);
+      setTimeout(() => setArmedDelete(false), 3000);
+      return;
+    }
+    setArmedDelete(false);
     setDeleting(true);
     const { error } = await supabase.from('contractor_invoices').delete().eq('id', inv.id);
     setDeleting(false);
@@ -113,9 +123,23 @@ export function InvoiceList({ invoices, loading, onReload }: InvoiceListProps) {
 
   if (invoices.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-        <p className="text-slate-500 text-sm">{t('invoice.noInvoicesYet')}</p>
-        <p className="text-slate-400 text-xs mt-1">{t('invoice.noInvoicesHint')}</p>
+      <div className="bg-white rounded-2xl p-10 sm:p-12 shadow-sm border border-slate-200 text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-emerald-200/50">
+          <FileSignature className="w-8 h-8 text-emerald-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900 mb-1.5">{t('invoice.noInvoicesYet')}</h3>
+        <p className="text-sm text-slate-500 max-w-sm mx-auto">{t('invoice.noInvoicesHint')}</p>
+        {onAdd && (
+          <div className="mt-6">
+            <button
+              onClick={onAdd}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              {t('invoice.emptyCta')}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -275,10 +299,14 @@ export function InvoiceList({ invoices, loading, onReload }: InvoiceListProps) {
                   <button
                     onClick={() => deleteInvoice(detailInvoice)}
                     disabled={deleting}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                    className={
+                      armedDelete
+                        ? 'inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 shadow-sm'
+                        : 'inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50'
+                    }
                   >
                     <Trash2 className="w-4 h-4" />
-                    {deleting ? t('common.deleting') : t('invoice.detailDelete')}
+                    {deleting ? t('common.deleting') : armedDelete ? t('common.tapAgainToConfirm') : t('invoice.detailDelete')}
                   </button>
                 ) : <span />}
                 <button

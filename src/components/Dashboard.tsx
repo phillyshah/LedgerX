@@ -8,14 +8,14 @@ import { DashboardSummary } from './DashboardSummary';
 import type { AddExpenseInitialData } from './AddExpense';
 import type { InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
-import { LogOut, Plus, Download, FileText, Settings, HelpCircle } from 'lucide-react';
+import { Plus, Download, FileText } from 'lucide-react';
 import { LogoText } from './LogoText';
 import { BellButton } from './BellButton';
+import { UserMenu } from './UserMenu';
 import { EmailInboxPanel } from './EmailInboxPanel';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
 import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react';
-import { APP_VERSION } from '../version';
 
 // Modals + heavy chart bundles only mount on user action, so lazy-loading
 // keeps them out of the initial Dashboard chunk.
@@ -33,7 +33,8 @@ function ChartsSkeleton() {
 }
 
 export function Dashboard() {
-  const { signOut, isContractor } = useAuth();
+  const { signOut, isContractor, user } = useAuth();
+  const username = user?.email?.split('@')[0];
   const { t } = useT();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
@@ -111,33 +112,14 @@ export function Dashboard() {
 
   const HeaderActions = (
     <div className="flex items-center gap-1 sm:gap-2">
-      <span className="hidden md:inline text-xs text-slate-400 font-medium pr-2 border-r border-slate-200 mr-1">
-        {APP_VERSION}
-      </span>
       <BellButton onClick={() => setShowWhatsNew(true)} />
-      <button
-        onClick={() => setShowHelp(true)}
-        className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-        aria-label={t('common.help')}
-        title={t('common.help')}
-      >
-        <HelpCircle className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => setShowSettings(true)}
-        className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-        aria-label={t('common.settings')}
-        title={t('common.settings')}
-      >
-        <Settings className="w-4 h-4" />
-      </button>
-      <button
-        onClick={handleSignOut}
-        className="flex items-center gap-2 px-3 py-2 sm:px-4 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-      >
-        <LogOut className="w-4 h-4" />
-        <span className="text-sm font-medium hidden sm:inline">{t('common.signOut')}</span>
-      </button>
+      <UserMenu
+        variant="light"
+        username={username}
+        onShowSettings={() => setShowSettings(true)}
+        onShowHelp={() => setShowHelp(true)}
+        onSignOut={handleSignOut}
+      />
     </div>
   );
 
@@ -205,6 +187,7 @@ export function Dashboard() {
               invoices={invoices}
               loading={invoicesLoading}
               onReload={reloadInvoices}
+              onAdd={() => setShowInvoiceForm(true)}
             />
           </CollapsibleSection>
 
@@ -221,6 +204,7 @@ export function Dashboard() {
               ownSubmissionsOnly
               hideFilters
               hideHeader
+              onAdd={() => setShowAddExpense(true)}
             />
           </CollapsibleSection>
         </main>
@@ -262,28 +246,37 @@ export function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
-          <div className="flex gap-3 flex-wrap">
+          {/* Primary CTA card + secondary ghost buttons. Add is visually
+              heavier so users always know the main action. */}
+          <div className="space-y-3">
             <button
               onClick={() => setShowAddExpense(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
+              className="group w-full sm:w-auto sm:min-w-[280px] flex items-center gap-3 p-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
             >
-              <Plus className="w-4 h-4" />
-              {t('dashboard.addTransaction')}
+              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors shrink-0">
+                <Plus className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-semibold text-base leading-tight">{t('dashboard.addTransaction')}</div>
+                <div className="text-xs text-emerald-100/80 mt-0.5">{t('dashboard.addTransactionHint')}</div>
+              </div>
             </button>
-            <button
-              onClick={() => setShowExport(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Download className="w-4 h-4" />
-              {t('dashboard.exportData')}
-            </button>
-            <button
-              onClick={() => setShowReports(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl transition-all shadow-sm font-medium hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <FileText className="w-4 h-4" />
-              {t('dashboard.reports')}
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setShowExport(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-emerald-900 hover:bg-white border border-transparent hover:border-emerald-200 rounded-lg transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {t('dashboard.exportData')}
+              </button>
+              <button
+                onClick={() => setShowReports(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-emerald-900 hover:bg-white border border-transparent hover:border-emerald-200 rounded-lg transition-all"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                {t('dashboard.reports')}
+              </button>
+            </div>
           </div>
 
           {/* Email inbox — only surfaces when at least one pending item */}
@@ -330,6 +323,7 @@ export function Dashboard() {
               loading={loading}
               onReload={reloadExpenses}
               hideHeader
+              onAdd={() => setShowAddExpense(true)}
             />
           </CollapsibleSection>
         </div>

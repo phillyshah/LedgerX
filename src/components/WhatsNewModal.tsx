@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { useT } from '../hooks/useT';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import { RELEASE_NOTES, latestReleaseId, setLastSeenReleaseId } from '../i18n/releaseNotes';
 
 interface WhatsNewModalProps {
@@ -16,6 +17,7 @@ interface WhatsNewModalProps {
  */
 export function WhatsNewModal({ onClose }: WhatsNewModalProps) {
   const { t, language, locale } = useT();
+  useEscapeClose(onClose);
 
   useEffect(() => {
     const latest = latestReleaseId();

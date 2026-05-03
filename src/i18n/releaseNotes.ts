@@ -33,6 +33,63 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.3',
+    version: 'v8.3',
+    date: '2026-05-03',
+    title: {
+      'en': 'Cleaner, calmer, faster',
+      'pt-BR': 'Mais limpo, calmo e rápido',
+    },
+    body: {
+      'en':
+        'A round of polish across the whole app. The header collapses Settings, Help, and Sign Out into a single account menu. ' +
+        'Add Transaction is now one clear button (with a checkbox if you\'re entering a batch). Charts speak your language. ' +
+        'Edit Transaction hides raw OCR text behind a toggle. Filters in the transaction list only appear when you actually need them. ' +
+        'Delete now asks for a second tap instead of an ugly browser dialog. And every modal closes on Escape.',
+      'pt-BR':
+        'Uma rodada de polimento em todo o app. O cabeçalho agrupa Configurações, Ajuda e Sair em um único menu da conta. ' +
+        'Adicionar Transação agora é um botão claro (com uma caixa de seleção quando você está adicionando vários). Os gráficos falam seu idioma. ' +
+        'Editar Transação esconde o texto bruto do OCR atrás de um botão. Os filtros da lista de transações só aparecem quando realmente precisa. ' +
+        'Excluir agora pede um segundo toque em vez de uma caixa de diálogo do navegador. E todos os modais fecham com Esc.',
+    },
+  },
+  {
+    id: 'v8.2',
+    version: 'v8.2',
+    date: '2026-05-03',
+    title: {
+      'en': 'Friendlier first-run screens',
+      'pt-BR': 'Telas iniciais mais amigáveis',
+    },
+    body: {
+      'en':
+        'When a section is empty — no transactions yet, no invoices yet — the app now shows a warm welcome card with a clear next step instead of a blank box. ' +
+        'A single primary button gets you started, and a quiet hint reminds you that you can also forward receipts by email.',
+      'pt-BR':
+        'Quando uma seção está vazia — sem transações, sem notas fiscais — o app agora mostra um cartão de boas-vindas com um próximo passo claro em vez de uma caixa em branco. ' +
+        'Um botão principal te coloca em movimento, e uma dica discreta lembra que você também pode encaminhar recibos por e-mail.',
+    },
+  },
+  {
+    id: 'v8.1',
+    version: 'v8.1',
+    date: '2026-05-03',
+    title: {
+      'en': 'Welcome tour for new users',
+      'pt-BR': 'Tour de boas-vindas para novos usuários',
+    },
+    body: {
+      'en':
+        'A friendly 7-step walkthrough now greets first-time visitors right on the login screen — ' +
+        'covering snap-a-receipt, email forwarding, organization, charts, and account settings. ' +
+        'Tap "Take a quick tour" any time to revisit it in your preferred language.',
+      'pt-BR':
+        'Um tour amigável de 7 passos agora recebe os visitantes de primeira viagem diretamente na tela de login — ' +
+        'mostrando como fotografar recibos, encaminhar por e-mail, organizar, ver gráficos e configurar a conta. ' +
+        'Toque em "Fazer um tour rápido" a qualquer momento para revisitá-lo no seu idioma preferido.',
+    },
+  },
+  {
     id: 'v8.0',
     version: 'v8.0',
     date: '2026-05-03',
