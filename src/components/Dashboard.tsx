@@ -205,6 +205,7 @@ export function Dashboard() {
               invoices={invoices}
               loading={invoicesLoading}
               onReload={reloadInvoices}
+              onAdd={() => setShowInvoiceForm(true)}
             />
           </CollapsibleSection>
 
@@ -221,6 +222,7 @@ export function Dashboard() {
               ownSubmissionsOnly
               hideFilters
               hideHeader
+              onAdd={() => setShowAddExpense(true)}
             />
           </CollapsibleSection>
         </main>
@@ -330,6 +332,7 @@ export function Dashboard() {
               loading={loading}
               onReload={reloadExpenses}
               hideHeader
+              onAdd={() => setShowAddExpense(true)}
             />
           </CollapsibleSection>
         </div>

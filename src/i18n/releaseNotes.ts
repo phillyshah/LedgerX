@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.2',
+    version: 'v8.2',
+    date: '2026-05-03',
+    title: {
+      'en': 'Friendlier first-run screens',
+      'pt-BR': 'Telas iniciais mais amigáveis',
+    },
+    body: {
+      'en':
+        'When a section is empty — no transactions yet, no invoices yet — the app now shows a warm welcome card with a clear next step instead of a blank box. ' +
+        'A single primary button gets you started, and a quiet hint reminds you that you can also forward receipts by email.',
+      'pt-BR':
+        'Quando uma seção está vazia — sem transações, sem notas fiscais — o app agora mostra um cartão de boas-vindas com um próximo passo claro em vez de uma caixa em branco. ' +
+        'Um botão principal te coloca em movimento, e uma dica discreta lembra que você também pode encaminhar recibos por e-mail.',
+    },
+  },
+  {
     id: 'v8.1',
     version: 'v8.1',
     date: '2026-05-03',

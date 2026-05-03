@@ -1,6 +1,6 @@
 import { Suspense, lazy, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon } from 'lucide-react';
+import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,9 +20,12 @@ interface ExpenseListProps {
   /** When true, drops the internal h2 — caller is providing a section
    *  header (e.g. CollapsibleSection on the dashboard). */
   hideHeader?: boolean;
+  /** Optional CTA — when set, the empty state shows a primary "Add transaction"
+   *  button that calls this. Without it, the empty state stays static. */
+  onAdd?: () => void;
 }
 
-export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideFilters = false, hideHeader = false }: ExpenseListProps) {
+export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideFilters = false, hideHeader = false, onAdd }: ExpenseListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -145,12 +148,27 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
 
   if (expenses.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-12 shadow-sm border border-slate-200 text-center">
-        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <ShoppingBag className="w-8 h-8 text-slate-400" />
+      <div className="bg-white rounded-2xl p-10 sm:p-12 shadow-sm border border-slate-200 text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-emerald-200/50">
+          <ShoppingBag className="w-8 h-8 text-emerald-600" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('expenses.noneYet')}</h3>
-        <p className="text-slate-500">{t('expenses.getStarted')}</p>
+        <h3 className="text-lg font-semibold text-slate-900 mb-1.5">{t('expenses.noneYet')}</h3>
+        <p className="text-sm text-slate-500 max-w-sm mx-auto">{t('expenses.getStarted')}</p>
+        {onAdd && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2">
+            <button
+              onClick={onAdd}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl transition-all shadow-sm font-medium active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              {t('expenses.emptyCta')}
+            </button>
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-400">
+              <Mail className="w-3.5 h-3.5" />
+              {t('expenses.emptyTip')}
+            </span>
+          </div>
+        )}
       </div>
     );
   }
