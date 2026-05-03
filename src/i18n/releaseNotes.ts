@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.0',
+    version: 'v8.0',
+    date: '2026-05-03',
+    title: {
+      'en': 'Settings now available everywhere',
+      'pt-BR': 'Configurações disponíveis em todo lugar',
+    },
+    body: {
+      'en':
+        'The Settings (gear) button is now in the top header for every account, not just regular users. ' +
+        'Admins, household admins, and contractors can now change their language, password, real email, ' +
+        'and email-forwarding senders without needing someone else to do it for them.',
+      'pt-BR':
+        'O botão de Configurações (engrenagem) agora aparece no cabeçalho superior para todas as contas, ' +
+        'não só usuários comuns. Administradores, administradores de família e contratados agora podem ' +
+        'alterar seu idioma, senha, email real e remetentes de encaminhamento sem precisar de ninguém.',
+    },
+  },
+  {
     id: 'v7.9',
     version: 'v7.9',
     date: '2026-05-01',
