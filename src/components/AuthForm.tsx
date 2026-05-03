@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
-import { Eye, EyeOff, HelpCircle, ArrowLeft, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, ArrowLeft, Sparkles, Compass } from 'lucide-react';
 import { HelpModal } from './HelpModal';
 import { LoginWhatsNewModal } from './LoginWhatsNewModal';
 import { LogoText } from './LogoText';
 import { LANGUAGES, type Language } from '../i18n';
 import { APP_VERSION } from '../version';
+
+const WalkthroughModal = lazy(() => import('./WalkthroughModal').then(m => ({ default: m.WalkthroughModal })));
+
+const TOUR_SEEN_KEY = 'ledgerx:tourSeen';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -20,7 +24,23 @@ export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Auto-open the walkthrough on first visit (per device). The flag is also
+  // set when the user closes the tour, so we only nag them once.
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(TOUR_SEEN_KEY)) setShowTour(true);
+    } catch {
+      // Storage may be disabled in private mode — just skip the auto-open.
+    }
+  }, []);
+
+  const closeTour = () => {
+    setShowTour(false);
+    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch { /* ignore */ }
+  };
   const [forgotUsername, setForgotUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const { signIn, signUp, requestPasswordReset, preferredLanguage, setPreferredLanguage } = useAuth();
@@ -304,8 +324,27 @@ export function AuthForm() {
           )}
         </div>
 
-        {/* What's New — prominent pre-login CTA */}
+        {/* Take a tour — promotional CTA for new users */}
         <div className="mt-5">
+          <button
+            type="button"
+            onClick={() => setShowTour(true)}
+            className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-emerald-400/15 border border-emerald-300/30 hover:bg-emerald-400/25 hover:border-emerald-300/50 transition-all group"
+          >
+            <span className="w-7 h-7 rounded-xl bg-emerald-400/25 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-400/40 transition-all">
+              <Compass className="w-4 h-4 text-emerald-300" />
+            </span>
+            <span className="text-sm font-semibold text-emerald-100 group-hover:text-white transition-all">
+              {t('tour.takeTour')}
+            </span>
+            <span className="ml-auto text-xs bg-emerald-400/30 text-emerald-100 px-2 py-0.5 rounded-full font-medium">
+              {t('tour.takeTourBadge')}
+            </span>
+          </button>
+        </div>
+
+        {/* What's New — pre-login CTA */}
+        <div className="mt-3">
           <button
             type="button"
             onClick={() => setShowWhatsNew(true)}
@@ -344,6 +383,9 @@ export function AuthForm() {
           language={preferredLanguage}
         />
       )}
+      <Suspense fallback={null}>
+        {showTour && <WalkthroughModal onClose={closeTour} />}
+      </Suspense>
     </div>
   );
 }

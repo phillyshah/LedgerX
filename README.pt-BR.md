@@ -51,6 +51,10 @@ O LedgerX foi criado para residências e pequenas equipes que querem uma forma c
 
 > **Nota:** O LedgerX usa login por nome de usuário — nenhum e-mail é necessário para entrar. Se ainda não tiver conta, peça ao seu administrador para criar uma.
 
+### Primeira vez aqui? Faça o tour
+
+A tela de login tem um botão **Fazer um tour rápido** que abre um passo a passo de 7 telas — captura de recibos, encaminhamento por e-mail, organização, gráficos e configurações. Na primeira visita ele abre automaticamente, mas você pode reabri-lo a qualquer momento, em inglês ou português.
+
 **Esqueceu sua senha?**
 
 Se você adicionou um e-mail à sua conta (em Configurações), clique em **Esqueceu a senha?** na tela de login e um link de redefinição será enviado por e-mail. Se ainda não definiu um e-mail, peça ao administrador para redefini-la.

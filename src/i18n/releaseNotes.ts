@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.1',
+    version: 'v8.1',
+    date: '2026-05-03',
+    title: {
+      'en': 'Welcome tour for new users',
+      'pt-BR': 'Tour de boas-vindas para novos usuários',
+    },
+    body: {
+      'en':
+        'A friendly 7-step walkthrough now greets first-time visitors right on the login screen — ' +
+        'covering snap-a-receipt, email forwarding, organization, charts, and account settings. ' +
+        'Tap "Take a quick tour" any time to revisit it in your preferred language.',
+      'pt-BR':
+        'Um tour amigável de 7 passos agora recebe os visitantes de primeira viagem diretamente na tela de login — ' +
+        'mostrando como fotografar recibos, encaminhar por e-mail, organizar, ver gráficos e configurar a conta. ' +
+        'Toque em "Fazer um tour rápido" a qualquer momento para revisitá-lo no seu idioma preferido.',
+    },
+  },
+  {
     id: 'v8.0',
     version: 'v8.0',
     date: '2026-05-03',
