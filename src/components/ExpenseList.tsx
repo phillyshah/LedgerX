@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useMemo } from 'react';
+import { Suspense, lazy, useState, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
@@ -40,9 +40,20 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [amountMax, setAmountMax] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const deleteExpense = async (id: string) => {
-    if (!confirm(t('expenses.confirmDelete'))) return;
+  // Two-tap delete: first tap arms the row for ~3s, second tap commits.
+  // Replaces window.confirm() so the dialog matches the rest of the UI.
+  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
+  const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const deleteExpense = async (id: string) => {
+    if (armedDeleteId !== id) {
+      setArmedDeleteId(id);
+      if (armTimerRef.current) clearTimeout(armTimerRef.current);
+      armTimerRef.current = setTimeout(() => setArmedDeleteId(null), 3000);
+      return;
+    }
+    if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    setArmedDeleteId(null);
     const { error } = await supabase.from('expenses').delete().eq('id', id);
     if (!error) {
       onReload();
@@ -173,12 +184,32 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     );
   }
 
+  // Filter chrome adds clutter for short lists; hide it until the user
+  // either has enough transactions to need it or explicitly opens filters.
+  const largeList = expenses.length > 25;
+  const filtersUseful = largeList || showFilters || activeFilterCount > 0;
+  const renderHeaderChrome = !hideHeader || (!hideFilters && filtersUseful);
+
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Header — collapses entirely when both header and filters are hidden */}
-        {!(hideHeader && hideFilters) && (
-        <div className="p-5 border-b border-slate-200 bg-slate-50">
+        {/* Compact "Filter" chip when the list is short and the parent
+            CollapsibleSection is providing the section title. */}
+        {hideHeader && !hideFilters && !filtersUseful && (
+          <div className="flex justify-end px-4 py-2 border-b border-slate-100">
+            <button
+              onClick={() => setShowFilters(true)}
+              className="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              {t('expenses.filter')}
+            </button>
+          </div>
+        )}
+        {/* Full header chrome — used when caller wants its own title, OR
+            when filters become useful (>25 txns, or user opened them). */}
+        {renderHeaderChrome && (
+        <div className={hideHeader ? 'p-3 border-b border-slate-100' : 'p-5 border-b border-slate-200 bg-slate-50'}>
           {!hideHeader && (
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-slate-900">
@@ -322,8 +353,8 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
         </div>
         )}
 
-        {/* Results info bar */}
-        {hasAnyFilter && !hideFilters && (
+        {/* Results info bar — only when there's actually a filter applied. */}
+        {hasAnyFilter && !hideFilters && filtersUseful && (
           <div className="px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500">
             {t('expenses.showingOf', { shown: filteredExpenses.length, total: expenses.length })}
           </div>
@@ -368,10 +399,21 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     </button>
                     <button
                       onClick={() => deleteExpense(expense.id)}
-                      className="p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
-                      title={t('common.delete')}
+                      className={
+                        armedDeleteId === expense.id
+                          ? 'inline-flex items-center gap-1 px-2 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-all text-xs font-semibold text-white shadow-sm'
+                          : 'p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100'
+                      }
+                      title={armedDeleteId === expense.id ? t('common.tapAgainToConfirm') : t('common.delete')}
                     >
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                      {armedDeleteId === expense.id ? (
+                        <>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{t('common.tapAgainShort')}</span>
+                        </>
+                      ) : (
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      )}
                     </button>
                   </div>
                 </div>

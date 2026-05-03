@@ -3,12 +3,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
 import { BellButton } from '../BellButton';
-import { APP_VERSION } from '../../version';
+import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
-  BarChart3, Home, Tag, LogOut, FileText, AlertCircle, Users, Menu, X,
-  HelpCircle, HardHat, Plus, Receipt, Store, Settings, ChevronDown,
+  BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown,
 } from 'lucide-react';
 // hasUnreadReleases / LAST_SEEN_KEY removed — BellButton owns all unread tracking internally
 
@@ -266,34 +266,14 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-1">
-            <span className="hidden md:inline text-xs text-emerald-400 font-medium pr-3 mr-1 border-r border-emerald-700/60">
-              {APP_VERSION}
-            </span>
             <BellButton onClick={() => setShowWhatsNew(true)} dark compact />
-            <button
-              onClick={() => setShowHelp(true)}
-              className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
-              title={t('common.help')}
-              aria-label={t('common.help')}
-            >
-              <HelpCircle className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
-              title={t('common.settings')}
-              aria-label={t('common.settings')}
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 p-2 sm:px-3 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
-              title={t('common.signOut')}
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm font-medium">{t('common.signOut')}</span>
-            </button>
+            <UserMenu
+              variant="dark"
+              username={username}
+              onShowSettings={() => setShowSettings(true)}
+              onShowHelp={() => setShowHelp(true)}
+              onSignOut={handleSignOut}
+            />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"

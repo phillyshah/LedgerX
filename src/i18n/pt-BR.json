@@ -607,5 +607,16 @@
   "tour.slide6.title": "Personalize do Seu Jeito",
   "tour.slide6.body": "Toque no ícone de engrenagem a qualquer momento para mudar de idioma, trocar a senha, adicionar um e-mail de recuperação ou cadastrar endereços de encaminhamento.",
   "tour.slide7.title": "Tudo Pronto",
-  "tour.slide7.body": "Faça login ou crie uma conta para começar. Você vai pegar o jeito em poucos minutos — e o botão de ajuda está sempre por perto se precisar."
+  "tour.slide7.body": "Faça login ou crie uma conta para começar. Você vai pegar o jeito em poucos minutos — e o botão de ajuda está sempre por perto se precisar.",
+  "common.accountMenu": "Menu da conta",
+  "common.signedInAs": "Conectado como",
+  "common.tapAgainToConfirm": "Toque novamente para confirmar",
+  "common.tapAgainShort": "Toque de novo",
+  "addExpense.keepAdding": "Continuar adicionando recibos depois deste",
+  "addExpense.saveReceipt": "Salvar recibo",
+  "editExpense.transcriptToggle": "Ver texto bruto do OCR",
+  "expenses.filter": "Filtrar",
+  "charts.monthlySpending": "Gastos mensais",
+  "charts.spending": "Gastos",
+  "charts.thisMonthByCategory": "Este mês por categoria"
 }

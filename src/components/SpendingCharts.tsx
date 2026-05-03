@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import type { Expense } from '../types/expense';
+import { useT } from '../hooks/useT';
 
 interface SpendingChartsProps {
   expenses: Expense[];
@@ -17,6 +18,8 @@ const COLORS = [
 ];
 
 export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
+  const { t, locale } = useT();
+
   const monthlyData = useMemo(() => {
     const now = new Date();
     const months: { key: string; label: string; total: number }[] = [];
@@ -26,7 +29,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
       const year = d.getFullYear();
       const month = d.getMonth();
       const key = `${year}-${String(month + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('en-US', { month: 'short' });
+      const label = d.toLocaleDateString(locale, { month: 'short' });
       months.push({ key, label, total: 0 });
     }
 
@@ -37,7 +40,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
     }
 
     return months;
-  }, [expenses]);
+  }, [expenses, locale]);
 
   const categoryData = useMemo(() => {
     const now = new Date();
@@ -46,7 +49,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
     const map = new Map<string, number>();
     for (const e of expenses) {
       if (e.expense_date.substring(0, 7) !== curKey) continue;
-      const cat = e.category || 'Uncategorized';
+      const cat = e.category || t('common.uncategorized');
       map.set(cat, (map.get(cat) || 0) + e.total);
     }
 
@@ -54,12 +57,12 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
-  }, [expenses]);
+  }, [expenses, t]);
 
   if (loading || expenses.length === 0) return null;
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
   const hasMonthlyData = monthlyData.some((m) => m.total > 0);
   const hasCategoryData = categoryData.length > 0;
@@ -70,7 +73,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {hasMonthlyData && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Monthly Spending</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('charts.monthlySpending')}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={monthlyData}>
               <defs>
@@ -93,7 +96,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
                 width={50}
               />
               <Tooltip
-                formatter={(value) => [fmt(Number(value)), 'Spending']}
+                formatter={(value) => [fmt(Number(value)), t('charts.spending')]}
                 contentStyle={{
                   borderRadius: '12px',
                   border: '1px solid #e2e8f0',
@@ -114,7 +117,7 @@ export function SpendingCharts({ expenses, loading }: SpendingChartsProps) {
 
       {hasCategoryData && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">This Month by Category</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('charts.thisMonthByCategory')}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie

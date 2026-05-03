@@ -80,11 +80,18 @@ export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListP
     setLoadingDetail(false);
   };
 
-  // Submitter-only delete. RLS allows DELETE only when auth.uid() = created_by
-  // (or the user is a full admin), so even if this button were rendered for
-  // someone else, the row wouldn't actually go away.
+  // Submitter-only delete with two-tap confirm. RLS allows DELETE only when
+  // auth.uid() = created_by (or the user is a full admin), so even if this
+  // button were rendered for someone else, the row wouldn't actually go away.
+  const [armedDelete, setArmedDelete] = useState(false);
+
   const deleteInvoice = async (inv: ContractorInvoice) => {
-    if (!confirm(t('invoice.confirmDelete'))) return;
+    if (!armedDelete) {
+      setArmedDelete(true);
+      setTimeout(() => setArmedDelete(false), 3000);
+      return;
+    }
+    setArmedDelete(false);
     setDeleting(true);
     const { error } = await supabase.from('contractor_invoices').delete().eq('id', inv.id);
     setDeleting(false);
@@ -292,10 +299,14 @@ export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListP
                   <button
                     onClick={() => deleteInvoice(detailInvoice)}
                     disabled={deleting}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                    className={
+                      armedDelete
+                        ? 'inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 shadow-sm'
+                        : 'inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50'
+                    }
                   >
                     <Trash2 className="w-4 h-4" />
-                    {deleting ? t('common.deleting') : t('invoice.detailDelete')}
+                    {deleting ? t('common.deleting') : armedDelete ? t('common.tapAgainToConfirm') : t('invoice.detailDelete')}
                   </button>
                 ) : <span />}
                 <button

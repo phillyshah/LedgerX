@@ -607,5 +607,16 @@
   "tour.slide6.title": "Make It Yours",
   "tour.slide6.body": "Tap the gear icon any time to switch languages, change your password, add a recovery email, or set up email-forwarding addresses.",
   "tour.slide7.title": "You're Ready to Go",
-  "tour.slide7.body": "Sign in or create an account to start. You'll catch on within minutes — and the help button is always there if you need a hand."
+  "tour.slide7.body": "Sign in or create an account to start. You'll catch on within minutes — and the help button is always there if you need a hand.",
+  "common.accountMenu": "Account menu",
+  "common.signedInAs": "Signed in as",
+  "common.tapAgainToConfirm": "Tap again to confirm",
+  "common.tapAgainShort": "Tap again",
+  "addExpense.keepAdding": "Keep adding receipts after this one",
+  "addExpense.saveReceipt": "Save receipt",
+  "editExpense.transcriptToggle": "View raw OCR text",
+  "expenses.filter": "Filter",
+  "charts.monthlySpending": "Monthly spending",
+  "charts.spending": "Spending",
+  "charts.thisMonthByCategory": "This month by category"
 }

@@ -1,7 +1,7 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
-import { Eye, EyeOff, HelpCircle, ArrowLeft, Sparkles, Compass } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, ArrowLeft } from 'lucide-react';
 import { HelpModal } from './HelpModal';
 import { LoginWhatsNewModal } from './LoginWhatsNewModal';
 import { LogoText } from './LogoText';
@@ -9,8 +9,6 @@ import { LANGUAGES, type Language } from '../i18n';
 import { APP_VERSION } from '../version';
 
 const WalkthroughModal = lazy(() => import('./WalkthroughModal').then(m => ({ default: m.WalkthroughModal })));
-
-const TOUR_SEEN_KEY = 'ledgerx:tourSeen';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -26,21 +24,6 @@ export function AuthForm() {
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-
-  // Auto-open the walkthrough on first visit (per device). The flag is also
-  // set when the user closes the tour, so we only nag them once.
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem(TOUR_SEEN_KEY)) setShowTour(true);
-    } catch {
-      // Storage may be disabled in private mode — just skip the auto-open.
-    }
-  }, []);
-
-  const closeTour = () => {
-    setShowTour(false);
-    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch { /* ignore */ }
-  };
   const [forgotUsername, setForgotUsername] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const { signIn, signUp, requestPasswordReset, preferredLanguage, setPreferredLanguage } = useAuth();
@@ -324,55 +307,34 @@ export function AuthForm() {
           )}
         </div>
 
-        {/* Take a tour — promotional CTA for new users */}
-        <div className="mt-5">
+        {/* Quiet utility row — tour, what's new, help, version. */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs">
           <button
             type="button"
             onClick={() => setShowTour(true)}
-            className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-emerald-400/15 border border-emerald-300/30 hover:bg-emerald-400/25 hover:border-emerald-300/50 transition-all group"
+            className="text-green-200 hover:text-white transition-all underline-offset-4 hover:underline"
           >
-            <span className="w-7 h-7 rounded-xl bg-emerald-400/25 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-400/40 transition-all">
-              <Compass className="w-4 h-4 text-emerald-300" />
-            </span>
-            <span className="text-sm font-semibold text-emerald-100 group-hover:text-white transition-all">
-              {t('tour.takeTour')}
-            </span>
-            <span className="ml-auto text-xs bg-emerald-400/30 text-emerald-100 px-2 py-0.5 rounded-full font-medium">
-              {t('tour.takeTourBadge')}
-            </span>
+            {t('tour.takeTour')}
           </button>
-        </div>
-
-        {/* What's New — pre-login CTA */}
-        <div className="mt-3">
+          <span className="text-green-700">·</span>
           <button
             type="button"
             onClick={() => setShowWhatsNew(true)}
-            className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-amber-400/15 border border-amber-300/30 hover:bg-amber-400/25 hover:border-amber-300/50 transition-all group"
+            className="text-green-200 hover:text-white transition-all underline-offset-4 hover:underline"
           >
-            <span className="w-7 h-7 rounded-xl bg-amber-400/25 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-400/40 transition-all">
-              <Sparkles className="w-4 h-4 text-amber-300" />
-            </span>
-            <span className="text-sm font-semibold text-amber-200 group-hover:text-amber-100 transition-all">
-              {t('auth.whatsNew')}
-            </span>
-            <span className="ml-auto text-xs bg-amber-400/30 text-amber-200 px-2 py-0.5 rounded-full font-medium">
-              {t('auth.whatsNewBadge')}
-            </span>
+            {t('auth.whatsNew')}
           </button>
-        </div>
-
-        <div className="mt-4 flex items-center justify-center gap-4">
+          <span className="text-green-700">·</span>
           <button
             type="button"
             onClick={() => setShowHelp(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-green-200 hover:text-white hover:bg-green-700/50 rounded-xl transition-all"
+            className="inline-flex items-center gap-1.5 text-green-200 hover:text-white transition-all underline-offset-4 hover:underline"
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="w-3.5 h-3.5" />
             {t('auth.needHelp')}
           </button>
-          <span className="text-green-700 text-xs">·</span>
-          <p className="text-xs text-green-300/60">{APP_VERSION}</p>
+          <span className="text-green-700">·</span>
+          <span className="text-green-300/60">{APP_VERSION}</span>
         </div>
       </div>
 
@@ -384,7 +346,7 @@ export function AuthForm() {
         />
       )}
       <Suspense fallback={null}>
-        {showTour && <WalkthroughModal onClose={closeTour} />}
+        {showTour && <WalkthroughModal onClose={() => setShowTour(false)} />}
       </Suspense>
     </div>
   );

@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout, addReportHeader } from '../lib/pdfUtils';
 import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
 import { useT } from '../hooks/useT';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import { ZoomableImage } from './shared/ZoomableImage';
 import { loadUserHouseholds, loadAllHouseholds } from '../lib/queries';
 import type { Household } from '../types/expense';
@@ -36,6 +37,7 @@ interface ReportsProps {
 export function Reports({ onClose }: ReportsProps) {
   const { user } = useAuth();
   const { t, locale } = useT();
+  useEscapeClose(onClose);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);

@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout, addReportHeader } from '../lib/pdfUtils';
 import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
 import { useT } from '../hooks/useT';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 
 interface Household {
   id: string;
@@ -31,6 +32,7 @@ interface ExportDataProps {
 export function ExportData({ onClose }: ExportDataProps) {
   const { user } = useAuth();
   const { t, locale } = useT();
+  useEscapeClose(onClose);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHousehold, setSelectedHousehold] = useState<string>('all');
   const [allCategories, setAllCategories] = useState<Category[]>([]);

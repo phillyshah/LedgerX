@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { scanInvoice } from '../lib/invoiceScanner';
@@ -48,6 +49,7 @@ const today = () => {
 export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps) {
   const { user } = useAuth();
   const { t } = useT();
+  useEscapeClose(onClose);
 
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -438,7 +440,6 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
               </button>
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-1">{t('invoice.formSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">

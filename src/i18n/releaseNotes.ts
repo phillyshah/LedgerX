@@ -33,6 +33,27 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.3',
+    version: 'v8.3',
+    date: '2026-05-03',
+    title: {
+      'en': 'Cleaner, calmer, faster',
+      'pt-BR': 'Mais limpo, calmo e rápido',
+    },
+    body: {
+      'en':
+        'A round of polish across the whole app. The header collapses Settings, Help, and Sign Out into a single account menu. ' +
+        'Add Transaction is now one clear button (with a checkbox if you\'re entering a batch). Charts speak your language. ' +
+        'Edit Transaction hides raw OCR text behind a toggle. Filters in the transaction list only appear when you actually need them. ' +
+        'Delete now asks for a second tap instead of an ugly browser dialog. And every modal closes on Escape.',
+      'pt-BR':
+        'Uma rodada de polimento em todo o app. O cabeçalho agrupa Configurações, Ajuda e Sair em um único menu da conta. ' +
+        'Adicionar Transação agora é um botão claro (com uma caixa de seleção quando você está adicionando vários). Os gráficos falam seu idioma. ' +
+        'Editar Transação esconde o texto bruto do OCR atrás de um botão. Os filtros da lista de transações só aparecem quando realmente precisa. ' +
+        'Excluir agora pede um segundo toque em vez de uma caixa de diálogo do navegador. E todos os modais fecham com Esc.',
+    },
+  },
+  {
     id: 'v8.2',
     version: 'v8.2',
     date: '2026-05-03',

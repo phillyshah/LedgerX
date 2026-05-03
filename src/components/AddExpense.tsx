@@ -13,6 +13,7 @@ import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
 import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 import type { Household, Category, ImageItem } from '../types/expense';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 
 export interface AddExpenseInitialData {
   vendor?: string;
@@ -50,6 +51,8 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   });
   const [images, setImages] = useState<ImageItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [keepAdding, setKeepAdding] = useState(false);
+  useEscapeClose(onClose);
   const [justSaved, setJustSaved] = useState(false);
   const { scanning, scanError, setScanError, scan } = useReceiptScanner();
   // Possible-duplicate warning. Empty array = no banner. We only check
@@ -406,19 +409,10 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await saveExpense();
-    if (success) {
+    if (!success) return;
+    if (keepAdding) {
       resetForm();
-    }
-  };
-
-  const handleDone = async () => {
-    if (!formData.vendor && !formData.total) {
-      onClose();
-      return;
-    }
-
-    const success = await saveExpense();
-    if (success) {
+    } else {
       onClose();
     }
   };
@@ -444,9 +438,6 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
               </button>
             </div>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            {t('addExpense.subtitle')}
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -698,29 +689,22 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
             onTemplateNameChange={setTemplateName}
           />
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="py-3 px-4 border border-slate-200 hover:bg-slate-50 text-slate-600 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleDone}
-              disabled={saving}
-              className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? t('common.saving') : t('addExpense.done')}
-            </button>
+          <div className="pt-2 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 hover:text-slate-900 transition-all w-fit">
+              <input
+                type="checkbox"
+                checked={keepAdding}
+                onChange={(e) => setKeepAdding(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              {t('addExpense.keepAdding')}
+            </label>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-900 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 bg-emerald-900 hover:bg-emerald-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-[0.99]"
             >
-              {saving ? t('common.saving') : t('addExpense.saveAndAdd')}
+              {saving ? t('common.saving') : t('addExpense.saveReceipt')}
             </button>
           </div>
         </form>

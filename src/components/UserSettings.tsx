@@ -5,6 +5,7 @@ import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Trash2, Check, Loade
 import { useT } from '../hooks/useT';
 import { LANGUAGES, type Language } from '../i18n';
 import { useSenderEmails } from '../hooks/useEmailInbox';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ interface UserSettingsProps {
 export function UserSettings({ onClose }: UserSettingsProps) {
   const { user, preferredLanguage, setPreferredLanguage } = useAuth();
   const { t } = useT();
+  useEscapeClose(onClose);
   const [username, setUsername] = useState('');
   const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');

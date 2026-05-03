@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react';
 import { useT } from '../hooks/useT';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 
 interface Props {
   onClose: () => void;
@@ -28,6 +29,7 @@ const SLIDES: Slide[] = [
 export function WalkthroughModal({ onClose }: Props) {
   const { t } = useT();
   const [index, setIndex] = useState(0);
+  useEscapeClose(onClose);
 
   const slide = SLIDES[index];
   const isFirst = index === 0;

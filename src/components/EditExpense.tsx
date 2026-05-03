@@ -9,6 +9,7 @@ import { ZoomableImage } from './shared/ZoomableImage';
 import { X, Upload, Camera, Loader2, Plus, FileText, Search } from 'lucide-react';
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 import type { Household, Category, ImageItem as NewImage } from '../types/expense';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 
 interface Expense {
   id: string;
@@ -45,6 +46,7 @@ interface EditExpenseProps {
 export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
   const { user } = useAuth();
   const { t } = useT();
+  useEscapeClose(onClose);
   const [categories, setCategories] = useState<Category[]>([]);
   const [households, setHouseholds] = useState<Household[]>([]);
   const [formData, setFormData] = useState({
@@ -456,19 +458,20 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
             />
           </div>
 
-          <div>
-            <label htmlFor="transcript" className="block text-sm font-medium text-slate-700 mb-2">
-              {t('editExpense.transcript')}
-            </label>
+          <details className="group">
+            <summary className="cursor-pointer list-none flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-all select-none">
+              <span className="inline-block transition-transform group-open:rotate-90">▸</span>
+              {t('editExpense.transcriptToggle')}
+            </summary>
             <textarea
               id="transcript"
               value={formData.transcript}
               onChange={(e) => setFormData({ ...formData, transcript: e.target.value })}
               rows={3}
               placeholder={t('editExpense.transcriptPlaceholder')}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
+              className="mt-2 w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
             />
-          </div>
+          </details>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
