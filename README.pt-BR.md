@@ -18,6 +18,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Exportar Seus Dados](#exportar-seus-dados)
 - [Relatórios](#relatórios)
 - [Consulta de NPI de Cirurgião](#consulta-de-npi-de-cirurgião)
+- [Atalhos de teclado](#atalhos-de-teclado)
 - [Configurações da Conta](#configurações-da-conta)
 - [Gerenciar Residências](#gerenciar-residências)
 - [Recursos de Administrador](#recursos-de-administrador)
@@ -79,13 +80,19 @@ Quatro cartões no topo mostram um panorama rápido dos gastos:
 
 ### Ações Rápidas
 
-| Botão | O que faz |
+O botão **Adicionar Transação** é o cartão verde em destaque no topo — essa é a ação principal do dia a dia. **Exportar Dados** e **Relatórios** ficam logo abaixo como pequenos links de texto, já que você só usa de vez em quando.
+
+| Ação | O que faz |
 |---|---|
 | **Adicionar Transação** | Abre o formulário para registrar uma nova despesa |
 | **Exportar Dados** | Baixa suas transações em CSV ou PDF |
 | **Relatórios** | Mostra relatórios de gastos filtrados |
 
 Se você pertence a várias residências, use o **seletor de residência** para alternar entre elas. Tudo — transações, exportações, gráficos — fica restrito à residência selecionada.
+
+### Menu da conta (avatar no canto superior direito)
+
+O cabeçalho mostra apenas dois ícones à direita: o **sino** para Novidades e seu **avatar** — um único menu suspenso que contém **Configurações**, **Ajuda** e **Sair**, com a versão do app no rodapé. Toque fora do menu (ou pressione **Esc**) para fechar.
 
 ### Seções Recolhíveis
 
@@ -107,7 +114,9 @@ A seção **Caixa de Entrada** só aparece quando há pelo menos um item encamin
    - **Categoria** — Escolha entre as categorias da sua residência
    - **Observações** — Detalhes adicionais (opcional)
    - **Recibo** — Anexe uma foto ou PDF (opcional)
-3. Clique em **Salvar**.
+3. Clique em **Salvar recibo**.
+
+**Vai registrar vários de uma vez?** Marque **"Continuar adicionando recibos depois deste"** acima do botão Salvar. O formulário se reinicia e fica aberto, então você passa por uma pilha de recibos sem reabrir a janela. Pressione **Esc** a qualquer momento para fechar.
 
 **Dica:** Se você já registrou uma compra do mesmo fornecedor antes, a categoria pode ser preenchida automaticamente com base no histórico.
 
@@ -227,7 +236,7 @@ Você pode enviar qualquer recibo ou nota fiscal direto para o LedgerX por e-mai
 
 Antes que o e-mail encaminhado apareça na sua caixa, você precisa informar ao LedgerX quais endereços você usará para enviar. É isso que vincula a mensagem recebida à sua conta.
 
-1. Abra **Configurações** (ícone de engrenagem, canto superior direito do Painel).
+1. Abra **Configurações** pelo menu suspenso do avatar no canto superior direito do Painel.
 2. Role até **Encaminhamento por E-mail**.
 3. Digite o endereço de e-mail a partir do qual você encaminhará (ex.: `voce@gmail.com`), opcionalmente nomeie ("Pessoal", "Trabalho") e clique em **Adicionar endereço**.
 4. Repita para outros endereços que você possa usar.
@@ -268,15 +277,15 @@ Se não quiser manter algo, toque no **×** no canto superior direito do cartão
 
 A **Lista de Despesas** mostra todas as transações da residência selecionada, das mais recentes para as mais antigas.
 
-### Pesquisa
+### Pesquisa e filtros
 
-Digite na **barra de pesquisa** para filtrar por fornecedor, categoria, observações ou nome da residência em tempo real.
+Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa completa e os controles de filtro. Se você já registrou mais de 25 transações, a barra de pesquisa aparece automaticamente.
 
-### Filtros e Ordenação
-
-Use os controles de filtro para restringir por:
-- **Categoria** — Mostra apenas um tipo de despesa
-- **Ordenação** — Alterna entre mais recente, mais antiga, maior valor, menor valor
+Uma vez aberta, você pode restringir por:
+- **Pesquisa** — fornecedor, categoria, observações ou nome da residência (em tempo real)
+- **Categoria** — mostra apenas um tipo de despesa
+- **Residência / período / faixa de valor** — filtros adicionais
+- **Ordenação** — mais recente, mais antiga, maior valor, menor valor
 
 ### Editar uma transação
 
@@ -284,10 +293,13 @@ Use os controles de filtro para restringir por:
 2. Atualize os campos conforme necessário.
 3. Clique em **Salvar**.
 
+> O texto bruto do OCR fica escondido atrás de um pequeno botão **"Ver texto bruto do OCR"** na tela de edição, então você só vê quando realmente precisa.
+
 ### Excluir uma transação
 
 1. Clique na transação.
-2. Clique em **Excluir** e confirme.
+2. Clique em **Excluir** — o botão se transforma em um vermelho **"Toque novamente para confirmar"**.
+3. Toque mais uma vez em até 3 segundos para confirmar. Se você não tocar novamente, o botão volta ao normal e nada acontece.
 
 > Exclusões são permanentes — as imagens dos recibos também são removidas.
 
@@ -388,10 +400,17 @@ lançados — sem mais atualizações silenciosas.
 
 ---
 
+## Atalhos de teclado
+<!-- roles: contractor, member, admin -->
+
+A maioria dos modais fecha com **Esc** — Adicionar Transação, Editar Transação, Enviar Nota Fiscal, Configurações, Exportar, Relatórios, o tour de boas-vindas e Novidades, todos escutam essa tecla. O mesmo vale para o menu da conta (avatar no canto superior direito): toque fora ou pressione Esc para fechar.
+
+---
+
 ## Configurações da Conta
 <!-- roles: contractor, member, admin -->
 
-Toque no **ícone de engrenagem** no cabeçalho superior direito para abrir **Configurações**. A engrenagem está disponível para todas as contas — usuários comuns, contratados, administradores de família e administradores plenos usam o mesmo painel de configurações para gerenciar idioma, senha, e-mail real e remetentes de encaminhamento.
+Abra **Configurações** pelo **menu suspenso do avatar** no cabeçalho superior direito. O avatar está disponível para todas as contas — usuários comuns, contratados, administradores de família e administradores plenos usam o mesmo painel de configurações para gerenciar idioma, senha, e-mail real e remetentes de encaminhamento.
 
 ### Adicionar ou Atualizar E-mail
 

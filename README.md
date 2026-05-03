@@ -18,6 +18,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Exporting Your Data](#exporting-your-data)
 - [Reports](#reports)
 - [Surgeon NPI Lookup](#surgeon-npi-lookup)
+- [Keyboard shortcuts](#keyboard-shortcuts)
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
 - [Admin Features](#admin-features)
@@ -83,13 +84,19 @@ Four cards at the top give you an at-a-glance spending snapshot:
 
 ### Quick Actions
 
-| Button | What it does |
+The **Add Transaction** button is the prominent green card at the top — that's the main thing you'll do every day. **Export Data** and **Reports** sit just below as small text links, since you'll only reach for them now and then.
+
+| Action | What it does |
 |---|---|
 | **Add Transaction** | Opens the form to log a new expense |
 | **Export Data** | Download your transactions as CSV or PDF |
 | **Reports** | View filtered spending reports |
 
 If you belong to multiple households, use the **household selector** to switch between them. Everything — transactions, exports, charts — is scoped to the selected household.
+
+### Account menu (top-right avatar)
+
+The header shows just two icons on the right: the **bell** for What's New, and your **avatar** — a single dropdown that contains **Settings**, **Help**, and **Sign out**, with the app version at the bottom. Tapping outside the menu (or pressing **Esc**) closes it.
 
 ### Collapsible Sections
 
@@ -111,7 +118,9 @@ The **Email Inbox** section only appears when you have at least one forwarded it
    - **Category** — Choose from your household's categories
    - **Notes** — Any extra details (optional)
    - **Receipt** — Attach a photo or PDF (optional)
-3. Click **Save**.
+3. Click **Save receipt**.
+
+**Logging several at once?** Tick **"Keep adding receipts after this one"** above the Save button. The form will reset and stay open so you can rip through a stack of receipts without reopening the dialog. Press **Esc** at any point to close.
 
 **Tip:** If you've logged a purchase from the same vendor before, the category may auto-fill based on your history.
 
@@ -229,7 +238,7 @@ You can email any receipt or invoice straight into LedgerX — no photo, no uplo
 
 Before forwarded mail will appear in your inbox, you need to tell LedgerX which email addresses you'll be sending from. This is what links incoming mail to your account.
 
-1. Open **Settings** (gear icon, top-right of the Dashboard).
+1. Open **Settings** from the avatar dropdown in the top-right of the Dashboard.
 2. Scroll to **Email Forwarding**.
 3. Type the email address you'll forward from (e.g. `you@gmail.com`), optionally label it ("Personal", "Work"), and click **Add address**.
 4. Repeat for any other addresses you might forward from.
@@ -270,15 +279,15 @@ If you don't want to keep something, tap the **×** in the top-right of the inbo
 
 The **Expense List** shows all transactions for your selected household, newest first.
 
-### Search
+### Search & filters
 
-Type in the **search bar** to filter by vendor, category, notes, or household name in real time.
+For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar and filter controls. If you've logged more than 25 transactions, the search bar shows up automatically.
 
-### Filters & Sorting
-
-Use the filter controls to narrow by:
-- **Category** — Show only one type of expense
-- **Sort** — Switch between newest-first, oldest-first, highest amount, lowest amount
+Once open, you can narrow by:
+- **Search** — vendor, category, notes, or household name (real-time)
+- **Category** — show only one type of expense
+- **Household / date range / amount range** — additional filters
+- **Sort** — newest-first, oldest-first, highest amount, lowest amount
 
 ### Editing a transaction
 
@@ -286,10 +295,13 @@ Use the filter controls to narrow by:
 2. Update fields as needed.
 3. Click **Save**.
 
+> The raw OCR text is hidden behind a small **"View raw OCR text"** toggle in the edit screen, so you only see it when you actually need it.
+
 ### Deleting a transaction
 
 1. Click the transaction.
-2. Click **Delete** and confirm.
+2. Click **Delete** — the button morphs into a red **"Tap again to confirm"**.
+3. Tap it once more within 3 seconds to commit. If you don't tap again, the button reverts to its normal state and nothing happens.
 
 > Deletions are permanent — receipt images are also removed.
 
@@ -391,10 +403,17 @@ updates.
 
 ---
 
+## Keyboard shortcuts
+<!-- roles: contractor, member, admin -->
+
+Most modals close cleanly with **Esc** — Add Transaction, Edit Transaction, Submit Invoice, Settings, Export, Reports, the welcome tour, and What's New all listen for it. Same in the account menu (top-right avatar): tap outside or press Esc to dismiss.
+
+---
+
 ## Account Settings
 <!-- roles: contractor, member, admin -->
 
-Tap the **gear icon** in the top-right header to open **Settings**. The gear is available to every account — regular users, contractors, household admins, and full admins all use the same settings panel to manage their language, password, real email, and email-forwarding senders.
+Open **Settings** from the **avatar dropdown** in the top-right header. The avatar is available to every account — regular users, contractors, household admins, and full admins all use the same settings panel to manage their language, password, real email, and email-forwarding senders.
 
 ### Add or Update Email
 

@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.4',
+    version: 'v8.4',
+    date: '2026-05-03',
+    title: {
+      'en': 'Help docs caught up',
+      'pt-BR': 'Ajuda em dia',
+    },
+    body: {
+      'en':
+        'The in-app help is in sync with everything that just shipped — the new account avatar menu, the simplified Save receipt button, the OCR text toggle, the small-list filter chip, the two-tap delete, and Esc-to-close on every modal.',
+      'pt-BR':
+        'A ajuda do app está em sincronia com tudo que acabou de chegar — o novo menu suspenso do avatar, o botão Salvar recibo simplificado, o botão de ver texto do OCR, o filtro discreto para listas curtas, a exclusão em dois toques e o Esc para fechar todos os modais.',
+    },
+  },
+  {
     id: 'v8.3',
     version: 'v8.3',
     date: '2026-05-03',
