@@ -387,7 +387,7 @@ lançados — sem mais atualizações silenciosas.
 ## Configurações da Conta
 <!-- roles: contractor, member, admin -->
 
-Acesse **Configurações** pelo menu do Painel.
+Toque no **ícone de engrenagem** no cabeçalho superior direito para abrir **Configurações**. A engrenagem está disponível para todas as contas — usuários comuns, contratados, administradores de família e administradores plenos usam o mesmo painel de configurações para gerenciar idioma, senha, e-mail real e remetentes de encaminhamento.
 
 ### Adicionar ou Atualizar E-mail
 

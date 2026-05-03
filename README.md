@@ -390,7 +390,7 @@ updates.
 ## Account Settings
 <!-- roles: contractor, member, admin -->
 
-Access **Settings** from the menu on your Dashboard.
+Tap the **gear icon** in the top-right header to open **Settings**. The gear is available to every account — regular users, contractors, household admins, and full admins all use the same settings panel to manage their language, password, real email, and email-forwarding senders.
 
 ### Add or Update Email
 

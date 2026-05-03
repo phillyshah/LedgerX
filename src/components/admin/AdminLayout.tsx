@@ -24,6 +24,7 @@ const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ de
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
 const HelpModal           = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
 const WhatsNewModal       = lazy(() => import('../WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
+const UserSettings        = lazy(() => import('../UserSettings').then((m) => ({ default: m.UserSettings })));
 
 function ViewSkeleton() {
   return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
@@ -170,6 +171,7 @@ export function AdminLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   // No hasUnread state here — BellButton manages its own unread tracking via storage events
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
@@ -275,6 +277,14 @@ export function AdminLayout() {
               aria-label={t('common.help')}
             >
               <HelpCircle className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
+              title={t('common.settings')}
+              aria-label={t('common.settings')}
+            >
+              <Settings className="w-5 h-5" />
             </button>
             <button
               onClick={handleSignOut}
@@ -450,6 +460,7 @@ export function AdminLayout() {
         {showReports   && <Reports        onClose={() => setShowReports(false)} />}
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}
+        {showSettings  && <UserSettings   onClose={() => setShowSettings(false)} />}
         {showAddExpense && (
           <AddExpense onClose={() => setShowAddExpense(false)} onSaved={reloadExpenses} />
         )}
