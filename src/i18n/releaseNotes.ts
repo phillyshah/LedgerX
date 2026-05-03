@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.5',
+    version: 'v8.5',
+    date: '2026-05-03',
+    title: {
+      'en': 'Cleaner login screen',
+      'pt-BR': 'Tela de login mais limpa',
+    },
+    body: {
+      'en':
+        'The login screen drops the Sign Up tab. New accounts are always created by an admin (so the right household and category access can be set up for you), so a self-serve sign-up button just led to a dead-end. The login screen is now a single, focused form.',
+      'pt-BR':
+        'A tela de login removeu a aba Cadastrar. Novas contas são sempre criadas por um administrador (para que o acesso à residência e às categorias certas seja configurado para você), então um botão de cadastro próprio só levava a um beco sem saída. Agora a tela de login é um formulário único e focado.',
+    },
+  },
+  {
     id: 'v8.4',
     version: 'v8.4',
     date: '2026-05-03',
