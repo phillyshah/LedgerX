@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Calendar, Home, Tag, DollarSign, Download } from 'lucide-react';
+import { X, FileText, Calendar, Home, Tag, DollarSign, Download, User as UserIcon } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout, addReportHeader } from '../lib/pdfUtils';
 import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
@@ -30,18 +30,29 @@ interface Expense {
   image_path: string | null;
 }
 
+interface Submitter {
+  user_id: string;
+  username: string;
+}
+
 interface ReportsProps {
   onClose: () => void;
 }
 
 export function Reports({ onClose }: ReportsProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isHouseholdAdmin } = useAuth();
   const { t, locale } = useT();
   useEscapeClose(onClose);
+  // Privacy gate: only privileged viewers (full + household admins) can see
+  // other people's submissions. Regular users are *forced* to their own.
+  const isPrivilegedViewer = isAdmin || isHouseholdAdmin;
   const [households, setHouseholds] = useState<Household[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [submitters, setSubmitters] = useState<Submitter[]>([]);
+  // 'self' = own submissions only · 'all' = everyone in scope · <user_id>
+  const [submitterFilter, setSubmitterFilter] = useState<string>(isPrivilegedViewer ? 'all' : 'self');
   const [startDate, setStartDate] = useState('');
 
   const availableCategories = selectedHouseholds.length
@@ -65,6 +76,45 @@ export function Reports({ onClose }: ReportsProps) {
     // Reset selected categories when households change
     setSelectedCategories([]);
   }, [selectedHouseholds]);
+
+  // Load the submitter list whenever the privileged viewer changes
+  // households. Pulled from household_members + user_profiles so the
+  // dropdown only ever shows people who actually submit in scope.
+  useEffect(() => {
+    if (!isPrivilegedViewer || selectedHouseholds.length === 0) {
+      setSubmitters([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // No FK declared between household_members and user_profiles, so we
+      // can't ask PostgREST to embed — fetch IDs, then look up usernames.
+      const { data: memberRows, error: memberErr } = await supabase
+        .from('household_members')
+        .select('user_id')
+        .in('household_id', selectedHouseholds);
+      if (cancelled || memberErr || !memberRows) return;
+
+      const userIds = Array.from(new Set(memberRows.map((r: { user_id: string }) => r.user_id)));
+      if (userIds.length === 0) {
+        setSubmitters([]);
+        return;
+      }
+
+      const { data: profileRows, error: profileErr } = await supabase
+        .from('user_profiles')
+        .select('id, username')
+        .in('id', userIds);
+      if (cancelled || profileErr || !profileRows) return;
+
+      setSubmitters(
+        (profileRows as Array<{ id: string; username: string }>)
+          .map((p) => ({ user_id: p.id, username: p.username }))
+          .sort((a, b) => a.username.localeCompare(b.username))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [isPrivilegedViewer, selectedHouseholds]);
 
   useEffect(() => {
     const loadImageUrl = async () => {
@@ -136,6 +186,18 @@ export function Reports({ onClose }: ReportsProps) {
         .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
         .in('household_id', selectedHouseholds)
         .order('expense_date', { ascending: true });
+
+      // ── Privacy scope ───────────────────────────────────────────────
+      // Regular users MUST only see their own submissions, regardless of
+      // household-level RLS. Privileged viewers (full + household admins)
+      // can optionally narrow to a specific submitter via the dropdown.
+      if (!isPrivilegedViewer) {
+        query = query.eq('created_by', user.id);
+      } else if (submitterFilter === 'self') {
+        query = query.eq('created_by', user.id);
+      } else if (submitterFilter !== 'all') {
+        query = query.eq('created_by', submitterFilter);
+      }
 
       if (selectedCategories.length > 0) {
         const selectedCategoryNames = availableCategories
@@ -315,6 +377,37 @@ export function Reports({ onClose }: ReportsProps) {
               <strong className="font-semibold">{t('reports.error')}</strong> {error}
             </div>
           )}
+          {/* Privacy scope — admins get a submitter dropdown, regular
+              users see a static notice that the report is theirs only. */}
+          {isPrivilegedViewer ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                <UserIcon className="w-4 h-4" />
+                {t('reports.submittedBy')}
+              </label>
+              <select
+                value={submitterFilter}
+                onChange={(e) => setSubmitterFilter(e.target.value)}
+                className="flex-1 sm:flex-none min-w-[200px] px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+              >
+                <option value="all">{t('reports.submitterAll')}</option>
+                <option value="self">{t('reports.submitterMine')}</option>
+                {submitters.length > 0 && <option disabled>──────────</option>}
+                {submitters.map((s) => (
+                  <option key={s.user_id} value={s.user_id}>{s.username}</option>
+                ))}
+              </select>
+              {selectedHouseholds.length === 0 && (
+                <span className="text-xs text-slate-400">{t('reports.submitterPickHousehold')}</span>
+              )}
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-sm text-emerald-800">
+              <UserIcon className="w-4 h-4 text-emerald-600" />
+              {t('reports.scopedToSelf')}
+            </div>
+          )}
+
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Households */}

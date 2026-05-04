@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.6',
+    version: 'v8.6',
+    date: '2026-05-03',
+    title: {
+      'en': 'Reports now respect privacy',
+      'pt-BR': 'Relatórios agora respeitam a privacidade',
+    },
+    body: {
+      'en':
+        'Critical fix: regular users running Reports or Export now see only the transactions they personally submitted, matching the Transactions list they already had. ' +
+        'Admins and household admins can still see the full picture and now have a "Submitted by" dropdown to narrow a report to a specific person — anyone in the selected household, or just themselves.',
+      'pt-BR':
+        'Correção importante: usuários comuns ao rodar Relatórios ou Exportar agora veem apenas as transações que eles próprios enviaram, igual à lista de Transações que já tinham. ' +
+        'Administradores e administradores de família continuam vendo o todo e agora têm um menu "Enviado por" para filtrar um relatório por uma pessoa específica — qualquer membro da residência selecionada ou apenas você mesmo.',
+    },
+  },
+  {
     id: 'v8.5',
     version: 'v8.5',
     date: '2026-05-03',
