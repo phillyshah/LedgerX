@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.7',
+    version: 'v8.7',
+    date: '2026-05-04',
+    title: {
+      'en': 'Reports open ready to run',
+      'pt-BR': 'Relatórios prontos para rodar',
+    },
+    body: {
+      'en':
+        'When you open Reports, all categories are now pre-selected so you can hit Run Report right away. ' +
+        'If you only belong to one household, that household is also pre-ticked — no more clicking boxes before you see any results.',
+      'pt-BR':
+        'Ao abrir Relatórios, todas as categorias agora já vêm marcadas, então você pode clicar em Gerar Relatório na hora. ' +
+        'Se você só pertence a uma residência, ela também já fica marcada — chega de clicar em caixinhas antes de ver qualquer resultado.',
+    },
+  },
+  {
     id: 'v8.6',
     version: 'v8.6',
     date: '2026-05-03',
