@@ -30,9 +30,12 @@ interface ExportDataProps {
 }
 
 export function ExportData({ onClose }: ExportDataProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isHouseholdAdmin } = useAuth();
   const { t, locale } = useT();
   useEscapeClose(onClose);
+  // Privacy gate: regular users only ever export their own submissions.
+  // Privileged viewers (admins) export the full household scope.
+  const isPrivilegedViewer = isAdmin || isHouseholdAdmin;
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHousehold, setSelectedHousehold] = useState<string>('all');
   const [allCategories, setAllCategories] = useState<Category[]>([]);
@@ -173,6 +176,11 @@ export function ExportData({ onClose }: ExportDataProps) {
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
         .order('expense_date', { ascending: true });
+
+      // Privacy: regular users only ever see their own submissions.
+      if (!isPrivilegedViewer) {
+        query = query.eq('created_by', user.id);
+      }
 
       // Apply category filter if specific categories are selected
       if (!allSelected) {
