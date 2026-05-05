@@ -9,7 +9,14 @@
  *   3. Skips silently if no user match or duplicate Message-ID
  *   4. Uploads each attachment to the 'receipts' storage bucket
  *   5. Runs OCR on the first image/PDF attachment
- *   6. Inserts a pending email_inbox row
+ *   6. If no attachment OCR succeeded, runs text extraction on the
+ *      forwarded email body (text or stripped-HTML). Many vendor
+ *      receipts (Uber, airline, SaaS invoices, etc.) ship the receipt
+ *      inline rather than as an attachment.
+ *   7. When the email has no attachments at all but has a body, the
+ *      stripped body is saved to storage as a `.html` "synthetic
+ *      attachment" so the user has something to look at on the card.
+ *   8. Inserts a pending email_inbox row
  *
  * Payload shape (from the polling script):
  * {
@@ -18,7 +25,9 @@
  *   "message_id":   "<unique-id@mail.gmail.com>",
  *   "attachments":  [
  *     { "filename": "receipt.jpg", "content_type": "image/jpeg", "data": "<base64>" }
- *   ]
+ *   ],
+ *   "body_text":    "Thanks for riding with Uber...",
+ *   "body_html":    "<html>..."
  * }
  */
 
@@ -80,6 +89,107 @@ Use null for any field you cannot determine.`,
   } catch {
     return {};
   }
+}
+
+// ── Inline body extractors ────────────────────────────────────────────────────
+// When the receipt is in the email body itself (no PDF/image attached),
+// run a plain-text extraction prompt against the forwarded HTML/text.
+async function runReceiptTextExtraction(
+  apiKey: string,
+  text: string,
+): Promise<Record<string, unknown>> {
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      max_tokens: 200,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: `Extract from this forwarded receipt email body as JSON:
+- vendor_name: store or business name
+- total_amount: total as a number (e.g. 42.50)
+- transaction_date: date in YYYY-MM-DD format
+- handwritten_notes: short description of what was purchased (null if unclear)
+Use null for any field you cannot determine.
+
+EMAIL BODY:
+${text.slice(0, 8000)}`,
+        },
+      ],
+    }),
+  });
+  if (!resp.ok) return {};
+  const json = await resp.json();
+  try {
+    return JSON.parse(json.choices[0].message.content);
+  } catch {
+    return {};
+  }
+}
+
+async function runInvoiceTextExtraction(
+  apiKey: string,
+  text: string,
+): Promise<Record<string, unknown>> {
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      max_tokens: 400,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: `Extract from this forwarded invoice email body as JSON:
+- vendor_name: business issuing the invoice
+- invoice_number: invoice or reference number
+- total_amount: total amount due as a number
+- invoice_date: date in YYYY-MM-DD format
+- due_date: payment due date in YYYY-MM-DD format (null if not shown)
+- description: brief description of services/goods
+Use null for any field you cannot determine.
+
+EMAIL BODY:
+${text.slice(0, 8000)}`,
+        },
+      ],
+    }),
+  });
+  if (!resp.ok) return {};
+  const json = await resp.json();
+  try {
+    return JSON.parse(json.choices[0].message.content);
+  } catch {
+    return {};
+  }
+}
+
+// Strip HTML tags (and script/style blocks) to a readable plain-text version.
+// Good enough for GPT extraction — we don't need fidelity, just the prose.
+function stripHtml(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Did the OCR call return anything substantive? Empty objects and
+// all-null payloads count as misses so we can fall through to the
+// inline-body extractor.
+function hasUsefulFields(data: Record<string, unknown>): boolean {
+  return Object.values(data).some((v) => v !== null && v !== undefined && v !== "");
 }
 
 async function runInvoiceOCR(
@@ -144,11 +254,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { from_email, subject = "", message_id, attachments = [] } = body as {
+    const {
+      from_email,
+      subject = "",
+      message_id,
+      attachments = [],
+      body_text,
+      body_html,
+    } = body as {
       from_email: string;
       subject?: string;
       message_id?: string;
       attachments?: Array<{ filename: string; content_type: string; data: string }>;
+      body_text?: string | null;
+      body_html?: string | null;
     };
 
     if (!from_email) {
@@ -209,7 +328,10 @@ Deno.serve(async (req: Request) => {
       if (!uploadErr) storedPaths.push(path);
     }
 
-    // 7. OCR the first image or PDF attachment
+    // 7. OCR the first image or PDF attachment, then fall back to the
+    //    forwarded email body if nothing useful came back. This covers
+    //    common "receipt in the body" senders (Uber, airline, SaaS) so
+    //    the user gets a prefilled card instead of an empty one.
     const apiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
     let prefilled: Record<string, unknown> = {};
     const ocrTarget = attachments.find(
@@ -222,6 +344,29 @@ Deno.serve(async (req: Request) => {
         kind === "invoice"
           ? await runInvoiceOCR(apiKey, ocrTarget.data, ocrTarget.content_type)
           : await runReceiptOCR(apiKey, ocrTarget.data, ocrTarget.content_type);
+    }
+
+    // 7b. Inline body fallback — only when attachment OCR didn't yield
+    //     anything we can prefill with.
+    const inlineText = body_text ?? (body_html ? stripHtml(body_html) : "");
+    if (!hasUsefulFields(prefilled) && inlineText.length > 20 && apiKey) {
+      prefilled =
+        kind === "invoice"
+          ? await runInvoiceTextExtraction(apiKey, inlineText)
+          : await runReceiptTextExtraction(apiKey, inlineText);
+    }
+
+    // 7c. Synthetic attachment — when there are no real attachments but
+    //     we *do* have an HTML body, save it so the inbox card has
+    //     something for the user to click through to. Plain text emails
+    //     without HTML are skipped (no useful preview to render).
+    if (storedPaths.length === 0 && body_html && body_html.length > 0) {
+      const path = `email-inbox/${userId}/${crypto.randomUUID()}.html`;
+      const bytes = new TextEncoder().encode(body_html);
+      const { error: uploadErr } = await supabase.storage
+        .from("receipts")
+        .upload(path, bytes, { contentType: "text/html", upsert: false });
+      if (!uploadErr) storedPaths.push(path);
     }
 
     // 8. Insert pending inbox row

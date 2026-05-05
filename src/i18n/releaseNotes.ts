@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.8',
+    version: 'v8.8',
+    date: '2026-05-05',
+    title: {
+      'en': 'Smarter Email Inbox',
+      'pt-BR': 'Caixa de Entrada de E-mail mais inteligente',
+    },
+    body: {
+      'en':
+        "Three upgrades to forwarded receipts: when you finish reviewing one, you'll see a quick confirmation that it landed in Recent Transactions (or Invoices) and was cleared from the inbox. " +
+        'The pending count at the top of the inbox now updates instantly when you discard or save items — no more stale "3" sitting on an empty list. ' +
+        "And we now read receipts that come embedded in the email body itself (Uber, airline, SaaS bills, etc.) — not just the ones with a PDF or photo attached.",
+      'pt-BR':
+        'Três melhorias para recibos encaminhados por e-mail: ao terminar a revisão, você vê uma confirmação rápida de que o item entrou em Transações Recentes (ou Notas Fiscais) e saiu da caixa de entrada. ' +
+        'A contagem de pendências no topo da caixa de entrada agora atualiza na hora quando você descarta ou salva — chega de "3" parado em uma lista vazia. ' +
+        'E passamos a ler recibos que vêm embutidos no corpo do próprio e-mail (Uber, companhias aéreas, SaaS, etc.) — não só os com PDF ou foto anexados.',
+    },
+  },
+  {
     id: 'v8.7',
     version: 'v8.7',
     date: '2026-05-04',

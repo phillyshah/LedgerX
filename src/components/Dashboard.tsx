@@ -13,6 +13,7 @@ import { LogoText } from './LogoText';
 import { BellButton } from './BellButton';
 import { UserMenu } from './UserMenu';
 import { EmailInboxPanel } from './EmailInboxPanel';
+import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
 import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react';
@@ -52,14 +53,35 @@ export function Dashboard() {
   // ownOnly) and are routed elsewhere by App.tsx, so they aren't affected.
   const { expenses, households, loading, reloadExpenses } = useExpenses(undefined, { ownOnly: true });
   const { invoices, loading: invoicesLoading, reloadInvoices } = useInvoices();
-  // Used only to know whether to surface the email-inbox section. The
-  // EmailInboxPanel runs its own copy of this hook for live state — both
-  // share Supabase's underlying fetch result so the cost is negligible.
-  const { items: inboxItems } = useEmailInbox(0);
+  // Single hook instance feeds both the section's badge count and the
+  // panel's card list. Discarding or accepting an item updates `items`,
+  // which immediately re-derives `inboxCount` — fixing the stale badge
+  // that lingered when two independent hooks ran side by side.
+  const { items: inboxItems, loading: inboxLoading, discard: inboxDiscard, accept: inboxAccept } = useEmailInbox(0);
   const inboxCount = inboxItems.length;
 
-  const handleExpenseAdded = () => {
+  // Tracks which inbox item (if any) sourced the currently-open form so
+  // we can mark it accepted on save and surface a toast confirming the
+  // hand-off into Recent Transactions / Invoices.
+  const [pendingInboxId, setPendingInboxId] = useState<string | null>(null);
+  const [acceptToast, setAcceptToast] = useState<'expense' | 'invoice' | null>(null);
+
+  const handleExpenseAdded = async () => {
     reloadExpenses();
+    if (pendingInboxId) {
+      await inboxAccept(pendingInboxId);
+      setPendingInboxId(null);
+      setAcceptToast('expense');
+    }
+  };
+
+  const handleInvoiceAdded = async () => {
+    reloadInvoices();
+    if (pendingInboxId) {
+      await inboxAccept(pendingInboxId);
+      setPendingInboxId(null);
+      setAcceptToast('invoice');
+    }
   };
 
   const handleInboxExpense = (item: InboxItem) => {
@@ -70,6 +92,7 @@ export function Dashboard() {
       notes: item.prefilled.handwritten_notes ?? undefined,
       attachment_paths: item.attachment_paths,
     });
+    setPendingInboxId(item.id);
     setShowAddExpense(true);
   };
 
@@ -82,6 +105,7 @@ export function Dashboard() {
       invoice_date: item.prefilled.invoice_date ?? undefined,
       attachment_paths: item.attachment_paths,
     });
+    setPendingInboxId(item.id);
     setShowInvoiceForm(true);
   };
 
@@ -173,6 +197,9 @@ export function Dashboard() {
             hidden={inboxCount === 0}
           >
             <EmailInboxPanel
+              items={inboxItems}
+              loading={inboxLoading}
+              onDiscard={inboxDiscard}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
@@ -212,15 +239,15 @@ export function Dashboard() {
         <Suspense fallback={null}>
           {showAddExpense && (
             <AddExpense
-              onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
+              onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); setPendingInboxId(null); }}
               onSaved={handleExpenseAdded}
               initialData={expenseInitialData}
             />
           )}
           {showInvoiceForm && (
             <InvoiceForm
-              onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); }}
-              onSaved={reloadInvoices}
+              onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); setPendingInboxId(null); }}
+              onSaved={handleInvoiceAdded}
               initialData={invoiceInitialData}
             />
           )}
@@ -228,6 +255,10 @@ export function Dashboard() {
           {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
           {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
         </Suspense>
+
+        {acceptToast && (
+          <InboxAcceptToast kind={acceptToast} onDismiss={() => setAcceptToast(null)} />
+        )}
       </div>
     );
   }
@@ -288,6 +319,9 @@ export function Dashboard() {
             hidden={inboxCount === 0}
           >
             <EmailInboxPanel
+              items={inboxItems}
+              loading={inboxLoading}
+              onDiscard={inboxDiscard}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
@@ -332,9 +366,17 @@ export function Dashboard() {
       <Suspense fallback={null}>
         {showAddExpense && (
           <AddExpense
-            onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); }}
+            onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); setPendingInboxId(null); }}
             onSaved={handleExpenseAdded}
             initialData={expenseInitialData}
+          />
+        )}
+
+        {showInvoiceForm && (
+          <InvoiceForm
+            onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); setPendingInboxId(null); }}
+            onSaved={handleInvoiceAdded}
+            initialData={invoiceInitialData}
           />
         )}
 
@@ -348,6 +390,10 @@ export function Dashboard() {
 
         {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       </Suspense>
+
+      {acceptToast && (
+        <InboxAcceptToast kind={acceptToast} onDismiss={() => setAcceptToast(null)} />
+      )}
     </div>
   );
 }

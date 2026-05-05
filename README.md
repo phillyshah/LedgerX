@@ -248,7 +248,7 @@ Mail from unregistered addresses is silently ignored — only addresses you've a
 ### Forwarding a receipt or invoice
 
 1. In your email client, find the receipt or invoice you want to log.
-2. Forward it to **receipts@90ten.life**. Most email apps put any attachments through automatically. PDFs and image attachments are supported.
+2. Forward it to **receipts@90ten.life**. Most email apps put any attachments through automatically. PDFs and image attachments are supported. **Receipts that come embedded in the email body itself** (Uber, airline confirmations, SaaS bills, and other vendors that don't attach a PDF) are also extracted automatically — the inbox card will show an **EMAIL** thumbnail you can click to view the original message.
 3. Within ~5 minutes, a card appears in the **Email Inbox** section of your Dashboard.
 
 ### Reviewing & accepting
@@ -268,7 +268,9 @@ Tap **Review ▾** and pick what kind of item it is:
 
 The form behaves exactly like a fresh upload from there — review the fields, tweak anything that's off, then **Save**. The attachment is re-uploaded under your household's normal path, so it's permanently associated with the resulting transaction or invoice.
 
-If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it.
+After you save, a brief confirmation slides in at the bottom of the screen telling you the item now lives in **Recent Transactions** (or **Invoices**), and the card disappears from the **Email Inbox**. The pending count at the top of the section updates immediately, so you always see exactly how many cards still need attention.
+
+If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it. The pending count drops by one as soon as you do.
 
 > **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
 
