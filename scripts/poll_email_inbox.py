@@ -95,6 +95,41 @@ def extract_attachments(msg):
         })
     return attachments
 
+def extract_body(msg):
+    """Return (body_text, body_html) for the first text/plain and text/html parts.
+
+    Many vendors (Uber, Lyft, airline/hotel "your receipt" emails, SaaS
+    invoices, etc.) embed the receipt directly in the message body — no
+    PDF or image attached. We forward both flavors when present so the
+    edge function can OCR the inline content the same way it handles
+    attached images.
+    """
+    body_text = None
+    body_html = None
+    for part in msg.walk():
+        ct = part.get_content_type()
+        cd = str(part.get("Content-Disposition", ""))
+        # Skip anything explicitly attached — that's handled by extract_attachments.
+        if "attachment" in cd:
+            continue
+        if ct == "text/plain" and body_text is None:
+            payload = part.get_payload(decode=True)
+            if payload:
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    body_text = payload.decode(charset, errors="replace")
+                except Exception:
+                    body_text = payload.decode("utf-8", errors="replace")
+        elif ct == "text/html" and body_html is None:
+            payload = part.get_payload(decode=True)
+            if payload:
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    body_html = payload.decode(charset, errors="replace")
+                except Exception:
+                    body_html = payload.decode("utf-8", errors="replace")
+    return body_text, body_html
+
 # ── Edge function call ────────────────────────────────────────────────────────
 def post_to_function(payload: dict) -> bool:
     body = json.dumps(payload).encode("utf-8")
@@ -154,11 +189,16 @@ def main():
         attachments = extract_attachments(msg)
         log(f"  Attachments: {[a['filename'] for a in attachments]}")
 
+        body_text, body_html = extract_body(msg)
+        log(f"  Body: text={'yes' if body_text else 'no'} html={'yes' if body_html else 'no'}")
+
         payload = {
             "from_email": from_email,
             "subject": subject,
             "message_id": msg_id or None,
             "attachments": attachments,
+            "body_text": body_text,
+            "body_html": body_html,
         }
 
         success = post_to_function(payload)

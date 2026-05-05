@@ -19,7 +19,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Mail, FileText, X, Loader2, ChevronDown, Receipt, FileSignature } from 'lucide-react';
-import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
+import type { InboxItem } from '../hooks/useEmailInbox';
 import { supabase } from '../lib/supabase';
 import { useT } from '../hooks/useT';
 export type { InboxItem } from '../hooks/useEmailInbox';
@@ -28,6 +28,9 @@ export type { InboxItem } from '../hooks/useEmailInbox';
 function AttachmentThumb({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const isImage = /\.(jpe?g|png|webp|heic)$/i.test(path);
+  // Synthetic attachment created by the inbound-email function when the
+  // receipt was inline in the email body (no PDF/image attached).
+  const isHtml = /\.html?$/i.test(path);
 
   useEffect(() => {
     supabase.storage.from('receipts').createSignedUrl(path, 3600).then(({ data }) => {
@@ -45,6 +48,20 @@ function AttachmentThumb({ path }: { path: string }) {
           alt="attachment"
           className="w-20 h-20 object-cover rounded-lg border border-slate-200 hover:opacity-80 transition-opacity flex-shrink-0"
         />
+      </a>
+    );
+  }
+
+  if (isHtml) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-col items-center justify-center w-20 h-20 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors flex-shrink-0 gap-1"
+      >
+        <Mail className="w-8 h-8 text-emerald-500" />
+        <span className="text-[10px] text-emerald-700 font-medium">EMAIL</span>
       </a>
     );
   }
@@ -70,7 +87,7 @@ function InboxCard({
   t,
 }: {
   item: InboxItem;
-  onDiscard: (id: string) => void;
+  onDiscard: (id: string) => Promise<void> | void;
   onOpenAs: (item: InboxItem, as: 'expense' | 'invoice') => void;
   t: (k: string) => string;
 }) {
@@ -191,17 +208,24 @@ function ReviewMenu({
 }
 
 // ── Main panel ────────────────────────────────────────────────────────────────
+//
+// State (items / loading / discard) is owned by the Dashboard and threaded
+// through as props. That's how the badge count in the parent
+// CollapsibleSection stays in sync after a discard or after a form save
+// marks an item as accepted — both share the same hook instance now.
 interface Props {
+  items: InboxItem[];
+  loading: boolean;
+  /** Mark item as discarded (Dashboard owns the hook). */
+  onDiscard: (id: string) => Promise<void> | void;
   /** Called when the user wants to open AddExpense pre-filled from an inbox item */
   onOpenExpense: (item: InboxItem) => void;
   /** Called when the user wants to open InvoiceForm pre-filled from an inbox item */
   onOpenInvoice: (item: InboxItem) => void;
 }
 
-export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
+export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOpenInvoice }: Props) {
   const { t } = useT();
-  const [refresh, setRefresh] = useState(0);
-  const { items, loading, discard } = useEmailInbox(refresh);
 
   // User picks receipt vs invoice on each card now (the auto-detected
   // `item.kind` is no longer used for routing — it was a guess). This
@@ -209,11 +233,6 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
   const handleOpenAs = (item: InboxItem, as: 'expense' | 'invoice') => {
     if (as === 'invoice') onOpenInvoice(item);
     else onOpenExpense(item);
-  };
-
-  const handleDiscard = async (id: string) => {
-    await discard(id);
-    setRefresh(r => r + 1);
   };
 
   // Only render when there are pending items
@@ -233,7 +252,7 @@ export function EmailInboxPanel({ onOpenExpense, onOpenInvoice }: Props) {
           <InboxCard
             key={item.id}
             item={item}
-            onDiscard={handleDiscard}
+            onDiscard={onDiscard}
             onOpenAs={handleOpenAs}
             t={t}
           />

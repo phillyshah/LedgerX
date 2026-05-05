@@ -246,7 +246,7 @@ E-mails de endereços não cadastrados são silenciosamente ignorados — apenas
 ### Encaminhando um recibo ou nota fiscal
 
 1. No seu cliente de e-mail, encontre o recibo ou nota que deseja registrar.
-2. Encaminhe para **receipts@90ten.life**. A maioria dos clientes envia os anexos automaticamente. PDFs e imagens são suportados.
+2. Encaminhe para **receipts@90ten.life**. A maioria dos clientes envia os anexos automaticamente. PDFs e imagens são suportados. **Recibos que vêm embutidos no corpo do próprio e-mail** (Uber, confirmações de companhias aéreas, faturas de SaaS e outros remetentes que não anexam PDF) também são extraídos automaticamente — o cartão da caixa de entrada mostrará uma miniatura **EMAIL** que você pode clicar para ver a mensagem original.
 3. Em até ~5 minutos, um cartão aparece na seção **Caixa de Entrada** do seu Painel.
 
 ### Revisar e Aceitar
@@ -266,7 +266,9 @@ Toque em **Revisar ▾** e escolha o tipo do item:
 
 A partir daí o formulário se comporta exatamente como um envio direto — confira os campos, ajuste o que estiver fora e clique em **Salvar**. O anexo é re-enviado para o caminho normal da residência, então fica permanentemente associado à transação ou nota resultante.
 
-Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar.
+Após salvar, uma confirmação rápida aparece na parte inferior da tela informando que o item agora está em **Transações Recentes** (ou **Notas Fiscais**), e o cartão desaparece da **Caixa de Entrada de E-mail**. A contagem de pendentes no topo da seção atualiza imediatamente, então você sempre vê quantos cartões ainda precisam de atenção.
+
+Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar. A contagem de pendentes diminui em um na hora.
 
 > **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
 

@@ -106,7 +106,11 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
     let cancelled = false;
     (async () => {
       const loaded: ImageItem[] = [];
-      for (const p of paths) {
+      // Skip the synthetic .html "email body" attachment created by
+      // inbound-email when a forwarded invoice had no real attachment.
+      // It's there only as a preview on the inbox card.
+      const usable = paths.filter((p) => !/\.html?$/i.test(p));
+      for (const p of usable) {
         try {
           const { data, error } = await supabase.storage.from('receipts').download(p);
           if (error || !data) continue;
