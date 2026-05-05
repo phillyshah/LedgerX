@@ -73,9 +73,13 @@ export function Reports({ onClose }: ReportsProps) {
   }, [user]);
 
   useEffect(() => {
-    // Reset selected categories when households change
-    setSelectedCategories([]);
-  }, [selectedHouseholds]);
+    // When households change, pre-select ALL categories for those households
+    // so the user sees results immediately without having to tick boxes.
+    const cats = allCategories.filter(
+      (c) => c.household_id && selectedHouseholds.includes(c.household_id)
+    );
+    setSelectedCategories(cats.map((c) => c.id));
+  }, [selectedHouseholds, allCategories]);
 
   // Load the submitter list whenever the privileged viewer changes
   // households. Pulled from household_members + user_profiles so the
@@ -152,6 +156,11 @@ export function Reports({ onClose }: ReportsProps) {
         ? await loadAllHouseholds()
         : await loadUserHouseholds(user.id);
       setHouseholds(hh);
+      // Auto-select when there's only one household — no reason to make the
+      // user click a checkbox before they can run their first report.
+      if (hh.length === 1) {
+        setSelectedHouseholds([hh[0].id]);
+      }
 
       // Load categories: global + household-specific for user's households
       const householdIds = hh.map((h) => h.id);
@@ -199,7 +208,10 @@ export function Reports({ onClose }: ReportsProps) {
         query = query.eq('created_by', submitterFilter);
       }
 
-      if (selectedCategories.length > 0) {
+      // Only filter by category when a strict subset is selected.
+      // When all (or none) are selected we don't filter so uncategorized
+      // expenses are always included in the full-scope case.
+      if (selectedCategories.length > 0 && selectedCategories.length < availableCategories.length) {
         const selectedCategoryNames = availableCategories
           .filter((c: Category) => selectedCategories.includes(c.id))
           .map((c: Category) => c.name);
