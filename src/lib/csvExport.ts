@@ -8,6 +8,7 @@ interface CsvExpense {
   category: string | null;
   household_id: string | null;
   notes: string | null;
+  created_by?: string | null;
 }
 
 const csvField = (value: unknown) =>
@@ -17,8 +18,14 @@ export function buildExpenseCsv(
   expenses: CsvExpense[],
   householdNames: Map<string, string>,
   picIdField: 'id' | 'pic_id' = 'id',
+  submitterNames?: Map<string, string>,
 ): string {
-  const header = ['Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household', 'Notes'].join(',');
+  const includeSubmitter = !!submitterNames;
+  const header = [
+    'Pic ID', 'Date', 'Vendor', 'Amount', 'Currency', 'Category', 'Household',
+    ...(includeSubmitter ? ['Submitted by'] : []),
+    'Notes',
+  ].join(',');
   const rows = expenses.map((e) =>
     [
       csvField(picIdField === 'id' ? e.id : e.pic_id),
@@ -28,6 +35,9 @@ export function buildExpenseCsv(
       csvField(e.currency || 'USD'),
       csvField(e.category),
       csvField(householdNames.get(e.household_id ?? '') || ''),
+      ...(includeSubmitter
+        ? [csvField(submitterNames!.get(e.created_by ?? '') || '')]
+        : []),
       csvField(e.notes),
     ].join(','),
   );

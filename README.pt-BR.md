@@ -365,6 +365,10 @@ Os **Relatórios** permitem analisar gastos com filtros flexíveis:
 - **Residência** — Restringe a uma residência
 - **Categoria** — Filtra por tipo de despesa
 - **Intervalo de Datas** — Define uma data inicial e final personalizadas
+- **Enviado por** _(somente administradores)_ — Marque qualquer combinação de pessoas das residências selecionadas. Deixe a lista vazia para incluir todos no escopo, ou clique em **Apenas meus envios** para ver só os seus.
+- **Ordenar por** — Reorganize os resultados sem rodar o relatório de novo: por data (mais antigos ou mais recentes primeiro), autor, valor (maior ou menor), fornecedor ou categoria. A ordem escolhida também é usada nas exportações em PDF e CSV.
+
+A tabela de resultados — e as exportações em PDF/CSV — incluem a coluna **Enviado por** para administradores, então fica fácil identificar de quem é cada recibo. Usuários comuns veem apenas os próprios envios, e a coluna Enviado por não aparece para eles.
 
 Os relatórios mostram um detalhamento das transações correspondentes, para que você identifique tendências e mantenha o orçamento sob controle.
 
@@ -491,6 +495,7 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 - Redefinir senhas de qualquer usuário
 - Conceder ou revogar privilégios de administrador
 - Atribuir usuários a residências
+- Veja o **último acesso** de cada usuário ao lado da data de entrada, para identificar rapidamente contas inativas (ou confirmar que um colega já entrou desde que você redefiniu a senha). Contas que nunca acessaram aparecem como "Nunca acessou".
 
 ### Gerenciar Categorias
 
