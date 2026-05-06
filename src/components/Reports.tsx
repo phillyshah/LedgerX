@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Calendar, Home, Tag, DollarSign, Download, User as UserIcon } from 'lucide-react';
+import { X, FileText, Calendar, Home, Tag, DollarSign, Download, User as UserIcon, ArrowUpDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { compressForPDF, addImageToPDF, pdfGridLayout, addReportHeader } from '../lib/pdfUtils';
 import { buildExpenseCsv, downloadBlob } from '../lib/csvExport';
@@ -28,12 +28,16 @@ interface Expense {
   household_id: string | null;
   household_name?: string;
   image_path: string | null;
+  created_by: string | null;
+  submitter_name?: string;
 }
 
 interface Submitter {
   user_id: string;
   username: string;
 }
+
+type SortKey = 'date_asc' | 'date_desc' | 'submitter' | 'amount_desc' | 'amount_asc' | 'vendor' | 'category';
 
 interface ReportsProps {
   onClose: () => void;
@@ -51,8 +55,12 @@ export function Reports({ onClose }: ReportsProps) {
   const [selectedHouseholds, setSelectedHouseholds] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [submitters, setSubmitters] = useState<Submitter[]>([]);
-  // 'self' = own submissions only · 'all' = everyone in scope · <user_id>
-  const [submitterFilter, setSubmitterFilter] = useState<string>(isPrivilegedViewer ? 'all' : 'self');
+  // Empty array = "all submitters in scope" (no filter applied beyond
+  // privacy/household scoping). Any non-empty list scopes the report to
+  // exactly those user ids. Regular users are forced to [user.id] in the
+  // query regardless of this state.
+  const [selectedSubmitterIds, setSelectedSubmitterIds] = useState<string[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>('date_asc');
   const [startDate, setStartDate] = useState('');
 
   const availableCategories = selectedHouseholds.length
@@ -192,20 +200,18 @@ export function Reports({ onClose }: ReportsProps) {
 
       let query = supabase
         .from('expenses')
-        .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path')
+        .select('id, expense_date, vendor, total, currency, category, notes, household_id, image_path, created_by')
         .in('household_id', selectedHouseholds)
         .order('expense_date', { ascending: true });
 
       // ── Privacy scope ───────────────────────────────────────────────
       // Regular users MUST only see their own submissions, regardless of
       // household-level RLS. Privileged viewers (full + household admins)
-      // can optionally narrow to a specific submitter via the dropdown.
+      // can narrow to one or more specific submitters via checkboxes.
       if (!isPrivilegedViewer) {
         query = query.eq('created_by', user.id);
-      } else if (submitterFilter === 'self') {
-        query = query.eq('created_by', user.id);
-      } else if (submitterFilter !== 'all') {
-        query = query.eq('created_by', submitterFilter);
+      } else if (selectedSubmitterIds.length > 0) {
+        query = query.in('created_by', selectedSubmitterIds);
       }
 
       // Only filter by category when a strict subset is selected.
@@ -229,9 +235,30 @@ export function Reports({ onClose }: ReportsProps) {
       const { data, error } = await query;
 
       if (!error && data) {
-        const filteredExpenses = data.map((e: any) => ({
+        // Resolve usernames for any created_by ids returned. Privileged
+        // viewers may pull in users not in the household-scoped submitters
+        // list, so we top up via user_profiles.
+        const submitterMap = new Map(submitters.map((s) => [s.user_id, s.username]));
+        const missingIds = Array.from(
+          new Set(
+            (data as Array<{ created_by: string | null }>)
+              .map((r) => r.created_by)
+              .filter((id): id is string => !!id && !submitterMap.has(id)),
+          ),
+        );
+        if (missingIds.length > 0) {
+          const { data: profileRows } = await supabase
+            .from('user_profiles')
+            .select('id, username')
+            .in('id', missingIds);
+          for (const p of (profileRows ?? []) as Array<{ id: string; username: string }>) {
+            submitterMap.set(p.id, p.username);
+          }
+        }
+        const filteredExpenses = (data as Expense[]).map((e) => ({
           ...e,
-          household_name: householdMap.get(e.household_id) || 'Unknown',
+          household_name: householdMap.get(e.household_id ?? '') || 'Unknown',
+          submitter_name: e.created_by ? (submitterMap.get(e.created_by) ?? '') : '',
         }));
         setExpenses(filteredExpenses);
         setTotalAmount(filteredExpenses.reduce((sum: number, e: Expense) => sum + e.total, 0));
@@ -253,20 +280,62 @@ export function Reports({ onClose }: ReportsProps) {
     }
   };
 
+  // Apply the chosen sort order to the result set without re-querying.
+  // Used by both the on-screen table and the export.
+  const sortedExpenses = useMemo(() => {
+    const list = [...expenses];
+    const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
+      (a ?? '').localeCompare(b ?? '');
+    switch (sortKey) {
+      case 'date_desc':
+        list.sort((a, b) => cmpStr(b.expense_date, a.expense_date));
+        break;
+      case 'submitter':
+        list.sort((a, b) => cmpStr(a.submitter_name, b.submitter_name)
+          || cmpStr(a.expense_date, b.expense_date));
+        break;
+      case 'amount_desc':
+        list.sort((a, b) => b.total - a.total);
+        break;
+      case 'amount_asc':
+        list.sort((a, b) => a.total - b.total);
+        break;
+      case 'vendor':
+        list.sort((a, b) => cmpStr(a.vendor, b.vendor));
+        break;
+      case 'category':
+        list.sort((a, b) => cmpStr(a.category, b.category));
+        break;
+      case 'date_asc':
+      default:
+        list.sort((a, b) => cmpStr(a.expense_date, b.expense_date));
+    }
+    return list;
+  }, [expenses, sortKey]);
+
   const exportReport = async () => {
     setExporting(true);
 
     try {
       const householdMap = new Map(households.map((h) => [h.id, h.name]));
-
-      // Oldest first
-      const sortedExpenses = [...expenses].sort((a, b) =>
-        (a.expense_date || '').localeCompare(b.expense_date || '')
+      const submitterMap = new Map(
+        sortedExpenses
+          .filter((e) => e.created_by)
+          .map((e) => [e.created_by as string, e.submitter_name || '']),
       );
 
-      // CSV
+      // CSV — admin-only viewers get a Submitted by column; regular users
+      // are scoped to themselves so that column would be redundant.
       downloadBlob(
-        new Blob([buildExpenseCsv(sortedExpenses, householdMap, 'id')], { type: 'text/csv' }),
+        new Blob(
+          [buildExpenseCsv(
+            sortedExpenses,
+            householdMap,
+            'id',
+            isPrivilegedViewer ? submitterMap : undefined,
+          )],
+          { type: 'text/csv' },
+        ),
         `ledgerx-report-${startDate}-to-${endDate}.csv`,
       );
 
@@ -322,6 +391,9 @@ export function Reports({ onClose }: ReportsProps) {
         const hhName = householdMap.get(expense.household_id ?? '');
         if (hhName) { pdf.text(`Household: ${hhName}`, xOffset, yPosition); yPosition += 4.5; }
         if (expense.category) { pdf.text(`Category: ${expense.category}`, xOffset, yPosition); yPosition += 4.5; }
+        if (isPrivilegedViewer && expense.submitter_name) {
+          pdf.text(`Submitted by: ${expense.submitter_name}`, xOffset, yPosition); yPosition += 4.5;
+        }
 
         if (expense.notes) {
           const noteLines = pdf.splitTextToSize(`Notes: ${expense.notes}`, textWidth);
@@ -389,28 +461,70 @@ export function Reports({ onClose }: ReportsProps) {
               <strong className="font-semibold">{t('reports.error')}</strong> {error}
             </div>
           )}
-          {/* Privacy scope — admins get a submitter dropdown, regular
+          {/* Privacy scope — admins get a submitter checklist, regular
               users see a static notice that the report is theirs only. */}
           {isPrivilegedViewer ? (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
-              <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                <UserIcon className="w-4 h-4" />
-                {t('reports.submittedBy')}
-              </label>
-              <select
-                value={submitterFilter}
-                onChange={(e) => setSubmitterFilter(e.target.value)}
-                className="flex-1 sm:flex-none min-w-[200px] px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
-              >
-                <option value="all">{t('reports.submitterAll')}</option>
-                <option value="self">{t('reports.submitterMine')}</option>
-                {submitters.length > 0 && <option disabled>──────────</option>}
-                {submitters.map((s) => (
-                  <option key={s.user_id} value={s.user_id}>{s.username}</option>
-                ))}
-              </select>
-              {selectedHouseholds.length === 0 && (
-                <span className="text-xs text-slate-400">{t('reports.submitterPickHousehold')}</span>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                  <UserIcon className="w-4 h-4" />
+                  {t('reports.submittedBy')}
+                  {selectedSubmitterIds.length === 0 ? (
+                    <span className="ml-2 text-xs font-normal text-slate-500">
+                      {t('reports.submitterAllSelected')}
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-xs font-normal text-slate-500">
+                      {t('reports.submitterCount', { count: selectedSubmitterIds.length })}
+                    </span>
+                  )}
+                </label>
+                <div className="flex gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubmitterIds([])}
+                    className="text-emerald-700 hover:text-emerald-800 font-medium"
+                  >
+                    {t('reports.submitterAll')}
+                  </button>
+                  {user?.id && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSubmitterIds([user.id])}
+                      className="text-emerald-700 hover:text-emerald-800 font-medium"
+                    >
+                      {t('reports.submitterMine')}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {selectedHouseholds.length === 0 ? (
+                <p className="text-xs text-slate-400">{t('reports.submitterPickHousehold')}</p>
+              ) : submitters.length === 0 ? (
+                <p className="text-xs text-slate-400">{t('reports.submitterNoneFound')}</p>
+              ) : (
+                <div className="max-h-32 overflow-y-auto bg-white border border-slate-200 rounded-lg p-2 grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1">
+                  {submitters.map((s) => {
+                    const checked = selectedSubmitterIds.includes(s.user_id);
+                    return (
+                      <label key={s.user_id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedSubmitterIds((prev) =>
+                              prev.includes(s.user_id)
+                                ? prev.filter((x) => x !== s.user_id)
+                                : [...prev, s.user_id],
+                            )
+                          }
+                          className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                        />
+                        <span className="truncate">{s.username}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               )}
             </div>
           ) : (
@@ -515,13 +629,34 @@ export function Reports({ onClose }: ReportsProps) {
           {/* Results */}
           {expenses.length > 0 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold text-slate-900">
                   {t('reports.resultsCount', { count: expenses.length })}
                 </h3>
-                <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                  <DollarSign className="w-5 h-5" />
-                  {t('reports.totalLabel', { amount: `$${totalAmount.toFixed(2)}` })}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-sm text-slate-600">
+                    <ArrowUpDown className="w-4 h-4" />
+                    {t('reports.sortBy')}
+                    <select
+                      value={sortKey}
+                      onChange={(e) => setSortKey(e.target.value as SortKey)}
+                      className="ml-1 text-sm bg-white border border-slate-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                    >
+                      <option value="date_asc">{t('reports.sortDateAsc')}</option>
+                      <option value="date_desc">{t('reports.sortDateDesc')}</option>
+                      {isPrivilegedViewer && (
+                        <option value="submitter">{t('reports.sortSubmitter')}</option>
+                      )}
+                      <option value="amount_desc">{t('reports.sortAmountDesc')}</option>
+                      <option value="amount_asc">{t('reports.sortAmountAsc')}</option>
+                      <option value="vendor">{t('reports.sortVendor')}</option>
+                      <option value="category">{t('reports.sortCategory')}</option>
+                    </select>
+                  </label>
+                  <div className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                    <DollarSign className="w-5 h-5" />
+                    {t('reports.totalLabel', { amount: `$${totalAmount.toFixed(2)}` })}
+                  </div>
                 </div>
               </div>
 
@@ -533,12 +668,15 @@ export function Reports({ onClose }: ReportsProps) {
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colVendor')}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colCategory')}</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colHousehold')}</th>
+                      {isPrivilegedViewer && (
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colSubmitter')}</th>
+                      )}
                       <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colAmount')}</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">{t('reports.colReceipt')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
-                    {expenses.map((expense) => (
+                    {sortedExpenses.map((expense) => (
                       <tr key={expense.id} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm text-slate-900">
                           {new Date(expense.expense_date + 'T12:00:00').toLocaleDateString(locale)}
@@ -552,6 +690,11 @@ export function Reports({ onClose }: ReportsProps) {
                         <td className="px-4 py-3 text-sm text-slate-900">
                           {expense.household_name}
                         </td>
+                        {isPrivilegedViewer && (
+                          <td className="px-4 py-3 text-sm text-slate-900">
+                            {expense.submitter_name || t('reports.na')}
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-sm text-slate-900 text-right">
                           ${expense.total.toFixed(2)}
                         </td>

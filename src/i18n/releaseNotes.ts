@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v8.9',
+    version: 'v8.9',
+    date: '2026-05-06',
+    title: {
+      'en': 'Reports by person + last sign-in',
+      'pt-BR': 'Relatórios por pessoa + último acesso',
+    },
+    body: {
+      'en':
+        "Reports now let admins pick any combination of people in the selected households — not just one person at a time. The submitter's name shows up as a column in the on-screen results, in the CSV export, and on every PDF cell, and you can sort the report by submitter (or by date, amount, vendor, or category). " +
+        "Manage Users now also shows each account's last sign-in next to the join date, so it's easy to spot dormant logins.",
+      'pt-BR':
+        'Os Relatórios agora permitem que administradores escolham qualquer combinação de pessoas nas residências selecionadas — não apenas uma de cada vez. O nome de quem enviou aparece como coluna nos resultados, na exportação CSV e em cada cartão do PDF, e você pode ordenar o relatório por autor (ou por data, valor, fornecedor ou categoria). ' +
+        'A tela Gerenciar Usuários também passou a mostrar o último acesso ao lado da data de entrada, facilitando identificar contas inativas.',
+    },
+  },
+  {
     id: 'v8.8',
     version: 'v8.8',
     date: '2026-05-05',

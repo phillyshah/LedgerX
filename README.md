@@ -367,6 +367,10 @@ Download your expense data in two formats from **Export Data** on the Dashboard.
 - **Household** — Scope to one household
 - **Category** — Filter by expense type
 - **Date Range** — Set a custom start and end date
+- **Submitted by** _(admins only)_ — Tick any combination of people in the selected households. Leave the list empty to include everyone in scope, or click **Just my submissions** to see only your own.
+- **Sort by** — Reorder results without re-running the query: by date (oldest or newest first), submitter, amount (high or low), vendor, or category. The sort you pick is also used in the PDF and CSV exports.
+
+The on-screen results table — and the PDF/CSV exports — include a **Submitted by** column for admins, so you can always see whose receipt is whose. Regular users see only their own submissions, and the Submitted by column is hidden for them.
 
 Reports show a breakdown of matching transactions so you can spot trends and stay on budget.
 
@@ -494,6 +498,7 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - Reset passwords for any user
 - Grant or revoke admin privileges
 - Assign users to households
+- See each user's **last sign-in** alongside the join date, so you can quickly spot dormant accounts (or confirm a teammate has logged in since you reset their password). Accounts that have never signed in show "Never signed in".
 
 ### Manage Categories
 

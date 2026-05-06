@@ -11,6 +11,7 @@ interface User {
   id: string;
   username: string;
   created_at: string;
+  last_sign_in_at?: string | null;
   is_admin?: boolean;
   is_contractor?: boolean;
   is_household_admin?: boolean;
@@ -451,6 +452,15 @@ export function ManageUsers() {
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
                       {t('admin.joined', { date: new Date(user.created_at).toLocaleDateString(locale) })}
+                      <span className="mx-1.5 text-slate-300">·</span>
+                      {user.last_sign_in_at
+                        ? t('admin.lastSignIn', {
+                            date: new Date(user.last_sign_in_at).toLocaleString(locale, {
+                              year: 'numeric', month: 'numeric', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit',
+                            }),
+                          })
+                        : t('admin.lastSignInNever')}
                     </p>
                   </div>
 
