@@ -191,22 +191,18 @@ export function ManageUsers() {
       if (!response.ok) {
         setError(result.error || t('admin.failedCreate'));
       } else {
-        // The auto_assign_user_to_households trigger inserted memberships for
-        // every household. Honor the admin's selection by removing the new
-        // user from any household they didn't check.
+        // The auto-assign trigger has been dropped (v9.0) so a fresh
+        // auth.users row arrives with zero household memberships. We
+        // insert exactly the rows the admin checked — this is the only
+        // place new memberships come from on user creation.
         const createdUserId = (result && (result.user?.id || result.user_id || result.id)) as string | undefined;
-        if (createdUserId) {
-          const allHouseholdIds = households.map((h) => h.id);
-          const toRemove = allHouseholdIds.filter((id) => !newUserHouseholdIds.includes(id));
-          if (toRemove.length > 0) {
-            const { data: memberships } = await supabase
-              .from('household_members')
-              .select('id, household_id')
-              .eq('user_id', createdUserId)
-              .in('household_id', toRemove);
-            for (const m of memberships || []) {
-              await supabase.rpc('admin_remove_household_member', { p_member_id: m.id });
-            }
+        if (createdUserId && newUserHouseholdIds.length > 0) {
+          for (const householdId of newUserHouseholdIds) {
+            await supabase.rpc('admin_add_household_member_by_id', {
+              p_household_id: householdId,
+              p_user_id: createdUserId,
+              p_role: 'member',
+            });
           }
         }
 
@@ -385,9 +381,10 @@ export function ManageUsers() {
                 .order('name');
               const list = (hh || []) as Household[];
               setHouseholds(list);
-              // Default to all households checked (matches the auto-assign
-              // trigger). Admin can uncheck to scope the new user.
-              setNewUserHouseholdIds(list.map((h) => h.id));
+              // Start with no households selected so a new user only ever
+              // gets the access the admin explicitly grants here. Use
+              // "Select all" if everyone-everywhere is genuinely intended.
+              setNewUserHouseholdIds([]);
               setShowCreateModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all"

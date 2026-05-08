@@ -334,7 +334,7 @@
   "admin.users.passwordPlaceholder": "Mínimo de 6 caracteres",
   "admin.users.createUserBtn": "Criar Usuário",
   "admin.users.assignHouseholds": "Atribuir a propriedades",
-  "admin.users.assignHouseholdsHint": "Por padrão, todas as propriedades. Desmarque as que o novo usuário não deve ver.",
+  "admin.users.assignHouseholdsHint": "Marque apenas as propriedades que esse usuário deve ver. Selecione pelo menos uma — você pode mudar depois.",
   "admin.users.selectAll": "Selecionar todas",
   "admin.users.selectNone": "Limpar seleção",
   "admin.users.noHouseholdsYet": "Nenhuma propriedade ainda — crie uma em Gerenciar Propriedades primeiro.",
