@@ -334,7 +334,7 @@
   "admin.users.passwordPlaceholder": "Minimum 6 characters",
   "admin.users.createUserBtn": "Create User",
   "admin.users.assignHouseholds": "Assign to households",
-  "admin.users.assignHouseholdsHint": "Defaults to all properties. Uncheck any the new user shouldn't see.",
+  "admin.users.assignHouseholdsHint": "Tick only the properties this user should see. Pick at least one — you can always change this later.",
   "admin.users.selectAll": "Select all",
   "admin.users.selectNone": "Select none",
   "admin.users.noHouseholdsYet": "No properties exist yet — create one in Manage Households first.",

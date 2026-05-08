@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.0',
+    version: 'v9.0',
+    date: '2026-05-08',
+    title: {
+      'en': 'Cleaner new-user setup',
+      'pt-BR': 'Configuração de novos usuários mais limpa',
+    },
+    body: {
+      'en':
+        "New users no longer auto-join every property. When you create a user in Manage Users, the property checklist now starts empty — tick only the ones that user should see, and they get exactly that access. " +
+        "We also tightened the receipt RLS so a user's own submissions stay visible to them even if you later move them between properties — no more receipts disappearing on you when memberships change. " +
+        "If you have an existing user who already sees every property by mistake, open Manage Users → Households for that user and uncheck the ones you didn't intend.",
+      'pt-BR':
+        'Novos usuários não entram mais automaticamente em todas as propriedades. Ao criar um usuário em Gerenciar Usuários, a lista de propriedades agora começa vazia — marque apenas as que ele deve ver, e ele recebe exatamente esse acesso. ' +
+        'Também reforçamos as permissões dos recibos para que os envios de cada usuário continuem visíveis para ele mesmo se depois você mudar a propriedade dele — chega de recibos sumindo ao trocar de grupo. ' +
+        'Se algum usuário já existe e está vendo todas as propriedades por engano, abra Gerenciar Usuários → Residências e desmarque as que você não pretendia.',
+    },
+  },
+  {
     id: 'v8.9',
     version: 'v8.9',
     date: '2026-05-06',

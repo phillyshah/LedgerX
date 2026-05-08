@@ -500,6 +500,8 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - Assign users to households
 - See each user's **last sign-in** alongside the join date, so you can quickly spot dormant accounts (or confirm a teammate has logged in since you reset their password). Accounts that have never signed in show "Never signed in".
 
+**Creating a user:** the household checklist in the create-user dialog starts empty — tick only the properties this user should see, and they get exactly that access. (The old behaviour silently joined every new user to every property.) You can adjust a user's properties at any time later via the **Households** button on their row.
+
 ### Manage Categories
 
 - Create, edit, and delete categories

@@ -497,6 +497,8 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 - Atribuir usuários a residências
 - Veja o **último acesso** de cada usuário ao lado da data de entrada, para identificar rapidamente contas inativas (ou confirmar que um colega já entrou desde que você redefiniu a senha). Contas que nunca acessaram aparecem como "Nunca acessou".
 
+**Criando um usuário:** a lista de residências no diálogo de criação agora começa vazia — marque apenas as propriedades que este usuário deve ver, e ele receberá exatamente esse acesso. (No comportamento anterior, todo novo usuário entrava silenciosamente em todas as propriedades.) Você pode ajustar as propriedades de um usuário depois pelo botão **Residências** na linha dele.
+
 ### Gerenciar Categorias
 
 - Criar, editar e excluir categorias
