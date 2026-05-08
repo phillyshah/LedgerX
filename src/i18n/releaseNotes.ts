@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.1',
+    version: 'v9.1',
+    date: '2026-05-08',
+    title: {
+      'en': 'Smarter receipt date reading',
+      'pt-BR': 'Leitura de data de recibo mais inteligente',
+    },
+    body: {
+      'en':
+        "The OCR scanner now knows today's date, so it can self-correct when a receipt year looks implausible — the common '2023 vs 2026' misread is much less likely to slip through. " +
+        "We also added a yellow warning banner on the Add Transaction form whenever the date is more than 90 days in the past, so you can catch and fix a bad scan before it skews your spending summary.",
+      'pt-BR':
+        'O leitor de recibos agora conhece a data de hoje, então consegue se autocorrigir quando o ano do recibo parece improvável — o erro comum de "2023 vs 2026" tem muito menos chance de passar despercebido. ' +
+        'Também adicionamos um aviso amarelo no formulário de Adicionar Transação quando a data é de mais de 90 dias atrás, para você identificar e corrigir uma leitura errada antes que ela distorça o seu resumo de gastos.',
+    },
+  },
+  {
     id: 'v9.0',
     version: 'v9.0',
     date: '2026-05-08',

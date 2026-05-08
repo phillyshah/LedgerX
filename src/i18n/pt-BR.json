@@ -119,6 +119,7 @@
   "addExpense.dupOneTitle": "Parece uma possível duplicata",
   "addExpense.dupManyTitle": "{count} possíveis duplicatas já enviadas",
   "addExpense.dupHint": "Encontramos um recibo com o mesmo fornecedor, valor e data nesta residência. Você ainda pode salvar — só confira se já não está lá.",
+  "addExpense.staleDateWarning": "Esta data é de mais de 90 dias atrás — se foi lida de um recibo, o ano pode ter sido interpretado incorretamente. Confirme se está correto.",
   "templates.useTemplate": "Usar um modelo salvo",
   "templates.expand": "{count} salvos",
   "templates.collapse": "Esconder",

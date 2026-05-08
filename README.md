@@ -155,6 +155,7 @@ date, etc.).
 - **Flat receipts** scan better than crumpled ones.
 - **Thermal paper fades** — scan or photograph soon after purchase.
 - The scan runs on the **first attached file only**. Add additional receipts after.
+- **Date check**: if the form shows a date more than 90 days in the past after scanning, a yellow warning appears — OCR occasionally misreads the year (e.g. 2023 instead of 2026). Just correct the year and save.
 
 ---
 

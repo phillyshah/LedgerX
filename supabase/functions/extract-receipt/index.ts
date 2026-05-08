@@ -18,15 +18,17 @@ const corsHeaders = {
 // Note: invoice OCR (extract-invoice) intentionally remains full-detail —
 // invoices are higher-stakes and benefit from extracting service period,
 // invoice number, due date, and a description.
-const PROMPT = `Analyze this receipt image and extract the following fields as json:
+function buildPrompt(today: string): string {
+  return `Today's date is ${today}. Analyze this receipt image and extract the following fields as json:
 - vendor_name: the store or business name
 - total_amount: the total amount as a number (float with decimal precision, e.g. 42.50)
-- transaction_date: the date in YYYY-MM-DD format
+- transaction_date: the date in YYYY-MM-DD format. If the year on the receipt looks ambiguous or implausible relative to today (${today}), use the most recent plausible year.
 - handwritten_notes: any handwritten text detected on the receipt (null if none)
 
 If a field cannot be determined, use null. Do not extract individual line items, tax, tip, or payment method.`;
+}
 
-async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): Promise<string> {
+async function callOpenAI(apiKey: string, model: string, imageDataUrl: string, today: string): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -49,7 +51,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
             },
             {
               type: "text",
-              text: PROMPT,
+              text: buildPrompt(today),
             },
           ],
         },
@@ -94,13 +96,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { image } = await req.json();
+    const { image, today } = await req.json();
     if (!image) {
       return new Response(
         JSON.stringify({ error: "image (base64) is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    // Fallback to server date if client didn't send today (backwards compat)
+    const todayStr: string = today ?? new Date().toISOString().slice(0, 10);
 
     // Build data URL for OpenAI vision
     let mimeType: string;
@@ -116,7 +120,7 @@ Deno.serve(async (req: Request) => {
 
     for (const model of models) {
       try {
-        const content = await callOpenAI(openaiApiKey, model, imageDataUrl);
+        const content = await callOpenAI(openaiApiKey, model, imageDataUrl, todayStr);
         const extracted = parseExtracted(content);
         return new Response(JSON.stringify(extracted), {
           status: 200,

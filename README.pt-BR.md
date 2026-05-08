@@ -151,6 +151,7 @@ serviço, data de vencimento etc.).
 - **Recibos planos** escaneiam melhor que amassados.
 - **Papel térmico desbota** — escaneie ou fotografe logo após a compra.
 - A leitura é feita apenas no **primeiro arquivo anexado**. Adicione outros recibos depois.
+- **Verificação de data**: se após a leitura o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá — o OCR às vezes lê o ano errado (ex.: 2023 em vez de 2026). Corrija o ano e salve.
 
 ---
 

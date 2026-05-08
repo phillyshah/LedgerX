@@ -65,7 +65,7 @@ export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({ image: base64 }),
+    body: JSON.stringify({ image: base64, today: new Date().toISOString().slice(0, 10) }),
   });
 
   if (!response.ok) {
