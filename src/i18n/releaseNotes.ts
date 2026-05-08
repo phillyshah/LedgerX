@@ -33,6 +33,42 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.2',
+    version: 'v9.2',
+    date: '2026-05-08',
+    title: {
+      'en': 'Category picker now respects property assignments',
+      'pt-BR': 'Seletor de categorias agora respeita as atribuições de propriedade',
+    },
+    body: {
+      'en':
+        "Fixed a bug where a category that you assigned to one or more specific properties (in Manage Categories) was still showing up in the Add Transaction picker for unrelated properties. " +
+        "The picker now matches what you see in Manage Categories: a category appears for a property only if it's truly Global (assigned to none) or explicitly assigned to that property. " +
+        "If a user previously saw extra categories that didn't belong to their property, they'll now see only the right ones — no admin action required.",
+      'pt-BR':
+        'Corrigimos um problema em que uma categoria atribuída a uma ou mais propriedades específicas (em Gerenciar Categorias) ainda aparecia no seletor de Adicionar Transação para outras propriedades. ' +
+        'O seletor agora segue o que você vê em Gerenciar Categorias: uma categoria aparece para uma propriedade somente se for realmente Global (sem atribuições) ou estiver explicitamente atribuída àquela propriedade. ' +
+        'Se um usuário estava vendo categorias extras que não pertenciam à propriedade dele, agora verá apenas as corretas — sem precisar de ação do administrador.',
+    },
+  },
+  {
+    id: 'v9.1',
+    version: 'v9.1',
+    date: '2026-05-08',
+    title: {
+      'en': 'Smarter receipt date reading',
+      'pt-BR': 'Leitura de data de recibo mais inteligente',
+    },
+    body: {
+      'en':
+        "The OCR scanner now knows today's date, so it can self-correct when a receipt year looks implausible — the common '2023 vs 2026' misread is much less likely to slip through. " +
+        "We also added a yellow warning banner on the Add Transaction form whenever the date is more than 90 days in the past, so you can catch and fix a bad scan before it skews your spending summary.",
+      'pt-BR':
+        'O leitor de recibos agora conhece a data de hoje, então consegue se autocorrigir quando o ano do recibo parece improvável — o erro comum de "2023 vs 2026" tem muito menos chance de passar despercebido. ' +
+        'Também adicionamos um aviso amarelo no formulário de Adicionar Transação quando a data é de mais de 90 dias atrás, para você identificar e corrigir uma leitura errada antes que ela distorça o seu resumo de gastos.',
+    },
+  },
+  {
     id: 'v9.0',
     version: 'v9.0',
     date: '2026-05-08',

@@ -69,6 +69,16 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const [npiInitialResults, setNpiInitialResults] = useState<NPIResult[] | undefined>(undefined);
   const [npiSearching, setNpiSearching] = useState(false);
 
+  // True when the entered date is more than 90 days in the past — likely an OCR misread.
+  const staleDateWarning = (() => {
+    if (!formData.expense_date) return false;
+    const [y, m, d] = formData.expense_date.split('-').map(Number);
+    const exp = new Date(y, m - 1, d);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 90);
+    return exp < cutoff;
+  })();
+
   useEffect(() => {
     if (!user) return;
     loadUserHouseholds(user.id).then((hh) => {
@@ -474,6 +484,13 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
                 </p>
                 <p className="text-xs text-amber-700 mt-1">{t('addExpense.dupHint')}</p>
               </div>
+            </div>
+          )}
+
+          {staleDateWarning && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 items-start">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-amber-800">{t('addExpense.staleDateWarning')}</p>
             </div>
           )}
 
