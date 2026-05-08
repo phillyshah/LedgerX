@@ -198,11 +198,12 @@ export function ManageUsers() {
         const createdUserId = (result && (result.user?.id || result.user_id || result.id)) as string | undefined;
         if (createdUserId && newUserHouseholdIds.length > 0) {
           for (const householdId of newUserHouseholdIds) {
-            await supabase.rpc('admin_add_household_member_by_id', {
+            const { error: assignError } = await supabase.rpc('admin_add_household_member_by_id', {
               p_household_id: householdId,
               p_user_id: createdUserId,
               p_role: 'member',
             });
+            if (assignError) throw assignError;
           }
         }
 
@@ -277,25 +278,17 @@ export function ManageUsers() {
     setSelectedUserId(userId);
     setSelectedUserUsername(username);
     setError('');
+
+    const [householdsRes, memberRes] = await Promise.all([
+      supabase.from('households').select('id, name').order('name'),
+      supabase.from('household_members').select('household_id').eq('user_id', userId),
+    ]);
+
+    if (householdsRes.data) setHouseholds(householdsRes.data);
+    if (memberRes.data) setSelectedHouseholdIds(memberRes.data.map(m => m.household_id));
+
+    // Open modal only after data is loaded so Save can't fire on stale state.
     setShowHouseholdModal(true);
-
-    const { data: householdsData } = await supabase
-      .from('households')
-      .select('id, name')
-      .order('name');
-
-    if (householdsData) {
-      setHouseholds(householdsData);
-    }
-
-    const { data: memberData } = await supabase
-      .from('household_members')
-      .select('household_id')
-      .eq('user_id', userId);
-
-    if (memberData) {
-      setSelectedHouseholdIds(memberData.map(m => m.household_id));
-    }
   };
 
   const toggleHousehold = (householdId: string) => {
@@ -323,18 +316,20 @@ export function ManageUsers() {
       for (const householdId of toRemove) {
         const membership = currentMemberships?.find(m => m.household_id === householdId);
         if (membership) {
-          await supabase.rpc('admin_remove_household_member', {
+          const { error: removeError } = await supabase.rpc('admin_remove_household_member', {
             p_member_id: membership.id,
           });
+          if (removeError) throw removeError;
         }
       }
 
       for (const householdId of toAdd) {
-        await supabase.rpc('admin_add_household_member_by_id', {
+        const { error: addError } = await supabase.rpc('admin_add_household_member_by_id', {
           p_household_id: householdId,
           p_user_id: selectedUserId,
           p_role: 'member',
         });
+        if (addError) throw addError;
       }
 
       setShowHouseholdModal(false);

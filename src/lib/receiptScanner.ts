@@ -3,6 +3,8 @@ import { pdfFirstPageToJpeg } from './pdfToImage';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const SCAN_TIMEOUT_MS = 30_000;
+
 /**
  * Lean receipt OCR result. Receipt extraction intentionally returns only
  * the four fields needed to pin a receipt to a transaction — itemized
@@ -59,22 +61,35 @@ export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
     : imageFile;
   const base64 = await fileToBase64(fileForOCR);
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/extract-receipt`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ image: base64, today: new Date().toISOString().slice(0, 10) }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const detail = errorData.errors
-      ? Object.entries(errorData.errors).map(([m, e]) => `${m}: ${e}`).join(' | ')
-      : null;
-    throw new Error(detail || errorData.error || `Receipt scan failed (${response.status})`);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/extract-receipt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ image: base64, today: new Date().toISOString().slice(0, 10) }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const detail = errorData.errors
+        ? Object.entries(errorData.errors).map(([m, e]) => `${m}: ${e}`).join(' | ')
+        : null;
+      throw new Error(detail || errorData.error || `Receipt scan failed (${response.status})`);
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Receipt scan timed out. Please try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return response.json();
 }
