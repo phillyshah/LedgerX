@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.3',
+    version: 'v9.3',
+    date: '2026-05-08',
+    title: {
+      'en': 'Category picker properly scoped per property',
+      'pt-BR': 'Seletor de categorias corretamente limitado por propriedade',
+    },
+    body: {
+      'en':
+        "Completed the fix for the category picker. The previous attempt missed that permission rules were hiding other properties' category assignments from regular users, making scoped categories look global. " +
+        "The picker now runs a server-side check that correctly identifies whether a category belongs to the selected property or is truly available to everyone — no more stray categories showing up where they shouldn't.",
+      'pt-BR':
+        'Concluímos a correção do seletor de categorias. A tentativa anterior não considerou que as regras de permissão ocultavam as atribuições de categorias de outras propriedades para usuários comuns, fazendo com que categorias restritas parecessem globais. ' +
+        'O seletor agora realiza uma verificação no servidor que identifica corretamente se uma categoria pertence à propriedade selecionada ou está realmente disponível para todos — sem mais categorias aparecendo onde não deveriam.',
+    },
+  },
+  {
     id: 'v9.2',
     version: 'v9.2',
     date: '2026-05-08',
