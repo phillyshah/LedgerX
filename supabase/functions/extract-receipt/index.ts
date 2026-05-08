@@ -19,10 +19,13 @@ const corsHeaders = {
 // invoices are higher-stakes and benefit from extracting service period,
 // invoice number, due date, and a description.
 function buildPrompt(today: string): string {
-  return `Today's date is ${today}. Analyze this receipt image and extract the following fields as json:
+  const safeToday = /^\d{4}-\d{2}-\d{2}$/.test(today)
+    ? today
+    : new Date().toISOString().slice(0, 10);
+  return `Today's date is ${safeToday}. Analyze this receipt image and extract the following fields as json:
 - vendor_name: the store or business name
 - total_amount: the total amount as a number (float with decimal precision, e.g. 42.50)
-- transaction_date: the date in YYYY-MM-DD format. If the year on the receipt looks ambiguous or implausible relative to today (${today}), use the most recent plausible year.
+- transaction_date: the date in YYYY-MM-DD format. If the year on the receipt looks ambiguous or implausible relative to today (${safeToday}), use the most recent plausible year.
 - handwritten_notes: any handwritten text detected on the receipt (null if none)
 
 If a field cannot be determined, use null. Do not extract individual line items, tax, tip, or payment method.`;

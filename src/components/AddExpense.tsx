@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
@@ -70,14 +70,14 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   const [npiSearching, setNpiSearching] = useState(false);
 
   // True when the entered date is more than 90 days in the past — likely an OCR misread.
-  const staleDateWarning = (() => {
+  const staleDateWarning = useMemo(() => {
     if (!formData.expense_date) return false;
     const [y, m, d] = formData.expense_date.split('-').map(Number);
     const exp = new Date(y, m - 1, d);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
     return exp < cutoff;
-  })();
+  }, [formData.expense_date]);
 
   useEffect(() => {
     if (!user) return;

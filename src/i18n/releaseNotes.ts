@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.4',
+    version: 'v9.4',
+    date: '2026-05-08',
+    title: {
+      'en': 'Under-the-hood reliability fixes',
+      'pt-BR': 'Melhorias internas de confiabilidade',
+    },
+    body: {
+      'en':
+        "A batch of code quality fixes: receipt scanning now times out cleanly after 30 seconds instead of hanging forever; " +
+        "saving a user's property assignments now surfaces errors immediately if something goes wrong instead of silently ignoring them; " +
+        "the category security check was tightened so users can only retrieve categories for properties they actually belong to.",
+      'pt-BR':
+        'Uma série de melhorias de qualidade: o escaneamento de recibos agora encerra corretamente após 30 segundos em vez de travar indefinidamente; ' +
+        'ao salvar as atribuições de propriedades de um usuário, erros agora são exibidos imediatamente em vez de serem ignorados silenciosamente; ' +
+        'a verificação de segurança de categorias foi reforçada para que usuários só possam acessar categorias das propriedades às quais realmente pertencem.',
+    },
+  },
+  {
     id: 'v9.3',
     version: 'v9.3',
     date: '2026-05-08',
