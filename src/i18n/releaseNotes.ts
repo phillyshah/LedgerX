@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.2',
+    version: 'v9.2',
+    date: '2026-05-08',
+    title: {
+      'en': 'Category picker now respects property assignments',
+      'pt-BR': 'Seletor de categorias agora respeita as atribuições de propriedade',
+    },
+    body: {
+      'en':
+        "Fixed a bug where a category that you assigned to one or more specific properties (in Manage Categories) was still showing up in the Add Transaction picker for unrelated properties. " +
+        "The picker now matches what you see in Manage Categories: a category appears for a property only if it's truly Global (assigned to none) or explicitly assigned to that property. " +
+        "If a user previously saw extra categories that didn't belong to their property, they'll now see only the right ones — no admin action required.",
+      'pt-BR':
+        'Corrigimos um problema em que uma categoria atribuída a uma ou mais propriedades específicas (em Gerenciar Categorias) ainda aparecia no seletor de Adicionar Transação para outras propriedades. ' +
+        'O seletor agora segue o que você vê em Gerenciar Categorias: uma categoria aparece para uma propriedade somente se for realmente Global (sem atribuições) ou estiver explicitamente atribuída àquela propriedade. ' +
+        'Se um usuário estava vendo categorias extras que não pertenciam à propriedade dele, agora verá apenas as corretas — sem precisar de ação do administrador.',
+    },
+  },
+  {
     id: 'v9.1',
     version: 'v9.1',
     date: '2026-05-08',
