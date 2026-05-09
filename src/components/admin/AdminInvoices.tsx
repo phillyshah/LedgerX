@@ -154,7 +154,15 @@ export function AdminInvoices() {
       p_admin_notes: actionNotes.trim() || undefined,
     });
     if (error) setActionError(t('adminInvoices.failedAction'));
-    else { setActionModal(null); await loadData(); }
+    else {
+      const paidInvoiceId = actionModal.invoice.id;
+      setActionModal(null);
+      await loadData();
+      // Fire-and-forget: notify submitter that invoice is paid
+      supabase.functions.invoke('send-invoice-notification', {
+        body: { type: 'paid', invoice_id: paidInvoiceId },
+      }).catch(() => { /* non-critical */ });
+    }
     setActioning(false);
   };
 

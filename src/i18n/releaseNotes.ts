@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.5',
+    version: 'v9.5',
+    date: '2026-05-08',
+    title: {
+      'en': 'Email notifications for invoices',
+      'pt-BR': 'Notificações por e-mail para faturas',
+    },
+    body: {
+      'en':
+        "LedgerX now sends automatic email notifications at two key moments: when a contractor or household admin submits a new invoice, all full admins receive an email summary so nothing slips through the cracks; " +
+        "and when an admin marks an invoice as paid, the submitter gets a confirmation email. " +
+        "Notifications only go to accounts that have a real email address on file — no action needed if you're already set up.",
+      'pt-BR':
+        'O LedgerX agora envia notificações automáticas por e-mail em dois momentos importantes: quando um contratado ou administrador de propriedade envia uma nova fatura, todos os administradores recebem um resumo por e-mail para que nada passe despercebido; ' +
+        'e quando um administrador marca uma fatura como paga, o remetente recebe um e-mail de confirmação. ' +
+        'As notificações só são enviadas para contas que possuem um endereço de e-mail real cadastrado — nenhuma ação necessária se você já estiver configurado.',
+    },
+  },
+  {
     id: 'v9.4',
     version: 'v9.4',
     date: '2026-05-08',

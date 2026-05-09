@@ -385,6 +385,12 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
       onSaved();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+
+      // Fire-and-forget: notify admins of new invoice submission
+      supabase.functions.invoke('send-invoice-notification', {
+        body: { type: 'submitted', invoice_id: invoiceData.id },
+      }).catch(() => { /* non-critical */ });
+
       return true;
     } catch (error) {
       console.error('Error saving invoice:', error);

@@ -525,6 +525,8 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
 - **Assign Category** (full admins only) — tag any invoice with a category so it rolls up into Analytics alongside receipts. The picker only shows categories valid for the invoice's household (globals + any explicitly mapped).
 
+**Email notifications:** When a new invoice is submitted, all full admins with a real email on file receive an email summary. When a full admin marks an invoice as paid, the submitter receives a confirmation email (if they have a real email on file).
+
 ---
 
 ## Household Admin Role
@@ -582,6 +584,8 @@ Contractors see a simplified dashboard with two actions:
 - 🟢 **Paid** — payment has been issued
 
 > **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
+
+**Email notifications:** Once an admin marks your invoice paid, you'll receive a confirmation email (if you have a real email address on file in Settings).
 
 **Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 
