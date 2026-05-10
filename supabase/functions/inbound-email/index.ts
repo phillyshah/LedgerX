@@ -40,6 +40,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// ── From-header normalization ─────────────────────────────────────────────────
+// IMAP `From` headers come in several shapes — `alice@example.com`,
+// `Alice <alice@example.com>`, `"Alice Q" <alice@example.com>`, etc. The
+// resolve_sender_email RPC does an exact (lowercased) match, so we have to
+// reduce whatever the polling script sends down to just the bare address
+// before looking it up. Prefer the value inside `<...>` if present; fall
+// back to the first email-looking token; lowercase + trim the result.
+function extractEmailAddress(input: string): string {
+  if (!input) return "";
+  const angle = input.match(/<([^>]+)>/);
+  if (angle) return angle[1].trim().toLowerCase();
+  const bare = input.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  if (bare) return bare[0].trim().toLowerCase();
+  return input.trim().toLowerCase();
+}
+
 // ── Kind detection ────────────────────────────────────────────────────────────
 // Heuristic: if the subject or any attachment filename contains invoice-like
 // keywords, treat as invoice; otherwise default to expense.
@@ -277,6 +293,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Normalize: pull the bare address out of "Name <addr>" forms so the
+    // RPC lookup matches what the user stored in their settings.
+    const senderAddress = extractEmailAddress(from_email);
+    if (!senderAddress) {
+      return new Response(JSON.stringify({ ok: true, matched: false }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 2. Service-role client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -287,7 +313,7 @@ Deno.serve(async (req: Request) => {
     // 3. Resolve sender → user
     const { data: userId, error: resolveErr } = await supabase.rpc(
       "resolve_sender_email",
-      { p_email: from_email },
+      { p_email: senderAddress },
     );
     if (resolveErr || !userId) {
       // Silent ignore — don't leak whether the address is registered
@@ -372,7 +398,7 @@ Deno.serve(async (req: Request) => {
     // 8. Insert pending inbox row
     const { error: insertErr } = await supabase.from("email_inbox").insert({
       user_id: userId,
-      from_email,
+      from_email: senderAddress,
       subject,
       message_id: message_id ?? null,
       attachment_paths: storedPaths,

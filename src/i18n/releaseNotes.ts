@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.6',
+    version: 'v9.6',
+    date: '2026-05-10',
+    title: {
+      'en': 'Email forwarding now matches every sender format',
+      'pt-BR': 'Encaminhamento de e-mails reconhece todos os formatos de remetente',
+    },
+    body: {
+      'en':
+        "Fixed a quiet bug in the Email Inbox: when a forwarded email arrived with the sender shown as \"Your Name <you@example.com>\" instead of just \"you@example.com\", it wasn't being matched to your account and the message silently disappeared. " +
+        "The inbound handler now extracts the bare address from any common From-header format before looking it up, so anything you added under Settings → Email Forwarding will work regardless of how your email client labels the sender.",
+      'pt-BR':
+        'Corrigimos um bug silencioso na Caixa de Entrada por E-mail: quando um e-mail encaminhado chegava com o remetente no formato "Seu Nome <voce@exemplo.com>" em vez de apenas "voce@exemplo.com", ele não era associado à sua conta e a mensagem sumia sem aviso. ' +
+        'O processador agora extrai o endereço puro de qualquer formato comum de cabeçalho From antes de consultar, então qualquer endereço cadastrado em Configurações → Encaminhamento de E-mail vai funcionar, não importa como seu cliente de e-mail rotule o remetente.',
+    },
+  },
+  {
     id: 'v9.5',
     version: 'v9.5',
     date: '2026-05-08',
