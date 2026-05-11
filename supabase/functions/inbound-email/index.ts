@@ -40,6 +40,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
+// ── Year repair for OCR'd receipt dates ───────────────────────────────────────
+// gpt-4o-mini reading low-detail images occasionally misreads year digits
+// (most commonly 6→3, 8→3). If the extracted year sits outside a plausible
+// window around today, rebuild it using the current year — falling back to
+// the previous calendar year if that lands in the future. Receipt-only;
+// invoices intentionally untouched (their dates can legitimately span wider
+// ranges and are reviewed before being marked paid).
+function repairImplausibleYear(date: unknown, todayIso: string): unknown {
+  if (typeof date !== "string") return date;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (!m || !t) return date;
+  const exYear = parseInt(m[1], 10);
+  const mon = m[2];
+  const day = m[3];
+  const tYear = parseInt(t[1], 10);
+  const tMon = parseInt(t[2], 10);
+  const tDay = parseInt(t[3], 10);
+  const ex = new Date(exYear, parseInt(mon, 10) - 1, parseInt(day, 10));
+  const today = new Date(tYear, tMon - 1, tDay);
+  const monthsDiff =
+    (today.getFullYear() - ex.getFullYear()) * 12 +
+    (today.getMonth() - ex.getMonth());
+  if (monthsDiff >= 0 && monthsDiff <= 13) return date;
+  if (monthsDiff < 0 && ex.getTime() - today.getTime() <= 86_400_000) return date;
+  const candidate = new Date(tYear, parseInt(mon, 10) - 1, parseInt(day, 10));
+  const year = candidate.getTime() > today.getTime() ? tYear - 1 : tYear;
+  return `${year}-${mon}-${day}`;
+}
+
 // ── From-header normalization ─────────────────────────────────────────────────
 // IMAP `From` headers come in several shapes — `alice@example.com`,
 // `Alice <alice@example.com>`, `"Alice Q" <alice@example.com>`, etc. The
@@ -380,6 +410,15 @@ Deno.serve(async (req: Request) => {
         kind === "invoice"
           ? await runInvoiceTextExtraction(apiKey, inlineText)
           : await runReceiptTextExtraction(apiKey, inlineText);
+    }
+
+    // 7d. Repair OCR'd receipt year if the model misread a digit.
+    if (kind === "expense" && prefilled.transaction_date) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      prefilled.transaction_date = repairImplausibleYear(
+        prefilled.transaction_date,
+        todayIso,
+      );
     }
 
     // 7c. Synthetic attachment — when there are no real attachments but

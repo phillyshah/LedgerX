@@ -73,7 +73,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string, t
   return content;
 }
 
-function parseExtracted(content: string) {
+function parseExtracted(content: string, todayIso: string) {
   const extracted = JSON.parse(content);
 
   // Coerce total_amount to a number; the lean prompt only emits this one
@@ -82,7 +82,43 @@ function parseExtracted(content: string) {
     extracted.total_amount = parseFloat(String(extracted.total_amount));
   }
 
+  // Defensive clamp: gpt-4o-mini reading a low-detail receipt image
+  // occasionally misreads a year digit (most commonly 6→3 or 8→3). If
+  // the extracted year falls outside a plausible window around today,
+  // rebuild it with the current year (or previous, if that would be in
+  // the future). Users can always edit the field on the form.
+  if (typeof extracted.transaction_date === "string") {
+    extracted.transaction_date = repairImplausibleYear(
+      extracted.transaction_date,
+      todayIso,
+    );
+  }
+
   return extracted;
+}
+
+function repairImplausibleYear(date: string, todayIso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (!m || !t) return date;
+  const exYear = parseInt(m[1], 10);
+  const mon = m[2];
+  const day = m[3];
+  const tYear = parseInt(t[1], 10);
+  const tMon = parseInt(t[2], 10);
+  const tDay = parseInt(t[3], 10);
+  const ex = new Date(exYear, parseInt(mon, 10) - 1, parseInt(day, 10));
+  const today = new Date(tYear, tMon - 1, tDay);
+  const monthsDiff =
+    (today.getFullYear() - ex.getFullYear()) * 12 +
+    (today.getMonth() - ex.getMonth());
+  // Accept: within the last 13 months, or up to ~1 day in the future
+  // (timezone slack for receipts dated "today" on the other side of UTC).
+  if (monthsDiff >= 0 && monthsDiff <= 13) return date;
+  if (monthsDiff < 0 && ex.getTime() - today.getTime() <= 86_400_000) return date;
+  const candidate = new Date(tYear, parseInt(mon, 10) - 1, parseInt(day, 10));
+  const year = candidate.getTime() > today.getTime() ? tYear - 1 : tYear;
+  return `${year}-${mon}-${day}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -124,7 +160,7 @@ Deno.serve(async (req: Request) => {
     for (const model of models) {
       try {
         const content = await callOpenAI(openaiApiKey, model, imageDataUrl, todayStr);
-        const extracted = parseExtracted(content);
+        const extracted = parseExtracted(content, todayStr);
         return new Response(JSON.stringify(extracted), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
