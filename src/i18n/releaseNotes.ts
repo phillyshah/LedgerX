@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.7',
+    version: 'v9.7',
+    date: '2026-05-11',
+    title: {
+      'en': 'Smarter year-detection on receipt scans',
+      'pt-BR': 'Detecção de ano mais inteligente em recibos',
+    },
+    body: {
+      'en':
+        "Receipt scanning occasionally misread a year digit (typically turning a 6 into a 3) and saved expenses with dates years in the past. " +
+        "We now sanity-check the year against today's date — if the scanned year falls outside a plausible window, we substitute the current year while keeping the month and day exactly as scanned. " +
+        "You can still edit the date on the form if anything looks off.",
+      'pt-BR':
+        'O escaneamento de recibos às vezes lia um dígito do ano errado (geralmente trocando 6 por 3) e salvava despesas com datas anos no passado. ' +
+        'Agora validamos o ano em relação à data de hoje — se o ano detectado estiver fora de uma faixa plausível, substituímos pelo ano atual mantendo o mês e o dia exatamente como foram lidos. ' +
+        'Você ainda pode editar a data no formulário se algo parecer errado.',
+    },
+  },
+  {
     id: 'v9.6',
     version: 'v9.6',
     date: '2026-05-10',
