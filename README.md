@@ -257,7 +257,8 @@ Mail from unregistered addresses is silently ignored — only addresses you've a
 Each pending item is shown as a card with:
 
 - The sender address and subject line
-- Clickable thumbnails of any attachments (image or PDF — opens full-size in a new tab)
+- Small pills showing what was auto-extracted (vendor, amount, date) so you can tell items apart at a glance
+- Clickable thumbnails of any attachments (image or PDF — opens full-size in a new tab; HEIC files from iPhone forwards show a generic file tile that opens the original)
 - A small **Review ▾** button on the right
 
 Tap **Review ▾** and pick what kind of item it is:
@@ -271,7 +272,7 @@ The form behaves exactly like a fresh upload from there — review the fields, t
 
 After you save, a brief confirmation slides in at the bottom of the screen telling you the item now lives in **Recent Transactions** (or **Invoices**), and the card disappears from the **Email Inbox**. The pending count at the top of the section updates immediately, so you always see exactly how many cards still need attention.
 
-If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it. The pending count drops by one as soon as you do.
+If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it. The pending count drops by one as soon as you do. If you change your mind later, just forward the same email again — discarded items don't block re-forwards.
 
 > **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
 

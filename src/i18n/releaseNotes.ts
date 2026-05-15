@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.8',
+    version: 'v9.8',
+    date: '2026-05-15',
+    title: {
+      'en': 'Email Inbox: re-forward fixes and richer cards',
+      'pt-BR': 'Caixa de Entrada: reencaminhar volta a funcionar e cards mais informativos',
+    },
+    body: {
+      'en':
+        "If you discarded an email-forwarded receipt and then forwarded it again, the second copy used to vanish silently — the system thought it had already seen it. " +
+        "Now the inbox only treats a Message-ID as a duplicate when there's still a pending row for it, so re-forwards land cleanly. " +
+        "Cards also now show the extracted vendor, amount, and date as small pills so you can tell similar items apart without opening them, and the inbox refreshes automatically when you switch back to the LedgerX tab.",
+      'pt-BR':
+        'Se você descartava um recibo encaminhado por e-mail e depois o reenviava, a segunda cópia sumia em silêncio — o sistema achava que já tinha visto. ' +
+        'Agora a caixa de entrada só considera duplicado quando ainda existe uma linha pendente para aquela mensagem, então reencaminhamentos aparecem normalmente. ' +
+        'Os cards também mostram fornecedor, valor e data extraídos como etiquetas pequenas, e a caixa atualiza automaticamente quando você volta para a aba do LedgerX.',
+    },
+  },
+  {
     id: 'v9.7',
     version: 'v9.7',
     date: '2026-05-11',

@@ -255,7 +255,8 @@ E-mails de endereços não cadastrados são silenciosamente ignorados — apenas
 Cada item pendente é mostrado como um cartão com:
 
 - O endereço do remetente e o assunto
-- Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba)
+- Etiquetas pequenas mostrando o que foi extraído automaticamente (fornecedor, valor, data) para você diferenciar os itens rapidamente
+- Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba; arquivos HEIC de encaminhamentos do iPhone aparecem como uma miniatura genérica que abre o original)
 - Um botão pequeno **Revisar ▾** à direita
 
 Toque em **Revisar ▾** e escolha o tipo do item:
@@ -269,7 +270,7 @@ A partir daí o formulário se comporta exatamente como um envio direto — conf
 
 Após salvar, uma confirmação rápida aparece na parte inferior da tela informando que o item agora está em **Transações Recentes** (ou **Notas Fiscais**), e o cartão desaparece da **Caixa de Entrada de E-mail**. A contagem de pendentes no topo da seção atualiza imediatamente, então você sempre vê quantos cartões ainda precisam de atenção.
 
-Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar. A contagem de pendentes diminui em um na hora.
+Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar. A contagem de pendentes diminui em um na hora. Se mudar de ideia depois, basta encaminhar o mesmo e-mail novamente — itens descartados não bloqueiam o reenvio.
 
 > **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
 

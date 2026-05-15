@@ -74,22 +74,24 @@ def mark_seen(imap: imaplib.IMAP4_SSL, uid: bytes):
     imap.uid("store", uid, "+FLAGS", "\\Seen")
 
 def extract_attachments(msg):
-    """Return list of {filename, content_type, data (base64 str)} for relevant parts."""
+    """Return list of {filename, content_type, data (base64 str)} for relevant parts.
+
+    Accepts images regardless of disposition, and PDFs whether marked
+    as inline or attachment — some vendors (DocuSign, Square, European
+    e-invoice senders) ship the receipt PDF with `Content-Disposition: inline`
+    and the previous attachment-only filter dropped them on the floor.
+    """
     attachments = []
     for part in msg.walk():
         ct = part.get_content_type()
-        cd = str(part.get("Content-Disposition", ""))
-        # Accept inline images and explicit attachments
         if ct not in ALLOWED_TYPES:
-            continue
-        if "attachment" not in cd and not ct.startswith("image/"):
             continue
         payload = part.get_payload(decode=True)
         if not payload or len(payload) > CONFIG["MAX_ATTACH_BYTES"]:
             continue
         filename = part.get_filename() or f"attachment.{ct.split('/')[-1]}"
         attachments.append({
-            "filename": filename,
+            "filename": str(filename),
             "content_type": ct,
             "data": base64.b64encode(payload).decode("ascii"),
         })
@@ -175,16 +177,22 @@ def main():
     log(f"Found {len(messages)} unseen message(s)")
 
     for uid, msg in messages:
-        from_addr = msg.get("From", "")
-        subject   = msg.get("Subject", "")
-        msg_id    = msg.get("Message-ID", "").strip()
+        # `policy.default` can return Header objects for encoded values
+        # (e.g. RFC2047-encoded non-ASCII subjects). Coerce to plain str
+        # so json.dumps in post_to_function() doesn't choke and so
+        # downstream string ops are safe.
+        from_addr = str(msg.get("From", "") or "")
+        subject   = str(msg.get("Subject", "") or "")
+        # Strip angle brackets so the edge function's dedup lookup
+        # matches consistently regardless of which mail client added them.
+        msg_id    = str(msg.get("Message-ID", "") or "").strip().strip("<>").strip()
 
         # Extract just the email address from "Name <addr>" format
         import re
         m = re.search(r"<([^>]+)>", from_addr)
         from_email = m.group(1).strip() if m else from_addr.strip()
 
-        log(f"Processing: from={from_email!r} subject={subject!r} msg_id={msg_id!r}")
+        log(f"Processing: from={from_email!r} subject={subject[:80]!r} msg_id={msg_id!r}")
 
         attachments = extract_attachments(msg)
         log(f"  Attachments: {[a['filename'] for a in attachments]}")

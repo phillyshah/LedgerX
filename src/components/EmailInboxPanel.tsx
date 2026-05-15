@@ -24,10 +24,53 @@ import { supabase } from '../lib/supabase';
 import { useT } from '../hooks/useT';
 export type { InboxItem } from '../hooks/useEmailInbox';
 
+// Show the OCR-prefilled fields as compact pills so the user can tell
+// inbox cards apart at a glance. Cards used to show only sender +
+// subject + thumbnail, which made HEIC/empty-OCR cases look broken.
+function PrefilledPills({ item, t, locale }: { item: InboxItem; t: (k: string) => string; locale: string }) {
+  const p = item.prefilled;
+  const isInvoiceField = item.kind === 'invoice';
+  const pills: { label: string; value: string }[] = [];
+  if (p.vendor_name) pills.push({ label: t('inbox.vendor'), value: String(p.vendor_name) });
+  if (p.total_amount != null) {
+    const num = typeof p.total_amount === 'number' ? p.total_amount : parseFloat(String(p.total_amount));
+    if (Number.isFinite(num)) {
+      pills.push({
+        label: t('inbox.amount'),
+        value: new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(num),
+      });
+    }
+  }
+  const dateStr = isInvoiceField ? p.invoice_date : p.transaction_date;
+  if (dateStr) pills.push({ label: t('inbox.date'), value: String(dateStr) });
+  if (isInvoiceField && p.invoice_number) {
+    pills.push({ label: t('inbox.invoiceNo'), value: String(p.invoice_number) });
+  }
+  if (pills.length === 0) return null;
+  return (
+    <div className="px-3 sm:px-4 pb-2 flex flex-wrap gap-1.5">
+      {pills.map((pill, i) => (
+        <span
+          key={i}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs"
+        >
+          <span className="text-slate-500">{pill.label}:</span>
+          <span className="font-medium">{pill.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // ── Attachment preview ────────────────────────────────────────────────────────
 function AttachmentThumb({ path }: { path: string }) {
   const [url, setUrl] = useState<string | null>(null);
-  const isImage = /\.(jpe?g|png|webp|heic)$/i.test(path);
+  // HEIC deliberately excluded — Chrome/Firefox can't render it as <img>,
+  // so iPhone forwards would show a broken thumbnail. Falls through to
+  // the generic file tile, which still lets the user open the original
+  // in a new tab (iOS/macOS will render it natively there).
+  const isImage = /\.(jpe?g|png|webp|gif)$/i.test(path);
+  const isHeic = /\.heic$/i.test(path);
   // Synthetic attachment created by the inbound-email function when the
   // receipt was inline in the email body (no PDF/image attached).
   const isHtml = /\.html?$/i.test(path);
@@ -66,6 +109,7 @@ function AttachmentThumb({ path }: { path: string }) {
     );
   }
 
+  const label = isHeic ? 'HEIC' : 'PDF';
   return (
     <a
       href={url}
@@ -74,7 +118,7 @@ function AttachmentThumb({ path }: { path: string }) {
       className="flex flex-col items-center justify-center w-20 h-20 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors flex-shrink-0 gap-1"
     >
       <FileText className="w-8 h-8 text-slate-400" />
-      <span className="text-xs text-slate-500">PDF</span>
+      <span className="text-xs text-slate-500">{label}</span>
     </a>
   );
 }
@@ -85,11 +129,13 @@ function InboxCard({
   onDiscard,
   onOpenAs,
   t,
+  locale,
 }: {
   item: InboxItem;
   onDiscard: (id: string) => Promise<void> | void;
   onOpenAs: (item: InboxItem, as: 'expense' | 'invoice') => void;
   t: (k: string) => string;
+  locale: string;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
@@ -117,6 +163,10 @@ function InboxCard({
           <X className="w-4 h-4" />
         </button>
       </div>
+
+      {/* OCR-extracted fields — surfaced as pills so the card is informative
+          even before the user clicks Review. */}
+      <PrefilledPills item={item} t={t} locale={locale} />
 
       {/* Attachments — clickable thumbs to view source before deciding kind */}
       {item.attachment_paths.length > 0 && (
@@ -225,7 +275,7 @@ interface Props {
 }
 
 export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOpenInvoice }: Props) {
-  const { t } = useT();
+  const { t, locale } = useT();
 
   // User picks receipt vs invoice on each card now (the auto-detected
   // `item.kind` is no longer used for routing — it was a guess). This
@@ -255,6 +305,7 @@ export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOp
             onDiscard={onDiscard}
             onOpenAs={handleOpenAs}
             t={t}
+            locale={locale}
           />
         ))
       )}
