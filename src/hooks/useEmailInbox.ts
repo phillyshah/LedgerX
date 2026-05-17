@@ -109,8 +109,11 @@ export function useSenderEmails(refreshKey?: number) {
 
   useEffect(() => { load(); }, [load, refreshKey]);
 
+  // Returns null on success or an Error-shaped object the caller can surface.
+  // Previously returned `undefined` when no user was signed in, which made
+  // the UserSettings error-state branch never fire.
   const add = async (email: string, label?: string) => {
-    if (!user) return;
+    if (!user) return { message: 'Not signed in' };
     const { error } = await supabase.from('user_sender_emails').insert({
       user_id: user.id,
       email: email.trim().toLowerCase(),

@@ -5,6 +5,7 @@ import { ExpenseList } from '../ExpenseList';
 import { BellButton } from '../BellButton';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
+import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
@@ -63,6 +64,12 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: 
         </h2>
         <p className="text-slate-500 mt-1">{t('admin.welcomeSub')}</p>
       </div>
+
+      {/* Email inbox — full admins see this on the home view. The
+          component also renders a system-wide inbound activity panel so
+          admins can verify the forward → IMAP → edge function pipeline
+          is delivering rows even when their own inbox is empty. */}
+      <AdminEmailInbox storageKey="admin.inbox.home" />
 
       <section>
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
@@ -371,6 +378,16 @@ export function AdminLayout() {
         {/* Main content */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+
+            {/* Email inbox — household admins see this above every view
+                since they don't have a "home" landing screen. Hidden
+                automatically when empty; full admins see it on the
+                home view (rendered inside AdminHomeView). */}
+            {isHouseholdAdmin && !isAdmin && (
+              <div className="mb-6">
+                <AdminEmailInbox storageKey="admin.inbox.ha" />
+              </div>
+            )}
 
             {/* Action buttons for household admins only (full admins use the home screen) */}
             {isHouseholdAdmin && !isAdmin && (

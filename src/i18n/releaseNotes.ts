@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v9.9',
+    version: 'v9.9',
+    date: '2026-05-17',
+    title: {
+      'en': 'Email Inbox now visible to admins',
+      'pt-BR': 'Caixa de Entrada agora visível para administradores',
+    },
+    body: {
+      'en':
+        "Admins and household admins forwarded receipts to receipts@90ten.life but never saw the resulting cards — the inbox panel only existed on the regular dashboard. " +
+        "It now appears on the admin home view too, so every account that can register a sender address can also review the items that arrive. " +
+        "Full admins also see a small inbound-activity diagnostic so you can confirm new forwards are reaching the database even when your own inbox is empty.",
+      'pt-BR':
+        'Administradores e administradores de domicílio encaminhavam recibos para receipts@90ten.life mas nunca viam os cards resultantes — o painel da caixa de entrada só existia no painel comum. ' +
+        'Agora ele também aparece na tela inicial do administrador, para que qualquer conta que possa cadastrar um endereço também consiga revisar os itens recebidos. ' +
+        'Administradores completos também veem um diagnóstico compacto da atividade de entrada para confirmar que novos encaminhamentos estão chegando ao banco, mesmo quando a sua própria caixa está vazia.',
+    },
+  },
+  {
     id: 'v9.8',
     version: 'v9.8',
     date: '2026-05-15',
