@@ -248,7 +248,7 @@ E-mails de endereços não cadastrados são silenciosamente ignorados — apenas
 
 1. No seu cliente de e-mail, encontre o recibo ou nota que deseja registrar.
 2. Encaminhe para **receipts@90ten.life**. A maioria dos clientes envia os anexos automaticamente. PDFs e imagens são suportados. **Recibos que vêm embutidos no corpo do próprio e-mail** (Uber, confirmações de companhias aéreas, faturas de SaaS e outros remetentes que não anexam PDF) também são extraídos automaticamente — o cartão da caixa de entrada mostrará uma miniatura **EMAIL** que você pode clicar para ver a mensagem original.
-3. Em até ~5 minutos, um cartão aparece na seção **Caixa de Entrada** do seu Painel.
+3. Em até ~5 minutos, um cartão aparece na seção **Caixa de Entrada**. Membros comuns e contratados veem no Painel; administradores e administradores de domicílio veem na tela inicial do **Admin** (ao lado das Ações Rápidas). Administradores completos também veem um pequeno diagnóstico de **Atividade de entrada** listando os últimos 20 encaminhamentos de todos os usuários — útil para confirmar que o pipeline está saudável mesmo antes da sua própria caixa ter linhas.
 
 ### Revisar e Aceitar
 

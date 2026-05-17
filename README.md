@@ -250,7 +250,7 @@ Mail from unregistered addresses is silently ignored — only addresses you've a
 
 1. In your email client, find the receipt or invoice you want to log.
 2. Forward it to **receipts@90ten.life**. Most email apps put any attachments through automatically. PDFs and image attachments are supported. **Receipts that come embedded in the email body itself** (Uber, airline confirmations, SaaS bills, and other vendors that don't attach a PDF) are also extracted automatically — the inbox card will show an **EMAIL** thumbnail you can click to view the original message.
-3. Within ~5 minutes, a card appears in the **Email Inbox** section of your Dashboard.
+3. Within ~5 minutes, a card appears in the **Email Inbox** section. Regular members and contractors see it on their Dashboard; admins and household admins see it on the **Admin home** view (alongside Quick Actions). Full admins also see a small **Inbound activity** diagnostic listing the last 20 forwards across all users — useful for confirming the pipeline is healthy even before your own inbox has rows.
 
 ### Reviewing & accepting
 
