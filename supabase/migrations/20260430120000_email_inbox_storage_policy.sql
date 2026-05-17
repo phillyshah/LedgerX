@@ -33,9 +33,21 @@ CREATE POLICY "Users can view own email-inbox attachments"
 
 CREATE POLICY "Service can write email-inbox attachments"
   ON storage.objects FOR INSERT
-  TO authenticated
+  TO service_role
   WITH CHECK (
     bucket_id = 'receipts'
     AND (storage.foldername(name))[1] = 'email-inbox'
-    AND (storage.foldername(name))[2] = auth.uid()::text
+  );
+
+CREATE POLICY "Admins can view any email-inbox attachments"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'receipts'
+    AND (storage.foldername(name))[1] = 'email-inbox'
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+      AND (is_admin OR is_household_admin)
+    )
   );
