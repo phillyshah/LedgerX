@@ -86,6 +86,26 @@ function extractEmailAddress(input: string): string {
   return input.trim().toLowerCase();
 }
 
+// ── Message-ID normalization ──────────────────────────────────────────────────
+// Mail clients wrap Message-IDs in angle brackets per RFC: `<abc@host.com>`.
+// Strip them (and surrounding whitespace) so the dedup lookup matches what
+// we previously stored, regardless of which side of the bracket the client
+// added trailing whitespace.
+function normalizeMessageId(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim().replace(/^<|>$/g, "").trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+// ── Attachment content-type filter ────────────────────────────────────────────
+// OpenAI vision only accepts JPEG, PNG, WEBP, GIF data URLs — HEIC files
+// (common from iPhone forwards) return 400. Skip OCR for those rather than
+// burn a token round-trip that's guaranteed to fail; the row still gets
+// inserted so the user can open the attachment and fill the form by hand.
+function isOcrSupportedImage(contentType: string): boolean {
+  return /^image\/(jpe?g|png|webp|gif)$/i.test(contentType);
+}
+
 // ── Kind detection ────────────────────────────────────────────────────────────
 // Heuristic: if the subject or any attachment filename contains invoice-like
 // keywords, treat as invoice; otherwise default to expense.
@@ -326,7 +346,14 @@ Deno.serve(async (req: Request) => {
     // Normalize: pull the bare address out of "Name <addr>" forms so the
     // RPC lookup matches what the user stored in their settings.
     const senderAddress = extractEmailAddress(from_email);
+    const normalizedMessageId = normalizeMessageId(message_id);
+    console.log(
+      `[inbound-email] received from="${from_email}" ` +
+        `normalized=${senderAddress} message_id=${normalizedMessageId} ` +
+        `attachments=${attachments.length} subject="${String(subject ?? "").slice(0, 80)}"`,
+    );
     if (!senderAddress) {
+      console.log("[inbound-email] no sender address extracted — dropping");
       return new Response(JSON.stringify({ ok: true, matched: false }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -346,21 +373,35 @@ Deno.serve(async (req: Request) => {
       { p_email: senderAddress },
     );
     if (resolveErr || !userId) {
-      // Silent ignore — don't leak whether the address is registered
+      // Silent ignore — don't leak whether the address is registered.
+      // Logged so we can see why a forward never appears in someone's inbox.
+      console.log(
+        `[inbound-email] no user match for sender="${senderAddress}" ` +
+          `(resolveErr=${resolveErr?.message ?? "none"}) — dropping`,
+      );
       return new Response(JSON.stringify({ ok: true, matched: false }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log(`[inbound-email] matched user_id=${userId}`);
 
-    // 4. Deduplicate by Message-ID
-    if (message_id) {
+    // 4. Deduplicate by Message-ID — only against rows the user hasn't yet
+    //    handled. If they discarded or accepted an earlier copy, a fresh
+    //    forward should produce a new pending row rather than vanish.
+    if (normalizedMessageId) {
       const { data: existing } = await supabase
         .from("email_inbox")
         .select("id")
-        .eq("message_id", message_id)
+        .eq("user_id", userId)
+        .eq("message_id", normalizedMessageId)
+        .eq("status", "pending")
         .maybeSingle();
       if (existing) {
+        console.log(
+          `[inbound-email] dedup hit on pending row=${existing.id} for ` +
+            `message_id=${normalizedMessageId} — skipping insert`,
+        );
         return new Response(JSON.stringify({ ok: true, duplicate: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -381,25 +422,35 @@ Deno.serve(async (req: Request) => {
       const { error: uploadErr } = await supabase.storage
         .from("receipts")
         .upload(path, bytes, { contentType: att.content_type, upsert: false });
-      if (!uploadErr) storedPaths.push(path);
+      if (uploadErr) {
+        console.log(
+          `[inbound-email] storage upload failed for ${att.filename}: ${uploadErr.message}`,
+        );
+      } else {
+        storedPaths.push(path);
+      }
     }
 
-    // 7. OCR the first image or PDF attachment, then fall back to the
-    //    forwarded email body if nothing useful came back. This covers
-    //    common "receipt in the body" senders (Uber, airline, SaaS) so
-    //    the user gets a prefilled card instead of an empty one.
+    // 7. OCR the first OpenAI-vision-compatible image or PDF attachment.
+    //    HEIC from iPhone forwards is intentionally excluded — the vision
+    //    API rejects it, so we'd just be burning a round-trip. The row
+    //    still gets inserted and the user can open the attachment by hand.
     const apiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
     let prefilled: Record<string, unknown> = {};
     const ocrTarget = attachments.find(
-      (a) =>
-        a.content_type.startsWith("image/") ||
-        a.content_type === "application/pdf",
+      (a) => isOcrSupportedImage(a.content_type) || a.content_type === "application/pdf",
     );
     if (ocrTarget && apiKey) {
       prefilled =
         kind === "invoice"
           ? await runInvoiceOCR(apiKey, ocrTarget.data, ocrTarget.content_type)
           : await runReceiptOCR(apiKey, ocrTarget.data, ocrTarget.content_type);
+      console.log(
+        `[inbound-email] attachment OCR (${ocrTarget.content_type}) ` +
+          `useful=${hasUsefulFields(prefilled)}`,
+      );
+    } else if (ocrTarget && !apiKey) {
+      console.log("[inbound-email] OCR skipped — no OPENAI_API_KEY");
     }
 
     // 7b. Inline body fallback — only when attachment OCR didn't yield
@@ -435,17 +486,31 @@ Deno.serve(async (req: Request) => {
     }
 
     // 8. Insert pending inbox row
-    const { error: insertErr } = await supabase.from("email_inbox").insert({
-      user_id: userId,
-      from_email: senderAddress,
-      subject,
-      message_id: message_id ?? null,
-      attachment_paths: storedPaths,
-      kind,
-      prefilled,
-      status: "pending",
-    });
-    if (insertErr) throw insertErr;
+    const { data: inserted, error: insertErr } = await supabase
+      .from("email_inbox")
+      .insert({
+        user_id: userId,
+        from_email: senderAddress,
+        subject: String(subject ?? ""),
+        message_id: normalizedMessageId,
+        attachment_paths: storedPaths,
+        kind,
+        prefilled,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (insertErr) {
+      console.error(
+        `[inbound-email] insert failed for user=${userId} ` +
+          `message_id=${normalizedMessageId}: ${insertErr.message}`,
+      );
+      throw insertErr;
+    }
+    console.log(
+      `[inbound-email] inserted row=${inserted?.id} kind=${kind} ` +
+        `attachments=${storedPaths.length}`,
+    );
 
     return new Response(JSON.stringify({ ok: true, matched: true, kind }), {
       status: 200,

@@ -39,17 +39,43 @@ export function useEmailInbox(refreshKey?: number) {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('email_inbox')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'pending')
       .order('received_at', { ascending: false });
+    if (error) {
+      console.error('[email_inbox] load failed:', error);
+    }
     setItems((data ?? []) as InboxItem[]);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load, refreshKey]);
+
+  // Refresh when the tab regains focus or visibility — covers the case
+  // where the user forwards an email from another app and switches back
+  // to LedgerX expecting to see it. Without this, items only appear on
+  // a hard reload. The two events frequently fire together on browser
+  // tab switches, so we throttle to one fetch per ~2s window.
+  useEffect(() => {
+    if (!user) return;
+    let lastRun = 0;
+    const maybeReload = () => {
+      const now = Date.now();
+      if (now - lastRun < 2000) return;
+      lastRun = now;
+      load();
+    };
+    const onVisibility = () => { if (document.visibilityState === 'visible') maybeReload(); };
+    window.addEventListener('focus', maybeReload);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', maybeReload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user, load]);
 
   const discard = async (id: string) => {
     await supabase.from('email_inbox').update({ status: 'discarded' }).eq('id', id);
