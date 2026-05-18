@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { isLanguage, type Language } from '../i18n';
@@ -142,14 +142,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsRecoveryMode(false);
   };
 
-  return (
-    <AuthContext.Provider value={{
+  // Stable context value — without this, every render of AuthProvider
+  // ships a new object literal to consumers, which forces every
+  // `useExpenses`/`useT`/etc. consumer to re-run its effects and memos
+  // even when nothing they care about changed.
+  const value = useMemo(
+    () => ({
       user, session, loading,
       isAdmin, isContractor, isHouseholdAdmin,
       preferredLanguage, setPreferredLanguage,
       isRecoveryMode,
       signIn, signOut, requestPasswordReset, resetPassword,
-    }}>
+    }),
+    [user, session, loading, isAdmin, isContractor, isHouseholdAdmin, preferredLanguage, isRecoveryMode],
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

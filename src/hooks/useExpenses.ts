@@ -86,7 +86,7 @@ export function useExpenses(refreshKey?: number, options: UseExpensesOptions = {
       );
     }
     setLoading(false);
-  }, [user, ownOnly]);
+  }, [user?.id, ownOnly]);
 
   useEffect(() => {
     loadExpenses();

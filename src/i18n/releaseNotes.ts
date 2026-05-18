@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.0',
+    version: 'v10.0',
+    date: '2026-05-18',
+    title: {
+      'en': 'Sort your transactions',
+      'pt-BR': 'Ordene suas transações',
+    },
+    body: {
+      'en':
+        "The transactions list now has a sort control next to the search box. Pick newest or oldest date, highest or lowest amount, or sort alphabetically by vendor or category — it updates instantly without re-loading. " +
+        "Sort works on top of any filters you have applied, so you can narrow to a category or household and then re-order what's left.",
+      'pt-BR':
+        'A lista de transações agora tem um controle de ordenação ao lado da busca. Escolha por data mais recente ou mais antiga, valor maior ou menor, ou ordene alfabeticamente por fornecedor ou categoria — atualiza na hora, sem recarregar. ' +
+        'A ordenação se aplica em cima dos filtros, então você pode restringir a uma categoria ou domicílio e depois reordenar o que sobrar.',
+    },
+  },
+  {
     id: 'v9.9',
     version: 'v9.9',
     date: '2026-05-17',

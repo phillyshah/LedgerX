@@ -24,6 +24,21 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 
+# weasyprint is used to render HTML email bodies to PDF when no
+# real attachment is present. The Python package import is light;
+# rendering requires system libs (Pango, Cairo, etc.) which may
+# fail at write_pdf() time even if the import succeeds.
+WEASYPRINT_AVAILABLE = False
+WEASYPRINT_VERSION = None
+WEASYPRINT_IMPORT_ERROR = None
+try:
+    import weasyprint
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+    WEASYPRINT_VERSION = weasyprint.__version__
+except Exception as _ex:
+    WEASYPRINT_IMPORT_ERROR = str(_ex)
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Fill these in once you have the Hostinger mailbox credentials.
 # You can also set them as environment variables on the VPS.
@@ -132,6 +147,53 @@ def extract_body(msg):
                     body_html = payload.decode("utf-8", errors="replace")
     return body_text, body_html
 
+def render_html_to_pdf(html: str) -> bytes | None:
+    """Render HTML email body to PDF using weasyprint.
+
+    Returns PDF bytes if successful, None otherwise.
+    Used as a fallback when email has no real attachments but contains
+    receipt/invoice content inline (e.g., Uber, Lyft, airline receipts).
+    """
+    if not WEASYPRINT_AVAILABLE:
+        log(f"  render_html_to_pdf: weasyprint not available "
+            f"(import error: {WEASYPRINT_IMPORT_ERROR})")
+        return None
+    try:
+        # Wrap in basic styling. Block external network fetches so
+        # missing remote images don't hang the render — weasyprint can
+        # block on slow CDNs/tracking pixels for tens of seconds.
+        styled_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; color: #333; }}
+        img {{ max-width: 100%; height: auto; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        td, th {{ padding: 8px; border: 1px solid #ddd; }}
+    </style>
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+        # Custom URL fetcher that blocks all external requests — many
+        # marketing emails contain tracking pixels and remote images
+        # that would otherwise stall the render or fail noisily.
+        def _no_network_fetcher(url):
+            return {"string": b"", "mime_type": "image/png"}
+
+        pdf_bytes = HTML(string=styled_html, url_fetcher=_no_network_fetcher).write_pdf()
+        if pdf_bytes:
+            log(f"  render_html_to_pdf: success ({len(pdf_bytes)} bytes)")
+            return pdf_bytes
+        log("  render_html_to_pdf: write_pdf returned empty")
+        return None
+    except Exception as ex:
+        log(f"  render_html_to_pdf: FAILED ({type(ex).__name__}: {ex})")
+        return None
+
 # ── Edge function call ────────────────────────────────────────────────────────
 def post_to_function(payload: dict) -> bool:
     body = json.dumps(payload).encode("utf-8")
@@ -164,6 +226,11 @@ def main():
     if CONFIG["INBOUND_SECRET"] == "REPLACE_WITH_SHARED_SECRET":
         log("ERROR: Inbound secret not configured. Set LEDGERX_INBOUND_SECRET env var.")
         sys.exit(1)
+
+    if WEASYPRINT_AVAILABLE:
+        log(f"weasyprint loaded: version={WEASYPRINT_VERSION}")
+    else:
+        log(f"weasyprint NOT available: {WEASYPRINT_IMPORT_ERROR}")
 
     log(f"Connecting to {CONFIG['IMAP_HOST']}:{CONFIG['IMAP_PORT']} as {CONFIG['IMAP_USER']}")
     try:
@@ -199,6 +266,23 @@ def main():
 
         body_text, body_html = extract_body(msg)
         log(f"  Body: text={'yes' if body_text else 'no'} html={'yes' if body_html else 'no'}")
+
+        # If no real attachments but we have HTML body, render it to PDF
+        # instead of sending raw body text for OCR (user will review visually).
+        if not attachments and body_html:
+            pdf_bytes = render_html_to_pdf(body_html)
+            if pdf_bytes and len(pdf_bytes) < CONFIG["MAX_ATTACH_BYTES"]:
+                attachments.append({
+                    "filename": "email-body.pdf",
+                    "content_type": "application/pdf",
+                    "data": base64.b64encode(pdf_bytes).decode("ascii"),
+                })
+                log(f"  Rendered HTML body to PDF ({len(pdf_bytes)} bytes)")
+                # Don't send raw body text since we have a rendered PDF
+                body_text = None
+                body_html = None
+            else:
+                log(f"  HTML to PDF rendering failed or output too large, sending body as text")
 
         payload = {
             "from_email": from_email,
