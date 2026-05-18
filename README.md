@@ -283,15 +283,14 @@ If you don't want to keep something, tap the **×** in the top-right of the inbo
 
 The **Expense List** shows all transactions for your selected household, newest first.
 
-### Search & filters
+### Search, sort & filters
 
-For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar and filter controls. If you've logged more than 25 transactions, the search bar shows up automatically.
+For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar, sort control, and filter controls. If you've logged more than 25 transactions, the toolbar shows up automatically.
 
-Once open, you can narrow by:
+The toolbar gives you:
 - **Search** — vendor, category, notes, or household name (real-time)
-- **Category** — show only one type of expense
-- **Household / date range / amount range** — additional filters
-- **Sort** — newest-first, oldest-first, highest amount, lowest amount
+- **Sort** — always-visible dropdown next to the search box: date (newest/oldest), amount (highest/lowest), vendor (A→Z), category (A→Z). Re-orders instantly without a reload, and works on top of any active filters.
+- **Filter panel** (behind the filter button): category, household, date range, amount range
 
 ### Editing a transaction
 

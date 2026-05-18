@@ -281,15 +281,14 @@ Se não quiser manter algo, toque no **×** no canto superior direito do cartão
 
 A **Lista de Despesas** mostra todas as transações da residência selecionada, das mais recentes para as mais antigas.
 
-### Pesquisa e filtros
+### Pesquisa, ordenação e filtros
 
-Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa completa e os controles de filtro. Se você já registrou mais de 25 transações, a barra de pesquisa aparece automaticamente.
+Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente.
 
-Uma vez aberta, você pode restringir por:
+A barra oferece:
 - **Pesquisa** — fornecedor, categoria, observações ou nome da residência (em tempo real)
-- **Categoria** — mostra apenas um tipo de despesa
-- **Residência / período / faixa de valor** — filtros adicionais
-- **Ordenação** — mais recente, mais antiga, maior valor, menor valor
+- **Ordenação** — menu sempre visível ao lado da busca: data (mais recente/mais antiga), valor (maior/menor), fornecedor (A→Z), categoria (A→Z). Reordena na hora sem recarregar e funciona em cima dos filtros ativos.
+- **Painel de filtros** (atrás do botão de filtro): categoria, residência, período, faixa de valor
 
 ### Editar uma transação
 

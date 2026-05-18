@@ -1,12 +1,14 @@
 import { Suspense, lazy, useState, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail } from 'lucide-react';
+import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { parseExpenseDate } from '../lib/dateUtils';
 
 const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
+
+type SortKey = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'vendor' | 'category';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -39,6 +41,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [amountMin, setAmountMin] = useState('');
   const [amountMax, setAmountMax] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('date_desc');
 
   // Two-tap delete: first tap arms the row for ~3s, second tap commits.
   // Replaces window.confirm() so the dialog matches the rest of the UI.
@@ -109,14 +112,17 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     setAmountMax('');
   };
 
-  // Apply all filters
+  // Apply filters and sort in a single pass — one memo, one array
+  // allocation. The server already orders by expense_date DESC, so the
+  // default `date_desc` branch skips re-sorting.
   const filteredExpenses = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     const minAmt = amountMin ? parseFloat(amountMin) : null;
     const maxAmt = amountMax ? parseFloat(amountMax) : null;
+    const userId = user?.id;
 
-    return expenses.filter((e) => {
-      if (ownSubmissionsOnly && user && e.created_by !== user.id) return false;
+    const filtered = expenses.filter((e) => {
+      if (ownSubmissionsOnly && userId && e.created_by !== userId) return false;
       if (householdFilter !== 'all' && e.household_id !== householdFilter) return false;
 
       if (categoryFilter !== 'all') {
@@ -143,7 +149,19 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
 
       return true;
     });
-  }, [expenses, searchQuery, householdFilter, categoryFilter, dateFrom, dateTo, amountMin, amountMax, ownSubmissionsOnly, user]);
+
+    const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
+      (a ?? '').localeCompare(b ?? '');
+    switch (sortKey) {
+      case 'date_asc':    filtered.sort((a, b) => cmpStr(a.expense_date, b.expense_date)); break;
+      case 'amount_desc': filtered.sort((a, b) => b.total - a.total); break;
+      case 'amount_asc':  filtered.sort((a, b) => a.total - b.total); break;
+      case 'vendor':      filtered.sort((a, b) => cmpStr(a.vendor, b.vendor)); break;
+      case 'category':    filtered.sort((a, b) => cmpStr(a.category, b.category)); break;
+      // date_desc: server already returns rows in this order — no resort
+    }
+    return filtered;
+  }, [expenses, searchQuery, householdFilter, categoryFilter, dateFrom, dateTo, amountMin, amountMax, ownSubmissionsOnly, user?.id, sortKey]);
 
   if (loading) {
     return (
@@ -249,6 +267,25 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                 </button>
               )}
             </div>
+            <label
+              className="flex items-center gap-1 text-slate-500 shrink-0"
+              title={t('reports.sortBy')}
+            >
+              <ArrowUpDown className="w-4 h-4" aria-hidden />
+              <span className="sr-only">{t('reports.sortBy')}</span>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                className="text-sm bg-white border border-slate-200 rounded-lg pl-2 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-700"
+              >
+                <option value="date_desc">{t('reports.sortDateDesc')}</option>
+                <option value="date_asc">{t('reports.sortDateAsc')}</option>
+                <option value="amount_desc">{t('reports.sortAmountDesc')}</option>
+                <option value="amount_asc">{t('reports.sortAmountAsc')}</option>
+                <option value="vendor">{t('reports.sortVendor')}</option>
+                <option value="category">{t('reports.sortCategory')}</option>
+              </select>
+            </label>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`relative p-2 border rounded-lg transition-colors shrink-0 ${
