@@ -23,11 +23,21 @@ import sys
 import urllib.request
 import urllib.error
 from datetime import datetime
+
+# weasyprint is used to render HTML email bodies to PDF when no
+# real attachment is present. The Python package import is light;
+# rendering requires system libs (Pango, Cairo, etc.) which may
+# fail at write_pdf() time even if the import succeeds.
+WEASYPRINT_AVAILABLE = False
+WEASYPRINT_VERSION = None
+WEASYPRINT_IMPORT_ERROR = None
 try:
-    from weasyprint import HTML, CSS
+    import weasyprint
+    from weasyprint import HTML
     WEASYPRINT_AVAILABLE = True
-except ImportError:
-    WEASYPRINT_AVAILABLE = False
+    WEASYPRINT_VERSION = weasyprint.__version__
+except Exception as _ex:
+    WEASYPRINT_IMPORT_ERROR = str(_ex)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Fill these in once you have the Hostinger mailbox credentials.
@@ -145,30 +155,43 @@ def render_html_to_pdf(html: str) -> bytes | None:
     receipt/invoice content inline (e.g., Uber, Lyft, airline receipts).
     """
     if not WEASYPRINT_AVAILABLE:
+        log(f"  render_html_to_pdf: weasyprint not available "
+            f"(import error: {WEASYPRINT_IMPORT_ERROR})")
         return None
     try:
-        # Wrap in basic styling to match email client rendering
-        styled_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; color: #333; }}
-                img {{ max-width: 100%; height: auto; }}
-                table {{ border-collapse: collapse; width: 100%; }}
-                td, th {{ padding: 8px; border: 1px solid #ddd; }}
-            </style>
-        </head>
-        <body>
-        {html}
-        </body>
-        </html>
-        """
-        pdf_bytes = HTML(string=styled_html).write_pdf()
-        return pdf_bytes if pdf_bytes else None
+        # Wrap in basic styling. Block external network fetches so
+        # missing remote images don't hang the render — weasyprint can
+        # block on slow CDNs/tracking pixels for tens of seconds.
+        styled_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; color: #333; }}
+        img {{ max-width: 100%; height: auto; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        td, th {{ padding: 8px; border: 1px solid #ddd; }}
+    </style>
+</head>
+<body>
+{html}
+</body>
+</html>"""
+
+        # Custom URL fetcher that blocks all external requests — many
+        # marketing emails contain tracking pixels and remote images
+        # that would otherwise stall the render or fail noisily.
+        def _no_network_fetcher(url):
+            return {"string": b"", "mime_type": "image/png"}
+
+        pdf_bytes = HTML(string=styled_html, url_fetcher=_no_network_fetcher).write_pdf()
+        if pdf_bytes:
+            log(f"  render_html_to_pdf: success ({len(pdf_bytes)} bytes)")
+            return pdf_bytes
+        log("  render_html_to_pdf: write_pdf returned empty")
+        return None
     except Exception as ex:
-        log(f"  HTML to PDF rendering failed: {ex}")
+        log(f"  render_html_to_pdf: FAILED ({type(ex).__name__}: {ex})")
         return None
 
 # ── Edge function call ────────────────────────────────────────────────────────
@@ -203,6 +226,11 @@ def main():
     if CONFIG["INBOUND_SECRET"] == "REPLACE_WITH_SHARED_SECRET":
         log("ERROR: Inbound secret not configured. Set LEDGERX_INBOUND_SECRET env var.")
         sys.exit(1)
+
+    if WEASYPRINT_AVAILABLE:
+        log(f"weasyprint loaded: version={WEASYPRINT_VERSION}")
+    else:
+        log(f"weasyprint NOT available: {WEASYPRINT_IMPORT_ERROR}")
 
     log(f"Connecting to {CONFIG['IMAP_HOST']}:{CONFIG['IMAP_PORT']} as {CONFIG['IMAP_USER']}")
     try:
