@@ -23,6 +23,11 @@ import sys
 import urllib.request
 import urllib.error
 from datetime import datetime
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Fill these in once you have the Hostinger mailbox credentials.
@@ -132,6 +137,40 @@ def extract_body(msg):
                     body_html = payload.decode("utf-8", errors="replace")
     return body_text, body_html
 
+def render_html_to_pdf(html: str) -> bytes | None:
+    """Render HTML email body to PDF using weasyprint.
+
+    Returns PDF bytes if successful, None otherwise.
+    Used as a fallback when email has no real attachments but contains
+    receipt/invoice content inline (e.g., Uber, Lyft, airline receipts).
+    """
+    if not WEASYPRINT_AVAILABLE:
+        return None
+    try:
+        # Wrap in basic styling to match email client rendering
+        styled_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 20px; color: #333; }}
+                img {{ max-width: 100%; height: auto; }}
+                table {{ border-collapse: collapse; width: 100%; }}
+                td, th {{ padding: 8px; border: 1px solid #ddd; }}
+            </style>
+        </head>
+        <body>
+        {html}
+        </body>
+        </html>
+        """
+        pdf_bytes = HTML(string=styled_html).write_pdf()
+        return pdf_bytes if pdf_bytes else None
+    except Exception as ex:
+        log(f"  HTML to PDF rendering failed: {ex}")
+        return None
+
 # ── Edge function call ────────────────────────────────────────────────────────
 def post_to_function(payload: dict) -> bool:
     body = json.dumps(payload).encode("utf-8")
@@ -199,6 +238,23 @@ def main():
 
         body_text, body_html = extract_body(msg)
         log(f"  Body: text={'yes' if body_text else 'no'} html={'yes' if body_html else 'no'}")
+
+        # If no real attachments but we have HTML body, render it to PDF
+        # instead of sending raw body text for OCR (user will review visually).
+        if not attachments and body_html:
+            pdf_bytes = render_html_to_pdf(body_html)
+            if pdf_bytes and len(pdf_bytes) < CONFIG["MAX_ATTACH_BYTES"]:
+                attachments.append({
+                    "filename": "email-body.pdf",
+                    "content_type": "application/pdf",
+                    "data": base64.b64encode(pdf_bytes).decode("ascii"),
+                })
+                log(f"  Rendered HTML body to PDF ({len(pdf_bytes)} bytes)")
+                # Don't send raw body text since we have a rendered PDF
+                body_text = None
+                body_html = None
+            else:
+                log(f"  HTML to PDF rendering failed or output too large, sending body as text")
 
         payload = {
             "from_email": from_email,
