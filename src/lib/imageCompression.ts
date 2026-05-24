@@ -1,16 +1,14 @@
 /**
- * Compresses an image file to ensure it doesn't exceed the maximum size
- * @param file - The image file to compress
- * @param maxSizeMB - Maximum file size in megabytes (default: 2MB)
- * @param maxWidth - Maximum width in pixels (default: 1920)
- * @param maxHeight - Maximum height in pixels (default: 1920)
- * @returns Compressed image file
+ * Compresses an image file to ensure it doesn't exceed the maximum size.
+ * Preserves the original MIME type unless `outputMime` is passed.
  */
 export async function compressImage(
   file: File,
   maxSizeMB: number = 0.8,
   maxWidth: number = 1200,
-  maxHeight: number = 1200
+  maxHeight: number = 1200,
+  outputMime?: string,
+  initialQuality?: number
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -41,9 +39,17 @@ export async function compressImage(
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Try different quality levels to get under size limit
-        let quality = 0.9;
+        const mime = outputMime ?? file.type;
+        let quality = initialQuality ?? 0.9;
         const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+        // When converting from another format to JPEG, swap the file
+        // extension so storage MIME-sniffing stays consistent with the
+        // bytes we just produced.
+        const targetName =
+          outputMime === 'image/jpeg'
+            ? file.name.replace(/\.[^.]+$/, '') + '.jpg'
+            : file.name;
 
         const tryCompress = () => {
           canvas.toBlob(
@@ -53,20 +59,18 @@ export async function compressImage(
                 return;
               }
 
-              // If size is acceptable or quality is too low, use this version
               if (blob.size <= maxSizeBytes || quality <= 0.1) {
-                const compressedFile = new File([blob], file.name, {
-                  type: file.type,
+                const compressedFile = new File([blob], targetName, {
+                  type: mime,
                   lastModified: Date.now(),
                 });
                 resolve(compressedFile);
               } else {
-                // Try again with lower quality
                 quality -= 0.1;
                 tryCompress();
               }
             },
-            file.type,
+            mime,
             quality
           );
         };
@@ -81,4 +85,17 @@ export async function compressImage(
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Compress a work-evidence photo: contractor work-in-progress shots that
+ * don't need OCR fidelity. Forces JPEG output (smaller than PNG) at a
+ * medium quality level — good enough to verify the work is done but cheap
+ * on storage. Tuned to ~0.4MB / 1280px / 0.75 quality.
+ */
+export async function compressToMediumJpeg(file: File): Promise<File> {
+  // Non-image files (PDFs, HEIC the browser can't decode, etc.) pass
+  // through unchanged so the caller can still upload them as-is.
+  if (!file.type.startsWith('image/')) return file;
+  return compressImage(file, 0.4, 1280, 1280, 'image/jpeg', 0.75);
 }

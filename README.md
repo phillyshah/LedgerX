@@ -525,7 +525,9 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
 - **Assign Category** (full admins only) — tag any invoice with a category so it rolls up into Analytics alongside receipts. The picker only shows categories valid for the invoice's household (globals + any explicitly mapped).
 
-**Email notifications:** When a new invoice is submitted, all full admins with a real email on file receive an email summary. When a full admin marks an invoice as paid, the submitter receives a confirmation email (if they have a real email on file).
+**Email notifications:** Both new invoice AND new receipt submissions trigger an email summary to every full admin with a real email on file. Household admins also get the email, but only for submissions in households they actually belong to — so a household admin for *Beach House* never sees a *Mountain Cabin* notification. The submitter is never emailed about their own submission. When a full admin marks an invoice as paid, the submitter receives a separate confirmation email.
+
+**Inactivity reminders:** If you haven't signed in or submitted anything for **14 days**, LedgerX sends you a gentle (and randomly worded — never the same form letter twice in a row) reminder email with a one-tap link back into the app. If you keep ignoring it: a second nudge at 30 days, then about monthly. As soon as you log in or file something, the clock resets and the reminders stop. This applies to full admins and household admins.
 
 ---
 
@@ -585,7 +587,9 @@ Contractors see a simplified dashboard with two actions:
 
 > **Tip:** Regular expense receipts you submit also get a green **Paid** badge once an admin marks them paid — so you always know the status of every receipt you've submitted.
 
-**Email notifications:** Once an admin marks your invoice paid, you'll receive a confirmation email (if you have a real email address on file in Settings).
+**Email notifications:** Once an admin marks your invoice paid, you'll receive a confirmation email (if you have a real email address on file in Settings). Conversely, every time you submit a new invoice OR a new receipt, the admins for that property are emailed automatically — no extra step, no follow-up message needed.
+
+**Work-in-progress photos:** Both the receipt form and the invoice form now have a **Work-in-progress photos** section underneath the main attachments. Snap or upload photos of the job itself — before/after shots, materials, the leak you just fixed, the wall you painted. They're stored as compact JPEGs (≈0.4 MB each) so they don't blow up your data plan, and admins see them in their own labeled gallery when reviewing the submission. This replaces the WhatsApp / text-message workflow of sending job photos out-of-band.
 
 **Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 

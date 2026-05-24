@@ -451,38 +451,83 @@ export function AdminInvoices() {
                 </div>
               )}
 
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-3">{t('adminInvoices.detailAttachments')}</p>
-                {loadingDetail ? (
-                  <p className="text-sm text-slate-400">{t('adminInvoices.loadingImages')}</p>
-                ) : Object.keys(signedUrls).length === 0 ? (
-                  <p className="text-sm text-slate-400">{t('adminInvoices.detailNoAttachments')}</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {Object.entries(signedUrls).map(([path, url]) => {
-                      const isPdf = path.toLowerCase().endsWith('.pdf') ||
-                        detailImages.find((i) => i.image_path === path)?.image_mime === 'application/pdf' ||
-                        detailInvoice.image_mime === 'application/pdf';
-                      return isPdf ? (
-                        <a
-                          key={path}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex flex-col items-center justify-center h-32 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all gap-1 text-slate-500"
-                        >
-                          <FileText className="w-8 h-8 text-red-400" />
-                          <span className="text-xs">{t('adminInvoices.detailClickToOpen')}</span>
-                        </a>
+              {(() => {
+                // Split attachments into primary (the invoice itself) vs.
+                // work-evidence photos (contractor work-in-progress shots).
+                // The legacy `image_path` on the invoice row is always
+                // treated as primary even when no image_row record exists.
+                const primaryPaths: string[] = [];
+                const workEvidencePaths: string[] = [];
+                const seen = new Set<string>();
+                for (const img of detailImages) {
+                  if (seen.has(img.image_path)) continue;
+                  seen.add(img.image_path);
+                  if (img.is_work_evidence) workEvidencePaths.push(img.image_path);
+                  else primaryPaths.push(img.image_path);
+                }
+                if (detailInvoice.image_path && !seen.has(detailInvoice.image_path)) {
+                  primaryPaths.unshift(detailInvoice.image_path);
+                }
+                const renderTile = (path: string, isEvidence: boolean) => {
+                  const url = signedUrls[path];
+                  if (!url) return null;
+                  const isPdf = path.toLowerCase().endsWith('.pdf') ||
+                    detailImages.find((i) => i.image_path === path)?.image_mime === 'application/pdf' ||
+                    (!isEvidence && detailInvoice.image_mime === 'application/pdf');
+                  return isPdf ? (
+                    <a
+                      key={path}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center justify-center h-32 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all gap-1 text-slate-500"
+                    >
+                      <FileText className="w-8 h-8 text-red-400" />
+                      <span className="text-xs">{t('adminInvoices.detailClickToOpen')}</span>
+                    </a>
+                  ) : (
+                    <a
+                      key={path}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`block rounded-xl overflow-hidden border ${isEvidence ? 'border-amber-200' : 'border-slate-200'} hover:opacity-90 transition-all`}
+                    >
+                      <img src={url} alt={isEvidence ? 'Work evidence' : 'Invoice attachment'} className="w-full h-32 object-cover" />
+                    </a>
+                  );
+                };
+                return (
+                  <>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 mb-3">{t('adminInvoices.detailAttachments')}</p>
+                      {loadingDetail ? (
+                        <p className="text-sm text-slate-400">{t('adminInvoices.loadingImages')}</p>
+                      ) : primaryPaths.length === 0 ? (
+                        <p className="text-sm text-slate-400">{t('adminInvoices.detailNoAttachments')}</p>
                       ) : (
-                        <a key={path} href={url} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border border-slate-200 hover:opacity-90 transition-all">
-                          <img src={url} alt="Invoice attachment" className="w-full h-32 object-cover" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {primaryPaths.map((p) => renderTile(p, false))}
+                        </div>
+                      )}
+                    </div>
+
+                    {workEvidencePaths.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 mb-3">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Tag className="w-4 h-4 text-amber-600" />
+                            {t('workEvidence.detailHeader')}
+                          </span>
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-amber-50/40 border border-amber-200 rounded-xl">
+                          {workEvidencePaths.map((p) => renderTile(p, true))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="flex flex-wrap gap-3 pt-2">
                 {canMutateStatus && detailInvoice.status === 'pending' && (

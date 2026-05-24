@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.1',
+    version: 'v10.1',
+    date: '2026-05-24',
+    title: {
+      'en': 'Work-in-progress photos & smarter notifications',
+      'pt-BR': 'Fotos do trabalho e notificações mais inteligentes',
+    },
+    body: {
+      'en':
+        "Two things this release. First — when you submit a receipt or contractor invoice, you can now attach photos of the work itself: before/after shots, materials, the leak you just fixed. No more digging through WhatsApp to find what the job looked like. Photos are saved as compact JPEGs so they don't eat up storage. " +
+        "Second — admins (full and household) now get an email the moment a contractor submits a new receipt or invoice. And if you go two weeks without using LedgerX, you'll get a gentle (random, slightly silly) nudge with a link straight back in. We escalate gracefully: a second nudge at 30 days, then about monthly, so no spam.",
+      'pt-BR':
+        'Duas novidades nesta versão. Primeiro — ao enviar um recibo ou nota de prestador, agora você pode anexar fotos do trabalho em si: antes/depois, materiais, o vazamento que acabou de consertar. Chega de procurar no WhatsApp para lembrar como ficou o serviço. As fotos são salvas como JPEGs compactos para não estourar o armazenamento. ' +
+        'Segundo — administradores (completos e de domicílio) agora recebem um e-mail no momento em que um prestador envia um novo recibo ou nota. E se ficar duas semanas sem usar o LedgerX, você recebe um lembrete leve (aleatório, um pouco bobo) com um link direto. A cadência é educada: um segundo lembrete em 30 dias, depois aproximadamente mensal — sem spam.',
+    },
+  },
+  {
     id: 'v10.0',
     version: 'v10.0',
     date: '2026-05-18',

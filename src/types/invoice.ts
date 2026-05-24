@@ -39,6 +39,8 @@ export interface InvoiceImage {
   image_height: number | null;
   display_order: number;
   created_at: string;
+  /** True for contractor work-in-progress photos (not the invoice scan itself). */
+  is_work_evidence?: boolean;
 }
 
 /** OCR extraction result from the extract-invoice edge function */

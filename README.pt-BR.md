@@ -522,7 +522,9 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 - **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos
 - **Atribuir Categoria** (apenas admins completos) — etiquete qualquer nota fiscal com uma categoria para que apareça no Analytics junto com os recibos. O seletor só mostra as categorias válidas para o grupo da nota (globais + mapeadas explicitamente).
 
-**Notificações por e-mail:** Quando uma nova nota fiscal é enviada, todos os admins completos com e-mail real cadastrado recebem um resumo por e-mail. Quando um admin marca uma nota como paga, o remetente recebe um e-mail de confirmação (se tiver e-mail real cadastrado).
+**Notificações por e-mail:** Tanto envios novos de nota fiscal quanto de recibo disparam um e-mail de resumo para todos os admins completos com e-mail real cadastrado. Os admins de propriedade também recebem o e-mail, mas só para envios em propriedades das quais fazem parte — quem cuida da *Casa de Praia* nunca recebe notificação da *Cabana na Montanha*. O próprio remetente nunca recebe e-mail do que ele mesmo enviou. Quando um admin marca uma nota como paga, o remetente recebe um e-mail de confirmação separado.
+
+**Lembretes de inatividade:** Se você ficar **14 dias** sem entrar nem enviar nada, o LedgerX manda um lembrete leve por e-mail (com texto aleatório — nunca a mesma cartinha duas vezes seguidas) e um link de um toque para voltar ao app. Se continuar inativo: um segundo lembrete em 30 dias, depois aproximadamente mensal. Assim que você loga ou registra qualquer coisa, o relógio reinicia e os lembretes param. Vale para admins completos e admins de propriedade.
 
 ---
 
@@ -582,7 +584,9 @@ Prestadores veem um painel simplificado com duas ações:
 
 > **Dica:** Os recibos de despesas comuns que você envia também recebem um emblema verde **Pago** assim que o administrador os marcar como pagos — assim você sabe o status de cada recibo enviado.
 
-**Notificações por e-mail:** Assim que um admin marcar sua nota como paga, você receberá um e-mail de confirmação (se tiver um endereço de e-mail real cadastrado em Configurações).
+**Notificações por e-mail:** Assim que um admin marcar sua nota como paga, você receberá um e-mail de confirmação (se tiver um endereço de e-mail real cadastrado em Configurações). E sempre que você enviar uma nota fiscal OU um recibo novo, os administradores da propriedade recebem um e-mail automático — nada de seguir mandando mensagem para avisar.
+
+**Fotos do trabalho em andamento:** Tanto o formulário de recibo quanto o de nota fiscal agora têm uma seção **Fotos do trabalho em andamento** logo abaixo dos anexos principais. Tire ou envie fotos do serviço em si — antes e depois, materiais, o vazamento que você acabou de consertar, a parede que pintou. As fotos são salvas como JPEGs compactos (≈0,4 MB cada) para não pesar nos dados, e os administradores enxergam tudo em uma galeria separada com rótulo próprio ao revisar o envio. Isso substitui o vai-e-vem de fotos por WhatsApp e mensagem.
 
 **Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
 

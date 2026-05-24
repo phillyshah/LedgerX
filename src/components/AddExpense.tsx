@@ -14,6 +14,7 @@ import { X, Upload, Check, Camera, Loader2, Plus, FileText, Search } from 'lucid
 import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 import type { Household, Category, ImageItem } from '../types/expense';
 import { useEscapeClose } from '../hooks/useEscapeClose';
+import { WorkEvidenceUploader, type WorkEvidencePhoto } from './WorkEvidenceUploader';
 
 export interface AddExpenseInitialData {
   vendor?: string;
@@ -50,6 +51,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     notes: initialData?.notes ?? '',
   });
   const [images, setImages] = useState<ImageItem[]>([]);
+  const [workEvidence, setWorkEvidence] = useState<WorkEvidencePhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const [keepAdding, setKeepAdding] = useState(false);
   useEscapeClose(onClose);
@@ -262,6 +264,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       notes: '',
     }));
     setImages([]);
+    setWorkEvidence([]);
     setScanError(null);
   };
 
@@ -345,6 +348,36 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
         });
       }
 
+      // Upload work-evidence photos (contractor-style work-in-progress
+      // shots). Stored in the same `receipts` bucket but flagged so review
+      // UIs can render them in a separate gallery.
+      for (let i = 0; i < workEvidence.length; i++) {
+        const photo = workEvidence[i];
+        const fileExt = (photo.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('receipts')
+          .upload(fileName, photo.file);
+
+        if (uploadError) {
+          console.error('Error uploading work-evidence photo:', uploadError);
+          continue;
+        }
+
+        const dims = await readImageDimensions(photo as unknown as ImageItem);
+
+        await supabase.from('expense_images').insert({
+          expense_id: expenseData.id,
+          image_path: fileName,
+          image_mime: photo.file.type,
+          image_width: dims.width,
+          image_height: dims.height,
+          display_order: 1000 + i, // sort after the primary receipt scan
+          is_work_evidence: true,
+        });
+      }
+
       // Persist as a template if the user opted in. We do this after the
       // expense saves so a template is never created for a half-failed
       // submission. Owner = current user; templates aren't shared.
@@ -369,6 +402,14 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       onSaved();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
+
+      // Fire-and-forget: notify admins + household admins of new receipt.
+      supabase.functions
+        .invoke('send-submission-notification', {
+          body: { type: 'expense_submitted', expense_id: expenseData.id },
+        })
+        .catch(() => { /* non-critical */ });
+
       return true;
     } catch (error) {
       console.error('Error adding expense:', error);
@@ -703,6 +744,8 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
               )}
             </div>
           </div>
+
+          <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />
 
           <SaveAsTemplateToggle
             checked={saveAsTemplate}

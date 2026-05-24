@@ -8,6 +8,7 @@ import { scanInvoice } from '../lib/invoiceScanner';
 import { X, Upload, Check, Loader2, Plus, FileText, AlertTriangle } from 'lucide-react';
 import { findInvoiceDuplicates, type InvoiceDuplicate } from '../lib/duplicates';
 import { TemplatePicker, SaveAsTemplateToggle } from './TemplatePicker';
+import { WorkEvidenceUploader, type WorkEvidencePhoto } from './WorkEvidenceUploader';
 
 interface Household {
   id: string;
@@ -64,6 +65,7 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
     service_date_end: initialData?.invoice_date ?? today(),
   });
   const [images, setImages] = useState<ImageItem[]>([]);
+  const [workEvidence, setWorkEvidence] = useState<WorkEvidencePhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -362,6 +364,42 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
         });
       }
 
+      // Upload contractor work-evidence photos. Same bucket; flagged so
+      // review UIs can render them in their own gallery.
+      for (let i = 0; i < workEvidence.length; i++) {
+        const photo = workEvidence[i];
+        const fileExt = (photo.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const fileName = `${formData.household_id}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('receipts')
+          .upload(fileName, photo.file);
+
+        if (uploadError) {
+          console.error('Error uploading work-evidence photo:', uploadError);
+          continue;
+        }
+
+        let w: number | null = null;
+        let h: number | null = null;
+        const dimImg = new Image();
+        dimImg.src = photo.preview;
+        await new Promise((resolve) => {
+          dimImg.onload = () => { w = dimImg.width; h = dimImg.height; resolve(null); };
+          dimImg.onerror = () => resolve(null);
+        });
+
+        await supabase.from('invoice_images').insert({
+          invoice_id: invoiceData.id,
+          image_path: fileName,
+          image_mime: photo.file.type,
+          image_width: w,
+          image_height: h,
+          display_order: 1000 + i,
+          is_work_evidence: true,
+        });
+      }
+
       // Persist as a template if the user opted in. invoice_number is
       // intentionally never copied to the template — the next submission
       // always needs a fresh number, and a stored number would trigger
@@ -386,9 +424,10 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
 
-      // Fire-and-forget: notify admins of new invoice submission
-      supabase.functions.invoke('send-invoice-notification', {
-        body: { type: 'submitted', invoice_id: invoiceData.id },
+      // Fire-and-forget: notify full admins (always) and household admins
+      // (only for the relevant household) of the new invoice submission.
+      supabase.functions.invoke('send-submission-notification', {
+        body: { type: 'invoice_submitted', invoice_id: invoiceData.id },
       }).catch(() => { /* non-critical */ });
 
       return true;
@@ -413,6 +452,7 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
       service_date_end: today(),
     }));
     setImages([]);
+    setWorkEvidence([]);
     setScanError(null);
     setDateError(null);
   };
@@ -721,6 +761,8 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
               )}
             </div>
           </div>
+
+          <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />
 
           <SaveAsTemplateToggle
             checked={saveAsTemplate}

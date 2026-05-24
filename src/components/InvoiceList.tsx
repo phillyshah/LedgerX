@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Tag, Trash2, FileSignature, Plus } from 'lucide-react';
+import { X, FileText, Tag, Trash2, FileSignature, Plus, Image as ImageIcon } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
 
 interface InvoiceListProps {
@@ -255,44 +255,78 @@ export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListP
                 </div>
               )}
 
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-3">{t('invoice.detailAttachments')}</p>
-                {loadingDetail ? (
-                  <p className="text-sm text-slate-400">{t('invoice.detailLoadingImages')}</p>
-                ) : Object.keys(signedUrls).length === 0 ? (
-                  <p className="text-sm text-slate-400">{t('invoice.detailNoAttachments')}</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {Object.entries(signedUrls).map(([path, url]) => {
-                      const isPdf = path.toLowerCase().endsWith('.pdf') ||
-                        detailImages.find((i) => i.image_path === path)?.image_mime === 'application/pdf' ||
-                        detailInvoice.image_mime === 'application/pdf';
-                      return isPdf ? (
-                        <a
-                          key={path}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex flex-col items-center justify-center h-32 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all gap-1 text-slate-500"
-                        >
-                          <FileText className="w-8 h-8 text-red-400" />
-                          <span className="text-xs">{t('invoice.detailClickToOpen')}</span>
-                        </a>
+              {(() => {
+                const primaryPaths: string[] = [];
+                const workEvidencePaths: string[] = [];
+                const seen = new Set<string>();
+                for (const img of detailImages) {
+                  if (seen.has(img.image_path)) continue;
+                  seen.add(img.image_path);
+                  if (img.is_work_evidence) workEvidencePaths.push(img.image_path);
+                  else primaryPaths.push(img.image_path);
+                }
+                if (detailInvoice.image_path && !seen.has(detailInvoice.image_path)) {
+                  primaryPaths.unshift(detailInvoice.image_path);
+                }
+                const renderTile = (path: string, isEvidence: boolean) => {
+                  const url = signedUrls[path];
+                  if (!url) return null;
+                  const isPdf = path.toLowerCase().endsWith('.pdf') ||
+                    detailImages.find((i) => i.image_path === path)?.image_mime === 'application/pdf' ||
+                    (!isEvidence && detailInvoice.image_mime === 'application/pdf');
+                  return isPdf ? (
+                    <a
+                      key={path}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center justify-center h-32 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all gap-1 text-slate-500"
+                    >
+                      <FileText className="w-8 h-8 text-red-400" />
+                      <span className="text-xs">{t('invoice.detailClickToOpen')}</span>
+                    </a>
+                  ) : (
+                    <a
+                      key={path}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`block rounded-xl overflow-hidden border ${isEvidence ? 'border-amber-200' : 'border-slate-200'} hover:opacity-90 transition-all`}
+                    >
+                      <img src={url} alt={isEvidence ? 'Work evidence' : 'Invoice attachment'} className="w-full h-32 object-cover" />
+                    </a>
+                  );
+                };
+                return (
+                  <>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 mb-3">{t('invoice.detailAttachments')}</p>
+                      {loadingDetail ? (
+                        <p className="text-sm text-slate-400">{t('invoice.detailLoadingImages')}</p>
+                      ) : primaryPaths.length === 0 ? (
+                        <p className="text-sm text-slate-400">{t('invoice.detailNoAttachments')}</p>
                       ) : (
-                        <a
-                          key={path}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block rounded-xl overflow-hidden border border-slate-200 hover:opacity-90 transition-all"
-                        >
-                          <img src={url} alt="Invoice attachment" className="w-full h-32 object-cover" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {primaryPaths.map((p) => renderTile(p, false))}
+                        </div>
+                      )}
+                    </div>
+                    {workEvidencePaths.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 mb-3">
+                          <span className="inline-flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-amber-600" />
+                            {t('workEvidence.detailHeader')}
+                          </span>
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-amber-50/40 border border-amber-200 rounded-xl">
+                          {workEvidencePaths.map((p) => renderTile(p, true))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="flex flex-wrap justify-between gap-2 pt-2">
                 {user && detailInvoice.created_by === user.id ? (

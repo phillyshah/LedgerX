@@ -644,5 +644,17 @@
   "expenses.filter": "Filter",
   "charts.monthlySpending": "Monthly spending",
   "charts.spending": "Spending",
-  "charts.thisMonthByCategory": "This month by category"
+  "charts.thisMonthByCategory": "This month by category",
+  "workEvidence.label": "Work-in-progress photos",
+  "workEvidence.hint": "Optional — show what you're working on. Saved as compact JPEGs.",
+  "workEvidence.takePhoto": "Take a photo",
+  "workEvidence.takePhotoHint": "Use your camera",
+  "workEvidence.chooseFromLibrary": "Choose from library",
+  "workEvidence.uploadHint": "Pick photos from your device",
+  "workEvidence.addMore": "Add more",
+  "workEvidence.count": "({count} added)",
+  "workEvidence.remove": "Remove photo",
+  "workEvidence.viewFull": "View full size",
+  "workEvidence.detailHeader": "Work-in-progress photos",
+  "workEvidence.badge": "Work photo"
 }

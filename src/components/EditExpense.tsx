@@ -34,6 +34,7 @@ interface ExistingImage {
   image_width: number | null;
   image_height: number | null;
   display_order: number;
+  is_work_evidence?: boolean;
   signedUrl?: string;
 }
 
@@ -96,7 +97,7 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
     // Load from expense_images table
     const { data } = await supabase
       .from('expense_images')
-      .select('id, image_path, image_mime, image_width, image_height, display_order')
+      .select('id, image_path, image_mime, image_width, image_height, display_order, is_work_evidence')
       .eq('expense_id', expense.id)
       .order('display_order');
 
@@ -531,7 +532,11 @@ export function EditExpense({ expense, onClose, onSuccess }: EditExpenseProps) {
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
-                        {index === 0 && newImages.length === 0 && (
+                        {img.is_work_evidence ? (
+                          <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-amber-600/85 text-white text-xs rounded-md">
+                            {t('workEvidence.badge')}
+                          </span>
+                        ) : index === 0 && newImages.length === 0 && (
                           <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-slate-900/70 text-white text-xs rounded-md">
                             {t('addExpense.primary')}
                           </span>
