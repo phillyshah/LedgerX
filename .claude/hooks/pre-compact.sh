@@ -1,0 +1,1 @@
+../../claude-code-handoff/hooks/pre-compact.sh
