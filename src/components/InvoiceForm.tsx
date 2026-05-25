@@ -48,7 +48,7 @@ const today = () => {
 };
 
 export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps) {
-  const { user } = useAuth();
+  const { user, isContractor } = useAuth();
   const { t } = useT();
   useEscapeClose(onClose);
 
@@ -762,7 +762,7 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
             </div>
           </div>
 
-          <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />
+          {isContractor && <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />}
 
           <SaveAsTemplateToggle
             checked={saveAsTemplate}

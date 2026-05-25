@@ -32,7 +32,7 @@ interface AddExpenseProps {
 }
 
 export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
-  const { user } = useAuth();
+  const { user, isContractor } = useAuth();
   const { t } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -745,7 +745,7 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
             </div>
           </div>
 
-          <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />
+          {isContractor && <WorkEvidenceUploader photos={workEvidence} onChange={setWorkEvidence} />}
 
           <SaveAsTemplateToggle
             checked={saveAsTemplate}
