@@ -6,5 +6,56 @@
       "Bash(npm run lint)",
       "Bash(npx tsc --noEmit)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/live-handoff.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/post-edit-hook.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/pre-compact.sh"
+          },
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/proactive-handoff.sh save"
+          },
+          {
+            "type": "command",
+            "command": "cd \"$(git rev-parse --show-toplevel)\" && .claude/hooks/pre-compact-handoff.sh"
+          }
+        ]
+      }
+    ]
   }
 }

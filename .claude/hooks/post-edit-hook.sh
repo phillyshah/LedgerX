@@ -1,0 +1,1 @@
+../../claude-code-handoff/hooks/post-edit-hook.sh
