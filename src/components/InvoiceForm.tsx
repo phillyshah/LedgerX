@@ -48,7 +48,7 @@ const today = () => {
 };
 
 export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps) {
-  const { user, isContractor } = useAuth();
+  const { user, isContractor, isHouseholdAdmin } = useAuth();
   const { t } = useT();
   useEscapeClose(onClose);
 
@@ -424,11 +424,14 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
 
-      // Fire-and-forget: notify full admins (always) and household admins
-      // (only for the relevant household) of the new invoice submission.
-      supabase.functions.invoke('send-submission-notification', {
-        body: { type: 'invoice_submitted', invoice_id: invoiceData.id },
-      }).catch(() => { /* non-critical */ });
+      // Fire-and-forget: notify admins of the new invoice — only for
+      // submit-oriented roles (contractors + household admins), so a full
+      // admin filing their own invoice doesn't email every other admin.
+      if (isContractor || isHouseholdAdmin) {
+        supabase.functions.invoke('send-submission-notification', {
+          body: { type: 'invoice_submitted', invoice_id: invoiceData.id },
+        }).catch(() => { /* non-critical */ });
+      }
 
       return true;
     } catch (error) {

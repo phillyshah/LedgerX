@@ -210,7 +210,7 @@ Deno.serve(async (req: Request) => {
       }
       const { data: exp, error: expErr } = await supabase
         .from("expenses")
-        .select("id, vendor, total, notes, household_id, created_by")
+        .select("id, vendor, total, currency, notes, household_id, created_by")
         .eq("id", expenseId)
         .single();
       if (expErr || !exp) {
@@ -222,14 +222,31 @@ Deno.serve(async (req: Request) => {
       householdId = exp.household_id;
       submitterId = exp.created_by;
       amount = exp.total;
-      // Expenses don't carry a currency column; default to USD which is the
-      // app's only setting today. Switch this if multi-currency lands.
-      currency = "USD";
+      currency = exp.currency || "USD";
       reference = exp.vendor;
       description = exp.notes;
       kind = "expense";
       notifKind = "submission_expense";
       contextRow = { expense_id: exp.id };
+    }
+
+    // Authorization: the caller must own the row they're announcing (the
+    // submitter notifies admins about their own submission right after
+    // insert). Full admins are also allowed for any admin-on-behalf tooling.
+    // Without this, any authenticated user could trigger admin emails for
+    // arbitrary invoice/expense ids.
+    if (callerUser.id !== submitterId) {
+      const { data: callerRole } = await supabase
+        .from("user_roles")
+        .select("is_admin")
+        .eq("user_id", callerUser.id)
+        .maybeSingle();
+      if (!callerRole?.is_admin) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Household name

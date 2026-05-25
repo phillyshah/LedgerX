@@ -249,14 +249,18 @@ Deno.serve(async (req: Request) => {
       if (!profile || !profile.email) continue;
       checked++;
 
-      // Last activity timestamp via the SQL helper.
+      // Last activity timestamp via the SQL helper. Returns NULL for an
+      // account that has never signed in and has filed nothing — those we
+      // skip entirely (a brand-new admin shouldn't get a "we miss you,
+      // last seen 20000 days ago" email on day one).
       const { data: lastActivityRaw, error: actErr } = await supabase
         .rpc("get_user_last_activity", { target_user_id: role.user_id });
       if (actErr) {
         errors.push(`${role.user_id}: ${actErr.message}`);
         continue;
       }
-      const lastActivity = lastActivityRaw ? new Date(lastActivityRaw as string).getTime() : 0;
+      if (!lastActivityRaw) continue;
+      const lastActivity = new Date(lastActivityRaw as string).getTime();
       const daysInactive = Math.floor((now - lastActivity) / DAY_MS);
 
       // Most recent inactivity reminder for this user.

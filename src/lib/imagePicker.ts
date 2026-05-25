@@ -19,6 +19,12 @@ export async function readImageDimensions(
   if (!item.file.type.startsWith('image/')) return { width: null, height: null };
   const img = new Image();
   img.src = item.preview;
-  await new Promise<void>((resolve) => { img.onload = () => resolve(); });
-  return { width: img.width, height: img.height };
+  // Resolve on error too — a preview that fails to decode must not hang the
+  // caller's save loop. On failure width/height are 0, which the optional
+  // image_width/image_height columns tolerate.
+  await new Promise<void>((resolve) => {
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+  });
+  return { width: img.width || null, height: img.height || null };
 }

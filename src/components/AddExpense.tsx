@@ -32,7 +32,7 @@ interface AddExpenseProps {
 }
 
 export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
-  const { user, isContractor } = useAuth();
+  const { user, isContractor, isHouseholdAdmin } = useAuth();
   const { t } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -403,12 +403,17 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
 
-      // Fire-and-forget: notify admins + household admins of new receipt.
-      supabase.functions
-        .invoke('send-submission-notification', {
-          body: { type: 'expense_submitted', expense_id: expenseData.id },
-        })
-        .catch(() => { /* non-critical */ });
+      // Fire-and-forget: notify admins of new receipt — but only for
+      // submit-oriented roles (contractors + household admins). A regular
+      // member or full admin entering their own receipt shouldn't email
+      // every admin.
+      if (isContractor || isHouseholdAdmin) {
+        supabase.functions
+          .invoke('send-submission-notification', {
+            body: { type: 'expense_submitted', expense_id: expenseData.id },
+          })
+          .catch(() => { /* non-critical */ });
+      }
 
       return true;
     } catch (error) {
