@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.2',
+    version: 'v10.2',
+    date: '2026-06-08',
+    title: {
+      'en': 'See who is active across your team',
+      'pt-BR': 'Veja quem está ativo na sua equipe',
+    },
+    body: {
+      'en':
+        "Admins and household admins have a new Activity screen. It shows a clean timeline of who submitted receipts, who submitted invoices, and what's been marked paid — across the people you oversee. Tap any row to jump straight into the underlying receipt or invoice. " +
+        "There's also a Last logins tab so you can spot who hasn't signed in for a while. Full admins see everyone; household admins see the contractors and members of their own households. Filters for date range, household, person, and event type are right at the top.",
+      'pt-BR':
+        'Administradores e administradores de domicílio agora têm uma tela de Atividade. Ela mostra uma linha do tempo com quem enviou recibos, quem enviou notas e o que foi marcado como pago — entre as pessoas que você acompanha. Toque em qualquer linha para abrir o recibo ou a nota correspondente. ' +
+        'Há também uma aba de Últimos acessos para identificar quem não entra há um tempo. Administradores completos veem todos; administradores de domicílio veem os prestadores e membros dos seus próprios domicílios. Os filtros de período, domicílio, pessoa e tipo de evento ficam no topo.',
+    },
+  },
+  {
     id: 'v10.1',
     version: 'v10.1',
     date: '2026-05-24',

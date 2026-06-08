@@ -9,7 +9,7 @@ import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
-  HardHat, Plus, Receipt, Store, Settings, ChevronDown,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity,
 } from 'lucide-react';
 // hasUnreadReleases / LAST_SEEN_KEY removed — BellButton owns all unread tracking internally
 
@@ -21,6 +21,7 @@ const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions
 const ManageUsers         = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
 const AdminInvoices       = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
+const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
 const HelpModal           = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
@@ -42,7 +43,7 @@ type AdminView =
   | 'reports'
   | 'my-transactions';
 
-type AdminNavKey = AdminView | 'analytics';
+type AdminNavKey = AdminView | 'analytics' | 'activity';
 
 // ── Home screen (full admin only) ─────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: 
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
           {t('admin.navigateTo')}
         </p>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
           {(
             [
               { key: 'uncategorized' as AdminNavKey, icon: AlertCircle, label: t('admin.uncategorized'), warn: true },
@@ -115,6 +116,7 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: 
               { key: 'my-transactions' as AdminNavKey, icon: Receipt,   label: t('admin.myTransactions') },
               { key: 'analytics'       as AdminNavKey, icon: BarChart3, label: t('admin.analytics') },
               { key: 'reports'         as AdminNavKey, icon: FileText,  label: t('reports.title') },
+              { key: 'activity'        as AdminNavKey, icon: Activity,  label: t('activityReport.title') },
             ] as { key: AdminNavKey; icon: typeof AlertCircle; label: string; warn?: boolean }[]
           ).map(({ key, icon: Icon, label, warn }) => (
             <button
@@ -175,6 +177,7 @@ export function AdminLayout() {
   const [manageOpen, setManageOpen] = useState(true);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -192,6 +195,8 @@ export function AdminLayout() {
       setShowAnalytics(true);
     } else if (view === 'reports') {
       setShowReports(true);
+    } else if (view === 'activity') {
+      setShowActivity(true);
     } else {
       setActiveView(view);
     }
@@ -201,6 +206,7 @@ export function AdminLayout() {
   const isItemActive = (key: AdminNavKey) => {
     if (key === 'analytics') return showAnalytics;
     if (key === 'reports') return showReports;
+    if (key === 'activity') return showActivity;
     return activeView === key;
   };
 
@@ -232,6 +238,7 @@ export function AdminLayout() {
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
+    { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
   ];
 
   // Admin daily-use items (below the Manage group)
@@ -241,6 +248,7 @@ export function AdminLayout() {
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
+    { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
   ];
 
   const manageSubItems: { key: AdminNavKey; label: string; icon: typeof Home }[] = [
@@ -456,6 +464,7 @@ export function AdminLayout() {
       <Suspense fallback={null}>
         {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
         {showReports   && <Reports        onClose={() => setShowReports(false)} />}
+        {showActivity  && <ActivityReport onClose={() => setShowActivity(false)} />}
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}
         {showSettings  && <UserSettings   onClose={() => setShowSettings(false)} />}

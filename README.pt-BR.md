@@ -526,6 +526,20 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 
 **Lembretes de inatividade:** Se você ficar **14 dias** sem entrar nem enviar nada, o LedgerX manda um lembrete leve por e-mail (com texto aleatório — nunca a mesma cartinha duas vezes seguidas) e um link de um toque para voltar ao app. Se continuar inativo: um segundo lembrete em 30 dias, depois aproximadamente mensal. Assim que você loga ou registra qualquer coisa, o relógio reinicia e os lembretes param. Vale para admins completos e admins de propriedade.
 
+### Relatório de Atividade
+<!-- roles: admin, household_admin -->
+
+Uma linha do tempo de quem fez o quê entre as pessoas que você acompanha. Abra pela navegação (ou pelo botão **Atividade** na tela inicial do admin).
+
+- **Linha do tempo** — todo envio de recibo, envio de nota fiscal e marcação de pagamento em uma única lista cronológica. Toque em qualquer linha para abrir o recibo ou a nota correspondente, sem sair da tela.
+- **Últimos acessos** — uma linha por usuário com a última vez que entrou no app. Útil para identificar prestadores que sumiram.
+- **Filtros** — período (padrão: últimos 30 dias), domicílio, pessoa e chips de tipo de evento, todos no topo.
+
+**Quem vê a atividade de quem:**
+- Admins completos veem a atividade de todos, em todos os domicílios.
+- Admins de propriedade só veem a atividade de prestadores e membros comuns dos domicílios aos quais pertencem. Não veem outros admins, outros admins de propriedade nem a si mesmos.
+- Prestadores e usuários comuns não veem o item Atividade no menu.
+
 ---
 
 ## Função de Admin de Propriedade

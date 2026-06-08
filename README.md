@@ -529,6 +529,20 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 
 **Inactivity reminders:** If you haven't signed in or submitted anything for **14 days**, LedgerX sends you a gentle (and randomly worded — never the same form letter twice in a row) reminder email with a one-tap link back into the app. If you keep ignoring it: a second nudge at 30 days, then about monthly. As soon as you log in or file something, the clock resets and the reminders stop. This applies to full admins and household admins.
 
+### Activity Report
+<!-- roles: admin, household_admin -->
+
+A chronological feed of who's been doing what across the people you oversee. Open it from the nav (or the **Activity** quick-action on the admin home).
+
+- **Activity feed** — every receipt submission, invoice submission, and mark-paid event in one timeline. Tap any row to open the underlying receipt or invoice without leaving the screen.
+- **Last logins** — one row per user with the last time they signed in. Handy for spotting contractors who've gone quiet.
+- **Filters** — date range (defaults to the last 30 days), household, person, and event type chips at the top.
+
+**Who sees whose activity:**
+- Full admins see activity for every user, across every household.
+- Household admins see activity only for contractors and regular members of households they belong to. They do not see other admins, other household admins, or themselves.
+- Contractors and regular users do not see the Activity menu item.
+
 ---
 
 ## Household Admin Role
