@@ -683,5 +683,6 @@
   "activityReport.emptyLogins": "Nobody to show yet.",
   "activityReport.loadError": "Couldn't load activity. Please try again.",
   "activityReport.lastLoginNever": "Never signed in",
-  "activityReport.scopeNote": "Tap any row to open the receipt or invoice."
+  "activityReport.scopeNote": "Tap any row to open the receipt or invoice.",
+  "activityReport.noTeamMembers": "No team members to filter by."
 }

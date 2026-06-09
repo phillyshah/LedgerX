@@ -683,5 +683,6 @@
   "activityReport.emptyLogins": "Ninguém para mostrar ainda.",
   "activityReport.loadError": "Não foi possível carregar a atividade. Tente novamente.",
   "activityReport.lastLoginNever": "Nunca entrou",
-  "activityReport.scopeNote": "Toque em qualquer linha para abrir o recibo ou a nota."
+  "activityReport.scopeNote": "Toque em qualquer linha para abrir o recibo ou a nota.",
+  "activityReport.noTeamMembers": "Nenhum membro da equipe para filtrar."
 }

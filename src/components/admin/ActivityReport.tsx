@@ -80,6 +80,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
   const [eventTypes, setEventTypes] = useState<Set<EventType>>(new Set(EVENT_TYPES));
 
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [teamMembers, setTeamMembers] = useState<LastLoginRow[]>([]);
   const [rows, setRows] = useState<ActivityRow[]>([]);
   const [logins, setLogins] = useState<LastLoginRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,19 +104,20 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
     return () => { cancelled = true; };
   }, [isAdmin, user]);
 
+  // Load the team-member list up front so the User filter is populated on
+  // both tabs from the moment the modal opens — independent of whether the
+  // feed has returned any rows yet. We reuse list_team_member_last_login
+  // since it already returns one row per allowed user under the same
+  // scope rules as the activity feed.
+  useEffect(() => {
+    void loadLogins();
+  }, []);
+
   // Re-query whenever any filter changes (cheap — capped at 2000 rows server-side).
   useEffect(() => {
     void loadActivity();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, householdFilter, eventTypes, actorFilter]);
-
-  // Logins tab is independent — only fetch when the user opens it.
-  useEffect(() => {
-    if (tab === 'logins' && logins.length === 0 && !loadingLogins) {
-      void loadLogins();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   const loadActivity = async () => {
     setLoading(true);
@@ -160,25 +162,38 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       if (rpcErr) {
         console.error('list_team_member_last_login failed', rpcErr);
         setLogins([]);
+        setTeamMembers([]);
       } else {
-        setLogins((data ?? []) as LastLoginRow[]);
+        const rowsList = (data ?? []) as LastLoginRow[];
+        setLogins(rowsList);
+        setTeamMembers(rowsList);
       }
     } finally {
       setLoadingLogins(false);
     }
   };
 
-  // Derive a unique actor list from the loaded rows so the actor chip
-  // picker only ever shows people who actually appear in the result set.
-  const actorOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rows) {
-      if (r.actor_id) map.set(r.actor_id, r.actor_username);
-    }
-    return Array.from(map.entries())
-      .map(([id, username]) => ({ id, username }))
-      .sort((a, b) => a.username.localeCompare(b.username));
-  }, [rows]);
+  // User-picker options come from the pre-loaded team-member list so the
+  // filter is fully populated before any feed rows are returned.
+  const actorOptions = useMemo(() =>
+    [...teamMembers]
+      .map((m) => ({ id: m.user_id, username: m.username }))
+      .sort((a, b) => a.username.localeCompare(b.username)),
+    [teamMembers],
+  );
+
+  // Logins are filtered client-side by household + user so the Last-logins
+  // tab honours the same selection as the feed.
+  const filteredLogins = useMemo(() => {
+    const householdName = householdFilter === 'all'
+      ? null
+      : households.find((h) => h.id === householdFilter)?.name ?? null;
+    return logins.filter((l) => {
+      if (actorFilter.length && !actorFilter.includes(l.user_id)) return false;
+      if (householdName && !l.household_names.includes(householdName)) return false;
+      return true;
+    });
+  }, [logins, actorFilter, householdFilter, households]);
 
   const fmtDateTime = (iso: string) => {
     const d = new Date(iso);
@@ -351,10 +366,70 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
             </div>
           )}
 
+          {/* Shared filters — household + user are available on both tabs.
+              Date range and event-type chips below only apply to the feed. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Home className="w-3.5 h-3.5" />
+                {t('activityReport.filterHousehold')}
+              </label>
+              <select
+                value={householdFilter}
+                onChange={(e) => setHouseholdFilter(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="all">{t('activityReport.filterAll')}</option>
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <UserIcon className="w-3.5 h-3.5" />
+                {t('activityReport.filterActor')}
+                {actorFilter.length > 0 && (
+                  <button
+                    onClick={() => setActorFilter([])}
+                    className="ml-2 normal-case text-emerald-700 hover:text-emerald-800 font-normal"
+                  >
+                    {t('activityReport.clearAll')}
+                  </button>
+                )}
+              </label>
+              {actorOptions.length === 0 ? (
+                <p className="text-xs text-slate-400 px-1 py-2">
+                  {loadingLogins ? t('activityReport.loading') : t('activityReport.noTeamMembers')}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto bg-white border border-slate-200 rounded-xl p-2">
+                  {actorOptions.map((a) => {
+                    const active = actorFilter.includes(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => toggleActor(a.id)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          active
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                        }`}
+                      >
+                        @{a.username}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
           {tab === 'feed' && (
             <>
-              {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Feed-only filters: date range + event type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
@@ -375,23 +450,6 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                       className="flex-1 px-2.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                    <Home className="w-3.5 h-3.5" />
-                    {t('activityReport.filterHousehold')}
-                  </label>
-                  <select
-                    value={householdFilter}
-                    onChange={(e) => setHouseholdFilter(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  >
-                    <option value="all">{t('activityReport.filterAll')}</option>
-                    {households.map((h) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div>
@@ -419,42 +477,6 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                   </div>
                 </div>
               </div>
-
-              {/* Actor chip picker */}
-              {actorOptions.length > 0 && (
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                    <UserIcon className="w-3.5 h-3.5" />
-                    {t('activityReport.filterActor')}
-                    {actorFilter.length > 0 && (
-                      <button
-                        onClick={() => setActorFilter([])}
-                        className="ml-2 normal-case text-emerald-700 hover:text-emerald-800 font-normal"
-                      >
-                        {t('activityReport.clearAll')}
-                      </button>
-                    )}
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {actorOptions.map((a) => {
-                      const active = actorFilter.includes(a.id);
-                      return (
-                        <button
-                          key={a.id}
-                          onClick={() => toggleActor(a.id)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                            active
-                              ? 'bg-slate-900 text-white border-slate-900'
-                              : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
-                          }`}
-                        >
-                          @{a.username}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* Feed table */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
@@ -523,7 +545,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               {loadingLogins ? (
                 <div className="p-8 text-center text-slate-500 text-sm">{t('activityReport.loading')}</div>
-              ) : logins.length === 0 ? (
+              ) : filteredLogins.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-sm">{t('activityReport.emptyLogins')}</div>
               ) : (
                 <table className="w-full">
@@ -535,7 +557,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
-                    {logins.map((l) => (
+                    {filteredLogins.map((l) => (
                       <tr key={l.user_id} className="hover:bg-slate-50">
                         <td className="px-3 py-2.5 text-sm text-slate-900">@{l.username}</td>
                         <td className="px-3 py-2.5 text-sm text-slate-600 whitespace-nowrap">

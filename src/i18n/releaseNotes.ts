@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.3',
+    version: 'v10.3',
+    date: '2026-06-09',
+    title: {
+      'en': 'Activity report: filter by person on both tabs',
+      'pt-BR': 'Relatório de atividade: filtrar por pessoa nas duas abas',
+    },
+    body: {
+      'en':
+        "A small but useful follow-up to the Activity screen. The Person filter is now available from the moment you open the report — no need to wait for results to load — and it works on the Last logins tab too, alongside the Household filter. So you can quickly answer questions like 'when did Alex last sign in?' or 'show me everyone in Beach House who hasn't logged in for a while'.",
+      'pt-BR':
+        'Um ajuste pequeno mas útil na tela de Atividade. O filtro de Pessoa agora aparece desde o momento em que você abre o relatório — sem precisar esperar os resultados carregarem — e também funciona na aba de Últimos acessos, junto com o filtro de Domicílio. Assim dá para responder rapidamente perguntas como "quando o Alex entrou pela última vez?" ou "me mostre quem da Casa de Praia está sem acessar há um tempo".',
+    },
+  },
+  {
     id: 'v10.2',
     version: 'v10.2',
     date: '2026-06-08',
