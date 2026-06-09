@@ -1,0 +1,1 @@
+../../claude-code-handoff/hooks/proactive-handoff.sh

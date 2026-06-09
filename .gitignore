@@ -21,3 +21,13 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# claude-code-handoff session files
+.claude/handoffs/
+.claude/context.md
+.claude/current-task.md
+.claude/task-history.md
+.claude/current-bug.md
+.claude/session-state.md
+.claude/session-state.md.bak
+.claude/mode
