@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, X, UserPlus, Trash2 } from 'lucide-react';
+import { Plus, X, UserPlus, Trash2, Tag, Check, Loader2 } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 
 interface Household {
@@ -22,6 +22,11 @@ interface User {
   username: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+}
+
 export function ManageHouseholds() {
   const { t, locale } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -38,9 +43,19 @@ export function ManageHouseholds() {
   const [deleteError, setDeleteError] = useState('');
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
+  // Category-assignment state — scoped to the currently expanded household.
+  // We load the full category list once and the per-household assignments
+  // on demand so opening another household doesn't re-fetch the whole set.
+  const [allCategories, setAllCategories] = useState<CategoryOption[]>([]);
+  const [assignedCategoryIds, setAssignedCategoryIds] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState('');
+
   useEffect(() => {
     loadHouseholds();
     loadAllUsers();
+    loadAllCategories();
   }, []);
 
   const loadHouseholds = async () => {
@@ -58,6 +73,54 @@ export function ManageHouseholds() {
     if (data) {
       setAllUsers(data.map((u: { id: string; username: string }) => ({ id: u.id, username: u.username })));
     }
+  };
+
+  const loadAllCategories = async () => {
+    const { data } = await supabase
+      .from('categories')
+      .select('id, name')
+      .order('name');
+    if (data) setAllCategories(data as CategoryOption[]);
+  };
+
+  const loadAssignedCategories = async (householdId: string) => {
+    setLoadingCategories(true);
+    setCategoryError('');
+    const { data } = await supabase
+      .from('category_households')
+      .select('category_id')
+      .eq('household_id', householdId);
+    setAssignedCategoryIds(((data ?? []) as { category_id: string }[]).map((r) => r.category_id));
+    setLoadingCategories(false);
+  };
+
+  // Toggle a single category on/off for the expanded household via the
+  // inverse RPC. We compute the next set client-side and ship it to the
+  // server in one call (which also fixes up the legacy categories.household_id
+  // field). Optimistic UI: flip the checkbox immediately, roll back on error.
+  const toggleCategoryForHousehold = async (householdId: string, categoryId: string) => {
+    const currentlyAssigned = assignedCategoryIds.includes(categoryId);
+    const next = currentlyAssigned
+      ? assignedCategoryIds.filter((id) => id !== categoryId)
+      : [...assignedCategoryIds, categoryId];
+    setAssignedCategoryIds(next);
+    setSavingCategoryId(categoryId);
+    setCategoryError('');
+
+    const { error } = await supabase.rpc(
+      'admin_set_household_categories' as never,
+      {
+        p_household_id: householdId,
+        p_category_ids: next.length > 0 ? next : null,
+      } as never,
+    );
+
+    if (error) {
+      // Roll back the optimistic flip and surface the error.
+      setAssignedCategoryIds(assignedCategoryIds);
+      setCategoryError(error.message);
+    }
+    setSavingCategoryId(null);
   };
 
   const createHousehold = async (e: React.FormEvent) => {
@@ -107,6 +170,10 @@ export function ManageHouseholds() {
     }
 
     setLoadingMembers(false);
+
+    // Categories load in parallel from the user's perspective — independent
+    // state so it can show its own spinner without blocking the member list.
+    void loadAssignedCategories(householdId);
   };
 
   const addMember = async (e: React.FormEvent) => {
@@ -335,6 +402,63 @@ export function ManageHouseholds() {
                       className="w-4 h-4 accent-emerald-600 shrink-0"
                     />
                   </label>
+                </div>
+
+                {/* Categories — bulk toggle which categories apply to this
+                    household. The single-category modal in ManageCategories
+                    still works; this is the inverse view for when you've
+                    just created a household and want to wire up ten
+                    categories at once. */}
+                <div className="mb-4 bg-white border border-slate-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-emerald-600" />
+                      <h4 className="text-sm font-semibold text-slate-900">{t('admin.hh.categories')}</h4>
+                      <span className="text-xs text-slate-500">
+                        {t('admin.hh.categoriesCount', { count: assignedCategoryIds.length })}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-3">{t('admin.hh.categoriesHelp')}</p>
+
+                  {categoryError && (
+                    <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-xs text-red-600">{categoryError}</p>
+                    </div>
+                  )}
+
+                  {loadingCategories ? (
+                    <div className="py-4 text-center text-sm text-slate-500">{t('admin.hh.loadingCategories')}</div>
+                  ) : allCategories.length === 0 ? (
+                    <p className="py-2 text-sm text-slate-500">{t('admin.hh.noCategories')}</p>
+                  ) : (
+                    <div className="max-h-56 overflow-y-auto pr-1 space-y-1">
+                      {allCategories.map((cat) => {
+                        const checked = assignedCategoryIds.includes(cat.id);
+                        const saving = savingCategoryId === cat.id;
+                        return (
+                          <label
+                            key={cat.id}
+                            className="flex items-center gap-3 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer transition-all"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={saving}
+                              onChange={() => toggleCategoryForHousehold(household.id, cat.id)}
+                              className="w-4 h-4 accent-emerald-600 shrink-0"
+                            />
+                            <span className="text-sm text-slate-900 flex-1">{cat.name}</span>
+                            {saving ? (
+                              <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                            ) : checked ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {loadingMembers ? (

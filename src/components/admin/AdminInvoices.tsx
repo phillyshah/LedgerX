@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
-import { X, ChevronDown, ChevronUp, FileText, Check, Tag, Trash2 } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, FileText, Check, Tag, Trash2, Edit2 } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
 
 interface HouseholdOption {
@@ -51,11 +51,15 @@ export function AdminInvoices() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Category-assignment modal
-  const [categoryModal, setCategoryModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
-  const [categoryPick, setCategoryPick] = useState('');
-  const [categorySaving, setCategorySaving] = useState(false);
-  const [categoryError, setCategoryError] = useState<string | null>(null);
+  // Edit-invoice modal — single dialog for household, category, and admin
+  // notes. Replaced the older category-only modal so admins can fix all three
+  // editable fields without bouncing between modals.
+  const [editModal, setEditModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
+  const [editHouseholdPick, setEditHouseholdPick] = useState<string>('');
+  const [editCategoryPick, setEditCategoryPick] = useState<string>('');
+  const [editNotes, setEditNotes] = useState<string>('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Filters + sort
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -166,22 +170,34 @@ export function AdminInvoices() {
     setActioning(false);
   };
 
-  const openCategoryModal = (invoice: AdminInvoiceRow) => {
-    setCategoryModal({ invoice });
-    setCategoryPick(invoice.category_id ?? '');
-    setCategoryError(null);
+  const openEditModal = (invoice: AdminInvoiceRow) => {
+    setEditModal({ invoice });
+    setEditHouseholdPick(invoice.household_id ?? '');
+    setEditCategoryPick(invoice.category_id ?? '');
+    setEditNotes(invoice.admin_notes ?? '');
+    setEditError(null);
   };
 
-  const confirmCategory = async () => {
-    if (!categoryModal) return;
-    setCategorySaving(true); setCategoryError(null);
-    const { error } = await supabase.rpc('admin_set_invoice_category', {
-      p_invoice_id: categoryModal.invoice.id,
-      p_category_id: categoryPick || null,
-    });
-    if (error) setCategoryError(t('adminInvoices.failedAction'));
-    else { setCategoryModal(null); await loadData(); }
-    setCategorySaving(false);
+  const confirmEdit = async () => {
+    if (!editModal) return;
+    setEditSaving(true);
+    setEditError(null);
+    const { error } = await supabase.rpc(
+      'admin_update_invoice_details' as never,
+      {
+        p_invoice_id:   editModal.invoice.id,
+        p_household_id: editHouseholdPick || null,
+        p_category_id:  editCategoryPick || null,
+        p_admin_notes:  editNotes.trim() ? editNotes.trim() : null,
+      } as never,
+    );
+    if (error) {
+      setEditError(t('adminInvoices.failedEdit'));
+    } else {
+      setEditModal(null);
+      await loadData();
+    }
+    setEditSaving(false);
   };
 
   // Globals (no mappings) plus any explicitly mapped to this household.
@@ -333,11 +349,11 @@ export function AdminInvoices() {
                     </button>
                   )}
                   <button
-                    onClick={() => openCategoryModal(inv)}
+                    onClick={() => openEditModal(inv)}
                     className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-all"
                   >
-                    <Tag className="w-3 h-3 inline mr-1" />
-                    {inv.category_id ? t('adminInvoices.actionChangeCategory') : t('adminInvoices.actionAssignCategory')}
+                    <Edit2 className="w-3 h-3 inline mr-1" />
+                    {t('adminInvoices.actionEdit')}
                   </button>
                 </div>
               )}
@@ -540,11 +556,11 @@ export function AdminInvoices() {
                 )}
                 {canMutateStatus && (
                   <button
-                    onClick={() => { openCategoryModal(detailInvoice); setDetailInvoice(null); }}
+                    onClick={() => { openEditModal(detailInvoice); setDetailInvoice(null); }}
                     className="px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-all"
                   >
-                    <Tag className="w-4 h-4 inline mr-1" />
-                    {detailInvoice.category_id ? t('adminInvoices.actionChangeCategory') : t('adminInvoices.actionAssignCategory')}
+                    <Edit2 className="w-4 h-4 inline mr-1" />
+                    {t('adminInvoices.actionEditDetails')}
                   </button>
                 )}
                 {isAdmin && (
@@ -569,15 +585,15 @@ export function AdminInvoices() {
         </div>
       )}
 
-      {/* ── Category Assignment Modal ── */}
-      {categoryModal && (
+      {/* ── Edit Invoice Modal — household + category + admin notes ── */}
+      {editModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">
-                {t('adminInvoices.modalCategoryTitle')}
+                {t('adminInvoices.editTitle')}
               </h3>
-              <button onClick={() => setCategoryModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
@@ -585,48 +601,87 @@ export function AdminInvoices() {
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('adminInvoices.detailInvoiceNumber')}</span>
-                <span className="font-mono font-semibold">{categoryModal.invoice.invoice_number || t('invoice.noNumberPlaceholder')}</span>
+                <span className="font-mono font-semibold">{editModal.invoice.invoice_number || t('invoice.noNumberPlaceholder')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">{t('adminInvoices.detailProperty')}</span>
-                <span>{categoryModal.invoice.household_name}</span>
+                <span className="text-slate-500">{t('adminInvoices.detailContractor')}</span>
+                <span>@{editModal.invoice.submitter_username}</span>
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                {t('adminInvoices.modalCategoryLabel')}
+            {/* Household */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editHousehold')}
               </label>
               <select
-                value={categoryPick}
-                onChange={(e) => { setCategoryPick(e.target.value); setCategoryError(null); }}
+                value={editHouseholdPick}
+                onChange={(e) => {
+                  setEditHouseholdPick(e.target.value);
+                  // Category list is filtered by household — clear the pick
+                  // if it's no longer valid under the newly selected one.
+                  if (editCategoryPick) {
+                    const validUnderNew = categoriesForHousehold(e.target.value || null)
+                      .some((c) => c.id === editCategoryPick);
+                    if (!validUnderNew) setEditCategoryPick('');
+                  }
+                  setEditError(null);
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
               >
-                <option value="">{t('adminInvoices.modalCategoryNone')}</option>
-                {categoriesForHousehold(categoryModal.invoice.household_id).map((c) => (
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category — filtered by the (possibly just-changed) household */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editCategory')}
+              </label>
+              <select
+                value={editCategoryPick}
+                onChange={(e) => { setEditCategoryPick(e.target.value); setEditError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="">{t('adminInvoices.editCategoryNone')}</option>
+                {categoriesForHousehold(editHouseholdPick || null).map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <p className="mt-2 text-xs text-slate-500">
-                {t('adminInvoices.modalCategoryHint')}
-              </p>
-              {categoryError && <p className="mt-1 text-sm text-red-600">{categoryError}</p>}
+            </div>
+
+            {/* Admin notes */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editNotes')}
+              </label>
+              <textarea
+                value={editNotes}
+                onChange={(e) => { setEditNotes(e.target.value); setEditError(null); }}
+                rows={3}
+                placeholder={t('adminInvoices.editNotesPlaceholder')}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
+              />
+              <p className="mt-1 text-xs text-slate-500">{t('adminInvoices.editHint')}</p>
+              {editError && <p className="mt-1 text-sm text-red-600">{editError}</p>}
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setCategoryModal(null)}
-                disabled={categorySaving}
+                onClick={() => setEditModal(null)}
+                disabled={editSaving}
                 className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
               >
                 {t('adminInvoices.modalCancel')}
               </button>
               <button
-                onClick={confirmCategory}
-                disabled={categorySaving}
+                onClick={confirmEdit}
+                disabled={editSaving}
                 className="flex-1 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
               >
-                {categorySaving ? '...' : t('adminInvoices.modalConfirm')}
+                {editSaving ? '...' : t('adminInvoices.modalConfirm')}
               </button>
             </div>
           </div>

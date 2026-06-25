@@ -684,5 +684,20 @@
   "activityReport.loadError": "Não foi possível carregar a atividade. Tente novamente.",
   "activityReport.lastLoginNever": "Nunca entrou",
   "activityReport.scopeNote": "Toque em qualquer linha para abrir o recibo ou a nota.",
-  "activityReport.noTeamMembers": "Nenhum membro da equipe para filtrar."
+  "activityReport.noTeamMembers": "Nenhum membro da equipe para filtrar.",
+  "admin.hh.categories": "Categorias",
+  "admin.hh.categoriesCount": "({count} selecionadas)",
+  "admin.hh.categoriesHelp": "Marque as categorias disponíveis para recibos e notas neste domicílio. A janela individual em Categorias continua funcionando para editar uma categoria de cada vez.",
+  "admin.hh.loadingCategories": "Carregando categorias…",
+  "admin.hh.noCategories": "Nenhuma categoria ainda — cadastre algumas na tela Categorias primeiro.",
+  "adminInvoices.editTitle": "Editar nota",
+  "adminInvoices.editHousehold": "Propriedade",
+  "adminInvoices.editCategory": "Categoria",
+  "adminInvoices.editCategoryNone": "— Sem categoria —",
+  "adminInvoices.editNotes": "Notas do admin",
+  "adminInvoices.editNotesPlaceholder": "Notas internas (opcional). Visível apenas para administradores.",
+  "adminInvoices.editHint": "As alterações são salvas ao tocar em Salvar.",
+  "adminInvoices.actionEdit": "Editar",
+  "adminInvoices.actionEditDetails": "Editar detalhes",
+  "adminInvoices.failedEdit": "Não foi possível salvar as alterações."
 }

@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.4',
+    version: 'v10.4',
+    date: '2026-06-15',
+    title: {
+      'en': 'Bulk-assign categories, edit invoices in one shot',
+      'pt-BR': 'Atribuir categorias em lote, editar notas em uma janela',
+    },
+    body: {
+      'en':
+        "Two quality-of-life wins for admins. First — when you open a household in Manage Households, there's now a Categories section with a checkbox list. Tick or untick to assign categories to that household; saves automatically as you go. No more opening the category modal ten times after creating a new property. " +
+        "Second — invoice review now has a single Edit button (replacing the old Assign Category one) that opens a dialog with Property, Category, and Admin notes all editable in one place. Change any combination and tap Save.",
+      'pt-BR':
+        'Duas melhorias rápidas para administradores. Primeiro — ao abrir um domicílio em Gerenciar Domicílios, agora aparece uma seção Categorias com lista de marcação. Marque ou desmarque para atribuir categorias àquele domicílio; salva automaticamente conforme você clica. Não precisa mais abrir a janela de cada categoria dez vezes depois de criar uma nova propriedade. ' +
+        'Segundo — a revisão de notas agora tem um único botão Editar (no lugar do antigo Atribuir Categoria) que abre uma janela com Propriedade, Categoria e Notas do admin todos editáveis no mesmo lugar. Mude o que quiser e toque em Salvar.',
+    },
+  },
+  {
     id: 'v10.3',
     version: 'v10.3',
     date: '2026-06-09',

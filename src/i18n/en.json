@@ -684,5 +684,20 @@
   "activityReport.loadError": "Couldn't load activity. Please try again.",
   "activityReport.lastLoginNever": "Never signed in",
   "activityReport.scopeNote": "Tap any row to open the receipt or invoice.",
-  "activityReport.noTeamMembers": "No team members to filter by."
+  "activityReport.noTeamMembers": "No team members to filter by.",
+  "admin.hh.categories": "Categories",
+  "admin.hh.categoriesCount": "({count} selected)",
+  "admin.hh.categoriesHelp": "Tick the categories that should be available for receipts and invoices in this household. The single-category modal in Categories still works for editing one category at a time.",
+  "admin.hh.loadingCategories": "Loading categories…",
+  "admin.hh.noCategories": "No categories yet — add some from the Categories screen first.",
+  "adminInvoices.editTitle": "Edit invoice",
+  "adminInvoices.editHousehold": "Property",
+  "adminInvoices.editCategory": "Category",
+  "adminInvoices.editCategoryNone": "— No category —",
+  "adminInvoices.editNotes": "Admin notes",
+  "adminInvoices.editNotesPlaceholder": "Internal notes (optional). Visible to admins only.",
+  "adminInvoices.editHint": "Changes are saved when you tap Save.",
+  "adminInvoices.actionEdit": "Edit",
+  "adminInvoices.actionEditDetails": "Edit details",
+  "adminInvoices.failedEdit": "Could not save changes."
 }
