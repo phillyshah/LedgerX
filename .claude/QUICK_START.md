@@ -42,22 +42,28 @@ supabase functions deploy admin-change-password
 ## Hostinger VPS Deploy (ledger.90ten.life)
 
 ```bash
-# 1. Build on Mac
+# Option A — build on the VPS (preferred; repo cloned at /opt/LedgerX)
+cd /opt/LedgerX
+git pull origin main
+npm ci
 npm run build
+sudo rsync -avz --delete dist/ /var/www/ledger.90ten.life/
 
-# 2. Upload dist/ to VPS
-rsync -avz --delete /Users/MACBOOK/Downloads/LedgerX/dist/ root@72.62.174.193:/var/www/ledger.90ten.life/
+# Option B — build on Mac, ship dist/ over SSH
+npm run build
+rsync -avz --delete /Users/MACBOOK/code/LedgerX/dist/ root@72.62.174.193:/var/www/ledger.90ten.life/
 ```
 
-nginx config: `/etc/nginx/sites-enabled/ledger.90ten.life`  
-SSL cert: auto-renews via certbot (issued 2026-04-28, renews on schedule)  
+Reverse proxy: **Traefik** (not nginx). `/var/www/ledger.90ten.life/` is the
+static-site root Traefik points at for `ledger.90ten.life`. The HTTP
+`Server:` response header may still read `nginx` if there's an internal
+upstream — that's a forwarded value, not the edge proxy.
+SSL: managed via Traefik's built-in ACME (Let's Encrypt) — no certbot.
 VPS IP: `72.62.174.193`
 
-**Legacy domain:** `ledger.phillyshah.com` is preserved as a pure 301
-redirect to `https://ledger.90ten.life` (config at
-`/etc/nginx/sites-enabled/ledger.phillyshah.com`). Old bookmarks and
-shared links keep working. Plan to retire the legacy vhost ~60 days
-after cutover (2026-04-28).
+**Legacy domain:** `ledger.phillyshah.com` is preserved as a 301 redirect
+to `https://ledger.90ten.life` via a Traefik router rule. Old bookmarks
+and shared links keep working.
 
 ## Supabase Auth Config (dashboard)
 

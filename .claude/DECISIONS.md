@@ -22,7 +22,7 @@ PDF generation in-browser. No server dependency. Embeds receipt images. Tradeoff
 Admins route directly to AdminLayout (never see Dashboard), so the chart component must be wired into both views.
 
 ## Hostinger VPS for hosting
-Static `dist/` served by nginx at `72.62.174.193`. DNS via Hostinger. Bolt no longer used.
+Static `dist/` served behind **Traefik** at `72.62.174.193`. DNS via Hostinger. SSL via Traefik's built-in ACME (Let's Encrypt). Bolt no longer used.
 
 ## i18n: flat-key dictionaries via useT()
 Two flat JSON dictionaries (`en.json`, `pt-BR.json`). `useT()` reads `preferredLanguage` from AuthContext — no React Context of its own, no heavy i18n library. `t(key, params?)` supports `{param}` interpolation and falls back to English → raw key. `locale` string (e.g. `'pt-BR'`) passed to `Intl` directly — no separate locale context needed.
