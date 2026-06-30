@@ -391,6 +391,7 @@ export function Dashboard() {
               estimates={estimates}
               loading={estimatesLoading}
               onReload={reloadEstimates}
+              onAdd={() => setShowEstimateForm(true)}
             />
           </CollapsibleSection>
 
@@ -426,6 +427,13 @@ export function Dashboard() {
             onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); setPendingInboxId(null); }}
             onSaved={handleInvoiceAdded}
             initialData={invoiceInitialData}
+          />
+        )}
+
+        {showEstimateForm && (
+          <EstimateForm
+            onClose={() => setShowEstimateForm(false)}
+            onSaved={reloadEstimates}
           />
         )}
 

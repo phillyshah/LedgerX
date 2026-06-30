@@ -167,7 +167,7 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
       setJustSaved(true);
 
       // Fire-and-forget: notify admins of the new estimate.
-      if (isContractor) {
+      if (!isAdmin) {
         supabase.functions.invoke('send-submission-notification', {
           body: { type: 'estimate_submitted', estimate_id: estimateId },
         }).catch(() => { /* non-critical */ });
