@@ -37,7 +37,7 @@ function isAllowed(file: File): boolean {
 }
 
 export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
-  const { user, isContractor } = useAuth();
+  const { user, isContractor, isAdmin } = useAuth();
   const { t } = useT();
   useEscapeClose(onClose);
 
@@ -54,17 +54,25 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
-        .from('household_members')
-        .select('household_id, households(id, name)')
-        .eq('user_id', user.id);
-      const hh = (data || [])
-        .map((item) => item.households)
-        .filter(Boolean) as unknown as Household[];
+      // Full admins can file against any property; contractors are scoped to
+      // households they belong to.
+      let hh: Household[];
+      if (isAdmin) {
+        const { data } = await supabase.from('households').select('id, name').order('name');
+        hh = (data || []) as Household[];
+      } else {
+        const { data } = await supabase
+          .from('household_members')
+          .select('household_id, households(id, name)')
+          .eq('user_id', user.id);
+        hh = (data || [])
+          .map((item) => item.households)
+          .filter(Boolean) as unknown as Household[];
+      }
       setHouseholds(hh);
       if (hh.length === 1) setHouseholdId(hh[0].id);
     })();
-  }, [user]);
+  }, [user, isAdmin]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files;

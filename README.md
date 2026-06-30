@@ -541,7 +541,9 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
 
-**Email notifications:** when a contractor submits a new estimate, every full admin with a real email on file is notified — same as invoices and receipts.
+**Submitting your own estimate:** if a subcontractor sends you a quote directly, you can log it yourself — tap **Submit an estimate** on the admin home, pick any property, and attach the JPEG or PDF. It appears in the Estimates section alongside contractor-submitted ones, ready to accept, reject, or discuss.
+
+**Email notifications:** when a contractor submits a new estimate, every full admin with a real email on file is notified — same as invoices and receipts. (Estimates you file yourself don't email the other admins.)
 
 ### Activity Report
 <!-- roles: admin, household_admin -->

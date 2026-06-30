@@ -538,7 +538,9 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
 
-**Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos.
+**Enviar seu próprio orçamento:** se um subcontratado lhe envia uma cotação diretamente, você mesmo pode registrá-la — toque em **Enviar um orçamento** na tela inicial de administrador, escolha qualquer propriedade e anexe o JPEG ou PDF. Ele aparece na seção Orçamentos junto com os enviados por prestadores, pronto para aceitar, recusar ou discutir.
+
+**Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos. (Orçamentos que você mesmo registra não enviam e-mail aos outros admins.)
 
 ### Relatório de Atividade
 <!-- roles: admin, household_admin -->
