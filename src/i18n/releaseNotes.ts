@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.8',
+    version: 'v10.8',
+    date: '2026-07-05',
+    title: {
+      'en': 'Invite anyone into an estimate',
+      'pt-BR': 'Convide qualquer pessoa para um orçamento',
+    },
+    body: {
+      'en':
+        'Admins can now invite any user into a specific estimate\'s conversation — even someone who isn\'t a contractor or household member. ' +
+        'Open an estimate in the Estimates section, scroll to "Invited participants", type a username, and tap Invite. ' +
+        'The invited user immediately sees the estimate in their dashboard and can join the message thread with full read/write access.',
+      'pt-BR':
+        'Administradores agora podem convidar qualquer usuário para a conversa de um orçamento específico — mesmo quem não é prestador ou membro da propriedade. ' +
+        'Abra um orçamento na seção Orçamentos, role até "Participantes convidados", digite um nome de usuário e toque em Convidar. ' +
+        'O usuário convidado vê imediatamente o orçamento no seu painel e pode participar da conversa com acesso completo de leitura e escrita.',
+    },
+  },
+  {
     id: 'v10.7',
     version: 'v10.7',
     date: '2026-07-03',

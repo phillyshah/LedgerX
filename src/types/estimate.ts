@@ -20,6 +20,14 @@ export interface Estimate {
   submitter_username?: string;
   /** Count of unread messages from the other party (from list_estimate_unread). */
   unread_count?: number;
+  /** True when the current user was explicitly invited by an admin. */
+  is_participant?: boolean;
+}
+
+export interface EstimateParticipant {
+  user_id: string;
+  username: string;
+  invited_at: string;
 }
 
 export interface EstimateAttachment {

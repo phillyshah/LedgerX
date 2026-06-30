@@ -243,7 +243,7 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
               <EstimateChat
                 estimateId={detail.id}
                 onActivity={onReload}
-                readOnly={detail.created_by !== user?.id && !isAdmin}
+                readOnly={detail.created_by !== user?.id && !isAdmin && !detail.is_participant}
               />
 
               <div className="flex justify-end pt-2">
