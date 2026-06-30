@@ -1,9 +1,10 @@
 // send-submission-notification
 //
 // Generalized notifier for "a contractor / user just submitted something."
-// Supports two payload shapes:
+// Supports three payload shapes:
 //   { type: "invoice_submitted", invoice_id: "..." }
 //   { type: "expense_submitted", expense_id: "..." }
+//   { type: "estimate_submitted", estimate_id: "..." }
 //
 // Recipients:
 //   - All users with is_admin = true and a real (non-@ledgerx.local) email.
@@ -53,28 +54,31 @@ function htmlEscape(s: string): string {
 }
 
 interface SubmissionEmailParams {
-  kind: "invoice" | "expense";
+  kind: "invoice" | "expense" | "estimate";
   submitterUsername: string;
   householdName: string;
-  amount: number;
+  /** Estimates carry no amount — null renders the title block instead. */
+  amount: number | null;
   currency: string;
-  /** Invoice number OR vendor name for receipts */
+  /** Invoice number / vendor name / estimate title */
   reference: string | null;
   description: string | null;
   appUrl: string;
 }
 
 function submissionEmailHtml(p: SubmissionEmailParams): string {
-  const amountStr = formatCurrency(p.amount, p.currency);
-  const kindLabel = p.kind === "invoice" ? "Invoice" : "Receipt";
-  const headlineKind = p.kind === "invoice" ? "Invoice" : "Receipt";
-  const headerTitle = `New ${headlineKind} Submitted`;
+  const kindLabel = p.kind === "invoice" ? "Invoice" : p.kind === "estimate" ? "Estimate" : "Receipt";
+  const headerTitle = `New ${kindLabel} Submitted`;
   const ref = p.reference
     ? `${kindLabel} · ${htmlEscape(p.reference)}`
     : kindLabel;
   const desc = p.description
     ? `<p style="margin:8px 0 0;color:#475569;">${htmlEscape(p.description)}</p>`
     : "";
+  // Estimates have no monetary amount — show the title prominently instead.
+  const highlight = p.amount != null
+    ? `<p style="margin:0;font-size:28px;font-weight:700;color:#065f46;">${formatCurrency(p.amount, p.currency)}</p>`
+    : `<p style="margin:0;font-size:20px;font-weight:700;color:#065f46;">${htmlEscape(p.reference ?? "Estimate")}</p>`;
   return `
 <!DOCTYPE html>
 <html>
@@ -87,11 +91,11 @@ function submissionEmailHtml(p: SubmissionEmailParams): string {
     </div>
     <div style="padding:28px 32px;">
       <p style="margin:0 0 20px;color:#334155;font-size:15px;">
-        <strong>${htmlEscape(p.submitterUsername)}</strong> submitted a ${p.kind} for <strong>${htmlEscape(p.householdName)}</strong>.
+        <strong>${htmlEscape(p.submitterUsername)}</strong> submitted ${p.kind === "estimate" ? "an" : "a"} ${p.kind} for <strong>${htmlEscape(p.householdName)}</strong>.
       </p>
       <div style="background:#f1f5f9;border-radius:12px;padding:16px 20px;margin-bottom:20px;">
         <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">${ref}</p>
-        <p style="margin:0;font-size:28px;font-weight:700;color:#065f46;">${amountStr}</p>
+        ${highlight}
         ${desc}
       </div>
       <a href="${p.appUrl}" style="display:inline-block;background:linear-gradient(135deg,#059669,#0d9488);color:#fff;font-weight:600;font-size:14px;text-decoration:none;padding:12px 24px;border-radius:10px;">
@@ -155,21 +159,21 @@ Deno.serve(async (req: Request) => {
 
     const payload = await req.json();
     const { type } = payload;
-    if (!type || !["invoice_submitted", "expense_submitted"].includes(type)) {
+    if (!type || !["invoice_submitted", "expense_submitted", "estimate_submitted"].includes(type)) {
       return new Response(
-        JSON.stringify({ error: "type must be 'invoice_submitted' or 'expense_submitted'" }),
+        JSON.stringify({ error: "type must be 'invoice_submitted', 'expense_submitted', or 'estimate_submitted'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     let householdId: string;
     let submitterId: string;
-    let amount: number;
+    let amount: number | null;
     let currency: string;
     let reference: string | null;
     let description: string | null;
-    let kind: "invoice" | "expense";
-    let notifKind: "submission_invoice" | "submission_expense";
+    let kind: "invoice" | "expense" | "estimate";
+    let notifKind: "submission_invoice" | "submission_expense" | "submission_estimate";
     let contextRow: Record<string, unknown>;
 
     if (type === "invoice_submitted") {
@@ -200,7 +204,7 @@ Deno.serve(async (req: Request) => {
       kind = "invoice";
       notifKind = "submission_invoice";
       contextRow = { invoice_id: inv.id };
-    } else {
+    } else if (type === "expense_submitted") {
       const expenseId = payload.expense_id;
       if (!expenseId) {
         return new Response(
@@ -228,6 +232,35 @@ Deno.serve(async (req: Request) => {
       kind = "expense";
       notifKind = "submission_expense";
       contextRow = { expense_id: exp.id };
+    } else {
+      // estimate_submitted — estimates carry a title, not an amount.
+      const estimateId = payload.estimate_id;
+      if (!estimateId) {
+        return new Response(
+          JSON.stringify({ error: "estimate_id is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const { data: est, error: estErr } = await supabase
+        .from("estimates")
+        .select("id, title, description, household_id, created_by")
+        .eq("id", estimateId)
+        .single();
+      if (estErr || !est) {
+        return new Response(
+          JSON.stringify({ error: "Estimate not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      householdId = est.household_id;
+      submitterId = est.created_by;
+      amount = null;
+      currency = "USD";
+      reference = est.title;
+      description = est.description;
+      kind = "estimate";
+      notifKind = "submission_estimate";
+      contextRow = { estimate_id: est.id };
     }
 
     // Authorization: the caller must own the row they're announcing (the
@@ -334,9 +367,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const subject = kind === "invoice"
-      ? `New invoice from ${submitterUsername} — ${formatCurrency(amount, currency)}`
-      : `New receipt from ${submitterUsername} — ${formatCurrency(amount, currency)}`;
+    const subject = kind === "estimate"
+      ? `New estimate from ${submitterUsername}${reference ? ` — ${reference}` : ""}`
+      : kind === "invoice"
+        ? `New invoice from ${submitterUsername} — ${formatCurrency(amount ?? 0, currency)}`
+        : `New receipt from ${submitterUsername} — ${formatCurrency(amount ?? 0, currency)}`;
 
     const html = submissionEmailHtml({
       kind,

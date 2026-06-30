@@ -529,6 +529,20 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 
 **Inactivity reminders:** If you haven't signed in or submitted anything for **14 days**, LedgerX sends you a gentle (and randomly worded — never the same form letter twice in a row) reminder email with a one-tap link back into the app. If you keep ignoring it: a second nudge at 30 days, then about monthly. As soon as you log in or file something, the clock resets and the reminders stop. This applies to full admins and household admins.
 
+### Estimates
+<!-- roles: admin -->
+
+Contractors can submit **estimates** (quotes) for you to review and discuss before any work is invoiced. Open the **Estimates** section from the nav (or the Estimates tile on the admin home). This is a **full-admin** feature — household admins don't see it for now.
+
+- See every estimate submitted by contractors, with a red badge showing unread messages
+- Filter by status (Open / Accepted / Rejected) and property; sort by date
+- Click an estimate to open it: the submitted JPEG/PDF files (PDFs open in a new tab), the contractor's description, and the **conversation thread**
+- **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
+- **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
+- **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
+
+**Email notifications:** when a contractor submits a new estimate, every full admin with a real email on file is notified — same as invoices and receipts.
+
 ### Activity Report
 <!-- roles: admin, household_admin -->
 
@@ -578,10 +592,11 @@ Assign the role from **Manage Users → role dropdown → Household Admin**.
 ## Contractor Role
 <!-- roles: contractor -->
 
-Contractors see a simplified dashboard with two actions:
+Contractors see a simplified dashboard with three actions:
 
 1. **Add Transaction** — submit a receipt as usual
 2. **Submit Invoice** — upload a PDF or image of your invoice
+3. **Submit an estimate** — send a quote for the admin to review and discuss
 
 **How invoice submission works:**
 1. Tap **Submit Invoice**
@@ -604,6 +619,27 @@ Contractors see a simplified dashboard with two actions:
 **Email notifications:** Once an admin marks your invoice paid, you'll receive a confirmation email (if you have a real email address on file in Settings). Conversely, every time you submit a new invoice OR a new receipt, the admins for that property are emailed automatically — no extra step, no follow-up message needed.
 
 **Work-in-progress photos (contractors only):** When submitting a receipt or invoice, contractors see a **Work-in-progress photos** section underneath the main attachments. Snap or upload photos of the job itself — before/after shots, materials, the leak you just fixed, the wall you painted. They're stored as compact JPEGs (≈0.4 MB each) so they don't blow up your data plan, and admins see them in their own labeled gallery when reviewing the submission. This replaces the WhatsApp / text-message workflow of sending job photos out-of-band. Regular users and household admins do not see this section — it only appears on contractor accounts.
+
+### Estimates (Quotes)
+<!-- roles: contractor -->
+
+Estimates let you send a quote to the admin *before* the work happens — and then talk it through right inside LedgerX, instead of over text or email.
+
+**Submitting an estimate:**
+1. Tap **Submit an estimate**
+2. Pick the **property** the quote is for
+3. Give it a short **title** (e.g. "Roof repair quote") and, optionally, a description
+4. Attach your estimate as a **JPEG or PDF** (you can add more than one file)
+5. Tap **Submit estimate**
+
+**The conversation thread:** every estimate has its own chat. Open any estimate in **My estimates** to see the files you sent and a message area at the bottom. You and the admin can go back and forth there — ask questions, clarify scope, agree on a number. When the admin replies, a small red badge with the message count appears on that estimate so you know there's something new to read.
+
+**Estimate statuses:**
+- 🟡 **Open** — submitted and under discussion
+- 🟢 **Accepted** — the admin approved the quote
+- ⚪ **Rejected** — the admin declined it
+
+Your estimate files stay on record until an admin removes them — there's no contractor delete button for estimates, so nothing you send disappears on its own.
 
 **Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 

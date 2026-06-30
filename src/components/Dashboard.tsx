@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useExpenses } from '../hooks/useExpenses';
 import { useInvoices } from '../hooks/useInvoices';
+import { useEstimates } from '../hooks/useEstimates';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
 import type { AddExpenseInitialData } from './AddExpense';
 import type { InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
-import { Plus, Download, FileText } from 'lucide-react';
+import { EstimateList } from './EstimateList';
+import { Plus, Download, FileText, ClipboardList } from 'lucide-react';
 import { LogoText } from './LogoText';
 import { BellButton } from './BellButton';
 import { UserMenu } from './UserMenu';
@@ -22,6 +24,7 @@ import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react'
 // keeps them out of the initial Dashboard chunk.
 const AddExpense = lazy(() => import('./AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm = lazy(() => import('./InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
+const EstimateForm = lazy(() => import('./EstimateForm').then((m) => ({ default: m.EstimateForm })));
 const ExportData = lazy(() => import('./ExportData').then((m) => ({ default: m.ExportData })));
 const Reports = lazy(() => import('./Reports').then((m) => ({ default: m.Reports })));
 const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default: m.UserSettings })));
@@ -39,6 +42,7 @@ export function Dashboard() {
   const { t } = useT();
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showEstimateForm, setShowEstimateForm] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -53,6 +57,7 @@ export function Dashboard() {
   // ownOnly) and are routed elsewhere by App.tsx, so they aren't affected.
   const { expenses, households, loading, reloadExpenses } = useExpenses(undefined, { ownOnly: true });
   const { invoices, loading: invoicesLoading, reloadInvoices } = useInvoices();
+  const { estimates, loading: estimatesLoading, reloadEstimates } = useEstimates();
   // Single hook instance feeds both the section's badge count and the
   // panel's card list. Discarding or accepting an item updates `items`,
   // which immediately re-derives `inboxCount` — fixing the stale badge
@@ -185,6 +190,18 @@ export function Dashboard() {
                 <div className="text-xs text-emerald-700/70 mt-1">{t('invoice.submitInvoiceHint')}</div>
               </div>
             </button>
+            <button
+              onClick={() => setShowEstimateForm(true)}
+              className="group col-span-2 flex items-center gap-3 p-5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors shrink-0">
+                <ClipboardList className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-semibold text-base leading-tight">{t('estimate.submitEstimate')}</div>
+                <div className="text-xs text-emerald-700/70 mt-1">{t('estimate.submitEstimateHint')}</div>
+              </div>
+            </button>
           </div>
 
           {/* Email inbox — forwarded receipts/invoices awaiting review.
@@ -219,6 +236,19 @@ export function Dashboard() {
           </CollapsibleSection>
 
           <CollapsibleSection
+            storageKey="contractor.estimates"
+            title={t('estimate.myEstimates')}
+            icon={<ClipboardList className="w-4 h-4" />}
+          >
+            <EstimateList
+              estimates={estimates}
+              loading={estimatesLoading}
+              onReload={reloadEstimates}
+              onAdd={() => setShowEstimateForm(true)}
+            />
+          </CollapsibleSection>
+
+          <CollapsibleSection
             storageKey="contractor.submissions"
             title={t('dashboard.yourSubmissions')}
             icon={<ListChecks className="w-4 h-4" />}
@@ -249,6 +279,12 @@ export function Dashboard() {
               onClose={() => { setShowInvoiceForm(false); setInvoiceInitialData(undefined); setPendingInboxId(null); }}
               onSaved={handleInvoiceAdded}
               initialData={invoiceInitialData}
+            />
+          )}
+          {showEstimateForm && (
+            <EstimateForm
+              onClose={() => setShowEstimateForm(false)}
+              onSaved={reloadEstimates}
             />
           )}
           {showSettings && <UserSettings onClose={() => setShowSettings(false)} />}
