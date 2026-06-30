@@ -526,6 +526,20 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 
 **Lembretes de inatividade:** Se você ficar **14 dias** sem entrar nem enviar nada, o LedgerX manda um lembrete leve por e-mail (com texto aleatório — nunca a mesma cartinha duas vezes seguidas) e um link de um toque para voltar ao app. Se continuar inativo: um segundo lembrete em 30 dias, depois aproximadamente mensal. Assim que você loga ou registra qualquer coisa, o relógio reinicia e os lembretes param. Vale para admins completos e admins de propriedade.
 
+### Orçamentos
+<!-- roles: admin -->
+
+Os prestadores podem enviar **orçamentos** (cotações) para você revisar e discutir antes que qualquer serviço vire nota fiscal. Abra a seção **Orçamentos** pelo menu (ou pelo bloco Orçamentos na home do admin). É um recurso de **admin completo** — admins de propriedade não veem isso por enquanto.
+
+- Veja todos os orçamentos enviados pelos prestadores, com um selo vermelho mostrando mensagens não lidas
+- Filtre por status (Aberto / Aceito / Recusado) e propriedade; ordene por data
+- Clique em um orçamento para abri-lo: os arquivos JPEG/PDF enviados (PDFs abrem em nova aba), a descrição do prestador e a **conversa**
+- **Converse** — responda dentro do próprio orçamento; o prestador vê e pode responder
+- **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
+- **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
+
+**Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos.
+
 ### Relatório de Atividade
 <!-- roles: admin, household_admin -->
 
@@ -575,10 +589,11 @@ Atribua a função em **Gerenciar Usuários → dropdown de função → Admin d
 ## Função de Prestador
 <!-- roles: contractor -->
 
-Prestadores veem um painel simplificado com duas ações:
+Prestadores veem um painel simplificado com três ações:
 
 1. **Adicionar Transação** — enviar um recibo normalmente
 2. **Enviar Nota Fiscal** — enviar um PDF ou imagem da sua nota fiscal
+3. **Enviar um orçamento** — enviar uma cotação para o administrador revisar e discutir
 
 **Como enviar uma nota fiscal:**
 1. Toque em **Enviar Nota Fiscal**
@@ -601,6 +616,27 @@ Prestadores veem um painel simplificado com duas ações:
 **Notificações por e-mail:** Assim que um admin marcar sua nota como paga, você receberá um e-mail de confirmação (se tiver um endereço de e-mail real cadastrado em Configurações). E sempre que você enviar uma nota fiscal OU um recibo novo, os administradores da propriedade recebem um e-mail automático — nada de seguir mandando mensagem para avisar.
 
 **Fotos do trabalho em andamento (somente prestadores):** Ao enviar um recibo ou nota fiscal, prestadores veem uma seção **Fotos do trabalho em andamento** logo abaixo dos anexos principais. Tire ou envie fotos do serviço em si — antes e depois, materiais, o vazamento que você acabou de consertar, a parede que pintou. As fotos são salvas como JPEGs compactos (≈0,4 MB cada) para não pesar nos dados, e os administradores enxergam tudo em uma galeria separada com rótulo próprio ao revisar o envio. Isso substitui o vai-e-vem de fotos por WhatsApp e mensagem. Usuários comuns e admins de propriedade não veem esta seção — ela aparece apenas em contas de prestador.
+
+### Orçamentos (Cotações)
+<!-- roles: contractor -->
+
+Os orçamentos permitem enviar uma cotação ao administrador *antes* de o serviço acontecer — e então conversar sobre ela dentro do LedgerX, em vez de por mensagem ou e-mail.
+
+**Como enviar um orçamento:**
+1. Toque em **Enviar um orçamento**
+2. Escolha a **propriedade** a que a cotação se refere
+3. Dê um **título** curto (ex.: "Orçamento de reparo do telhado") e, opcionalmente, uma descrição
+4. Anexe o orçamento como **JPEG ou PDF** (pode adicionar mais de um arquivo)
+5. Toque em **Enviar orçamento**
+
+**A conversa:** cada orçamento tem seu próprio bate-papo. Abra qualquer orçamento em **Meus orçamentos** para ver os arquivos enviados e uma área de mensagens embaixo. Você e o administrador podem trocar mensagens ali — tirar dúvidas, esclarecer o escopo, combinar um valor. Quando o administrador responde, um pequeno selo vermelho com a contagem de mensagens aparece naquele orçamento para você saber que há algo novo.
+
+**Status dos orçamentos:**
+- 🟡 **Aberto** — enviado e em discussão
+- 🟢 **Aceito** — o administrador aprovou a cotação
+- ⚪ **Recusado** — o administrador recusou
+
+Os arquivos do seu orçamento ficam registrados até que um administrador os remova — não há botão de exclusão de orçamento para o prestador, então nada que você enviar some sozinho.
 
 **Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
 

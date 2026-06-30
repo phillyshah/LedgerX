@@ -9,7 +9,7 @@ import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
-  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList,
 } from 'lucide-react';
 // hasUnreadReleases / LAST_SEEN_KEY removed — BellButton owns all unread tracking internally
 
@@ -20,6 +20,7 @@ const AdminAnalytics      = lazy(() => import('./AdminAnalytics').then((m) => ({
 const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions').then((m) => ({ default: m.UncategorizedTransactions })));
 const ManageUsers         = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
 const AdminInvoices       = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
+const AdminEstimates      = lazy(() => import('./AdminEstimates').then((m) => ({ default: m.AdminEstimates })));
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
@@ -40,6 +41,7 @@ type AdminView =
   | 'uncategorized'
   | 'users'
   | 'invoices'
+  | 'estimates'
   | 'reports'
   | 'my-transactions';
 
@@ -113,6 +115,7 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: 
             [
               { key: 'uncategorized' as AdminNavKey, icon: AlertCircle, label: t('admin.uncategorized'), warn: true },
               { key: 'invoices'        as AdminNavKey, icon: HardHat,   label: t('admin.contractorInvoices') },
+              { key: 'estimates'       as AdminNavKey, icon: ClipboardList, label: t('adminEstimates.navLabel') },
               { key: 'my-transactions' as AdminNavKey, icon: Receipt,   label: t('admin.myTransactions') },
               { key: 'analytics'       as AdminNavKey, icon: BarChart3, label: t('admin.analytics') },
               { key: 'reports'         as AdminNavKey, icon: FileText,  label: t('reports.title') },
@@ -245,6 +248,7 @@ export function AdminLayout() {
   const adminNavItems: { key: AdminNavKey; label: string; icon: typeof BarChart3 }[] = [
     { key: 'uncategorized',   label: t('admin.uncategorized'),      icon: AlertCircle },
     { key: 'invoices',        label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
@@ -444,6 +448,7 @@ export function AdminLayout() {
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
               {activeView === 'invoices'      && <AdminInvoices />}
+              {activeView === 'estimates'     && <AdminEstimates />}
             </Suspense>
 
             {activeView === 'my-transactions' && (

@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.5',
+    version: 'v10.5',
+    date: '2026-07-01',
+    title: {
+      'en': 'Estimates — submit quotes and chat about them',
+      'pt-BR': 'Orçamentos — envie cotações e converse sobre elas',
+    },
+    body: {
+      'en':
+        "Contractors can now submit estimates, not just invoices. Tap “Submit an estimate”, pick the property, give it a title, and attach a JPEG or PDF — that's it. " +
+        "Every estimate has its own conversation thread, so you and the admin can go back and forth right on the estimate: ask questions, clarify scope, agree on a number. A little red badge shows when there's a new message waiting. " +
+        "Admins review all estimates from the new Estimates section, accept or reject them, and reply in the same thread. Estimate files are kept on file until an admin deletes them.",
+      'pt-BR':
+        'Os prestadores agora podem enviar orçamentos, não apenas notas. Toque em “Enviar um orçamento”, escolha a propriedade, dê um título e anexe um JPEG ou PDF — pronto. ' +
+        'Cada orçamento tem sua própria conversa, então você e o administrador podem trocar mensagens ali mesmo: tirar dúvidas, esclarecer o escopo, combinar um valor. Um selo vermelho mostra quando há uma nova mensagem esperando. ' +
+        'Os administradores revisam todos os orçamentos na nova seção Orçamentos, aceitam ou recusam, e respondem na mesma conversa. Os arquivos de orçamento ficam guardados até que um administrador os exclua.',
+    },
+  },
+  {
     id: 'v10.4',
     version: 'v10.4',
     date: '2026-06-15',
