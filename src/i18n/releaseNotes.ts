@@ -33,6 +33,38 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.7',
+    version: 'v10.7',
+    date: '2026-07-03',
+    title: {
+      'en': 'Network estimates + billing type',
+      'pt-BR': 'Orçamentos da rede + tipo de cobrança',
+    },
+    body: {
+      'en':
+        "Two improvements to estimates. First — anyone who shares a property with the contractor can now see their estimates, not just the admin. Open the Estimates section on your dashboard and you'll find quotes from contractors working on your properties, complete with attachments and the conversation thread (read-only). " +
+        "Second — every new estimate now requires a billing type: \"Total bill\" or \"Labor only (materials separate)\". This shows as a badge on every estimate card so everyone knows at a glance whether materials are included.",
+      'pt-BR':
+        'Duas melhorias nos orçamentos. Primeiro — qualquer pessoa que compartilha uma propriedade com o prestador agora pode ver seus orçamentos, não apenas o administrador. Abra a seção Orçamentos no seu painel e encontrará cotações de prestadores que trabalham nas suas propriedades, com anexos e a conversa completa (somente leitura). ' +
+        'Segundo — todo novo orçamento agora exige um tipo de cobrança: "Valor total" ou "Somente mão de obra (materiais à parte)". Isso aparece como um selo em cada card de orçamento para que todos saibam de relance se os materiais estão incluídos.',
+    },
+  },
+  {
+    id: 'v10.6',
+    version: 'v10.6',
+    date: '2026-07-02',
+    title: {
+      'en': 'Admins can submit estimates too',
+      'pt-BR': 'Administradores também podem enviar orçamentos',
+    },
+    body: {
+      'en':
+        "Estimates aren't just for contractors anymore. If a subcontractor sends you a quote directly, you can now log it yourself — there's a “Submit an estimate” button on your admin home. Pick any property, attach the JPEG or PDF, and it lands in the Estimates section like any other, ready to accept, reject, or discuss.",
+      'pt-BR':
+        'Os orçamentos não são mais só para prestadores. Se um subcontratado lhe envia uma cotação diretamente, agora você mesmo pode registrá-la — há um botão “Enviar um orçamento” na sua tela inicial de administrador. Escolha qualquer propriedade, anexe o JPEG ou PDF, e ele aparece na seção Orçamentos como qualquer outro, pronto para aceitar, recusar ou discutir.',
+    },
+  },
+  {
     id: 'v10.5',
     version: 'v10.5',
     date: '2026-07-01',

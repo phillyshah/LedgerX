@@ -382,6 +382,19 @@ export function Dashboard() {
           </CollapsibleSection>
 
           <CollapsibleSection
+            storageKey="dashboard.estimates"
+            title={t('estimate.networkEstimates')}
+            icon={<ClipboardList className="w-4 h-4" />}
+            meta={estimates.length > 0 ? `${estimates.length}` : undefined}
+          >
+            <EstimateList
+              estimates={estimates}
+              loading={estimatesLoading}
+              onReload={reloadEstimates}
+            />
+          </CollapsibleSection>
+
+          <CollapsibleSection
             storageKey="dashboard.transactions"
             title={t('expenses.heading')}
             icon={<ListChecks className="w-4 h-4" />}

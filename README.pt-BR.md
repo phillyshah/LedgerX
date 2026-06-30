@@ -529,7 +529,7 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX,
 ### Orçamentos
 <!-- roles: admin -->
 
-Os prestadores podem enviar **orçamentos** (cotações) para você revisar e discutir antes que qualquer serviço vire nota fiscal. Abra a seção **Orçamentos** pelo menu (ou pelo bloco Orçamentos na home do admin). É um recurso de **admin completo** — admins de propriedade não veem isso por enquanto.
+Os prestadores podem enviar **orçamentos** (cotações) para você revisar e discutir antes que qualquer serviço vire nota fiscal. Abra a seção **Orçamentos** pelo menu (ou pelo bloco Orçamentos na home do admin).
 
 - Veja todos os orçamentos enviados pelos prestadores, com um selo vermelho mostrando mensagens não lidas
 - Filtre por status (Aberto / Aceito / Recusado) e propriedade; ordene por data
@@ -538,7 +538,13 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
 
-**Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos.
+**Tipo de cobrança:** cada orçamento agora inclui um tipo de cobrança — **Valor total** ou **Somente mão de obra (materiais à parte)**. Isso aparece como um selo em cada cartão de orçamento para que você saiba de relance se os materiais estão incluídos.
+
+**Visibilidade na rede:** qualquer usuário que compartilha uma propriedade com o prestador pode ver os orçamentos dele (somente leitura). Isso inclui admins de propriedade, usuários comuns e outros prestadores na mesma propriedade. Visualizadores da rede veem detalhes completos, anexos e histórico de conversa — mas apenas quem enviou e admins completos podem postar mensagens, e somente admins completos podem alterar o status.
+
+**Enviar seu próprio orçamento:** se um subcontratado lhe envia uma cotação diretamente, você mesmo pode registrá-la — toque em **Enviar um orçamento** na tela inicial de administrador, escolha qualquer propriedade e anexe o JPEG ou PDF. Ele aparece na seção Orçamentos junto com os enviados por prestadores, pronto para aceitar, recusar ou discutir.
+
+**Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos. (Orçamentos que você mesmo registra não enviam e-mail aos outros admins.)
 
 ### Relatório de Atividade
 <!-- roles: admin, household_admin -->
@@ -626,8 +632,9 @@ Os orçamentos permitem enviar uma cotação ao administrador *antes* de o servi
 1. Toque em **Enviar um orçamento**
 2. Escolha a **propriedade** a que a cotação se refere
 3. Dê um **título** curto (ex.: "Orçamento de reparo do telhado") e, opcionalmente, uma descrição
-4. Anexe o orçamento como **JPEG ou PDF** (pode adicionar mais de um arquivo)
-5. Toque em **Enviar orçamento**
+4. Escolha o **tipo de cobrança**: **Valor total** (tudo incluso) ou **Somente mão de obra (materiais à parte)**
+5. Anexe o orçamento como **JPEG ou PDF** (pode adicionar mais de um arquivo)
+6. Toque em **Enviar orçamento**
 
 **A conversa:** cada orçamento tem seu próprio bate-papo. Abra qualquer orçamento em **Meus orçamentos** para ver os arquivos enviados e uma área de mensagens embaixo. Você e o administrador podem trocar mensagens ali — tirar dúvidas, esclarecer o escopo, combinar um valor. Quando o administrador responde, um pequeno selo vermelho com a contagem de mensagens aparece naquele orçamento para você saber que há algo novo.
 

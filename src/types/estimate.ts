@@ -1,4 +1,5 @@
 export type EstimateStatus = 'open' | 'accepted' | 'rejected';
+export type BillingType = 'total' | 'labor_only';
 
 export interface Estimate {
   id: string;
@@ -7,6 +8,7 @@ export interface Estimate {
   title: string;
   description: string | null;
   status: EstimateStatus;
+  billing_type: BillingType;
   admin_notes: string | null;
   // legacy single-attachment slot (mirrors contractor_invoices)
   file_path: string | null;

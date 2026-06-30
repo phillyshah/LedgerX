@@ -21,10 +21,12 @@ const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions
 const ManageUsers         = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
 const AdminInvoices       = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
 const AdminEstimates      = lazy(() => import('./AdminEstimates').then((m) => ({ default: m.AdminEstimates })));
+const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ default: m.HAEstimates })));
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
+const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ default: m.EstimateForm })));
 const HelpModal           = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
 const WhatsNewModal       = lazy(() => import('../WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
 const UserSettings        = lazy(() => import('../UserSettings').then((m) => ({ default: m.UserSettings })));
@@ -54,9 +56,10 @@ interface AdminHomeViewProps {
   onNavigate: (view: AdminNavKey) => void;
   onAddExpense: () => void;
   onSubmitInvoice: () => void;
+  onSubmitEstimate: () => void;
 }
 
-function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: AdminHomeViewProps) {
+function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice, onSubmitEstimate }: AdminHomeViewProps) {
   const { t } = useT();
 
   return (
@@ -101,6 +104,18 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice }: 
             <div>
               <div className="font-semibold text-sm leading-tight">{t('invoice.submitInvoice')}</div>
               <div className="text-xs text-emerald-700/70 mt-1">{t('invoice.submitInvoiceHint')}</div>
+            </div>
+          </button>
+          <button
+            onClick={onSubmitEstimate}
+            className="group col-span-2 flex items-center gap-3 p-4 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors shrink-0">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-semibold text-sm leading-tight">{t('estimate.submitEstimate')}</div>
+              <div className="text-xs text-emerald-700/70 mt-1">{t('estimate.submitEstimateHint')}</div>
             </div>
           </button>
         </div>
@@ -188,6 +203,7 @@ export function AdminLayout() {
   // No hasUnread state here — BellButton manages its own unread tracking via storage events
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showEstimateForm, setShowEstimateForm] = useState(false);
 
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
 
@@ -238,6 +254,7 @@ export function AdminLayout() {
   // Household-admin nav (unchanged from original haItems list)
   const haNavItems: { key: AdminNavKey; label: string; icon: typeof BarChart3 }[] = [
     { key: 'invoices',        label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
@@ -438,6 +455,7 @@ export function AdminLayout() {
                 onNavigate={handleViewChange}
                 onAddExpense={() => setShowAddExpense(true)}
                 onSubmitInvoice={() => setShowInvoiceForm(true)}
+                onSubmitEstimate={() => setShowEstimateForm(true)}
               />
             )}
 
@@ -448,7 +466,8 @@ export function AdminLayout() {
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
               {activeView === 'invoices'      && <AdminInvoices />}
-              {activeView === 'estimates'     && <AdminEstimates />}
+              {activeView === 'estimates'     && isAdmin && <AdminEstimates />}
+              {activeView === 'estimates'     && !isAdmin && <HAEstimates />}
             </Suspense>
 
             {activeView === 'my-transactions' && (
@@ -478,6 +497,9 @@ export function AdminLayout() {
         )}
         {showInvoiceForm && (
           <InvoiceForm onClose={() => setShowInvoiceForm(false)} onSaved={() => { }} />
+        )}
+        {showEstimateForm && (
+          <EstimateForm onClose={() => setShowEstimateForm(false)} onSaved={() => { }} />
         )}
       </Suspense>
     </div>

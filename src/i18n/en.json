@@ -768,5 +768,13 @@
   "adminEstimates.actionReject": "Reject",
   "adminEstimates.actionReopen": "Reopen",
   "adminEstimates.actionDelete": "Delete",
-  "adminEstimates.confirmDelete": "Delete this estimate? This also removes its files and messages and cannot be undone."
+  "adminEstimates.confirmDelete": "Delete this estimate? This also removes its files and messages and cannot be undone.",
+  "estimate.billingType": "Billing type",
+  "estimate.billingTotal": "Total bill",
+  "estimate.billingLaborOnly": "Labor only (materials separate)",
+  "estimate.billingTotalShort": "Total",
+  "estimate.billingLaborOnlyShort": "Labor only",
+  "estimate.detailBillingType": "Billing type",
+  "estimate.networkEstimates": "Estimates",
+  "estimate.networkEstimatesHint": "Estimates from contractors in your properties."
 }

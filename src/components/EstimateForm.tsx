@@ -5,6 +5,7 @@ import { useEscapeClose } from '../hooks/useEscapeClose';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageCompression';
 import { X, Upload, Check, Plus, FileText } from 'lucide-react';
+import type { BillingType } from '../types/estimate';
 
 interface Household {
   id: string;
@@ -37,7 +38,7 @@ function isAllowed(file: File): boolean {
 }
 
 export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
-  const { user, isContractor } = useAuth();
+  const { user, isContractor, isAdmin } = useAuth();
   const { t } = useT();
   useEscapeClose(onClose);
 
@@ -45,6 +46,7 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
   const [householdId, setHouseholdId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [billingType, setBillingType] = useState<BillingType>('total');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -54,17 +56,25 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
-        .from('household_members')
-        .select('household_id, households(id, name)')
-        .eq('user_id', user.id);
-      const hh = (data || [])
-        .map((item) => item.households)
-        .filter(Boolean) as unknown as Household[];
+      // Full admins can file against any property; contractors are scoped to
+      // households they belong to.
+      let hh: Household[];
+      if (isAdmin) {
+        const { data } = await supabase.from('households').select('id, name').order('name');
+        hh = (data || []) as Household[];
+      } else {
+        const { data } = await supabase
+          .from('household_members')
+          .select('household_id, households(id, name)')
+          .eq('user_id', user.id);
+        hh = (data || [])
+          .map((item) => item.households)
+          .filter(Boolean) as unknown as Household[];
+      }
       setHouseholds(hh);
       if (hh.length === 1) setHouseholdId(hh[0].id);
     })();
-  }, [user]);
+  }, [user, isAdmin]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files;
@@ -130,6 +140,7 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
           household_id: householdId,
           title: title.trim(),
           description: description.trim() || null,
+          billing_type: billingType,
           file_path: firstPath,
           file_mime: files[0].file.type || (files[0].isPdf ? 'application/pdf' : 'image/jpeg'),
         } as never)
@@ -242,6 +253,45 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
               placeholder={t('estimate.descriptionPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
             />
+          </div>
+
+          {/* Billing Type */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('estimate.billingType')} <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-3">
+              {([
+                { value: 'total' as BillingType, label: t('estimate.billingTotal') },
+                { value: 'labor_only' as BillingType, label: t('estimate.billingLaborOnly') },
+              ]).map(({ value, label }) => (
+                <label
+                  key={value}
+                  className={`flex-1 flex items-center gap-2.5 p-3 border rounded-xl cursor-pointer transition-all ${
+                    billingType === value
+                      ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600'
+                      : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="billingType"
+                    value={value}
+                    checked={billingType === value}
+                    onChange={() => setBillingType(value)}
+                    className="sr-only"
+                  />
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    billingType === value ? 'border-emerald-600' : 'border-slate-300'
+                  }`}>
+                    {billingType === value && <div className="w-2 h-2 rounded-full bg-emerald-600" />}
+                  </div>
+                  <span className={`text-sm font-medium ${billingType === value ? 'text-emerald-900' : 'text-slate-600'}`}>
+                    {label}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* File Upload */}
