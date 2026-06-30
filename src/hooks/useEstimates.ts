@@ -21,7 +21,6 @@ export function useEstimates(refreshKey?: number) {
 
   const loadEstimates = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
 
     const [estRes, unreadRes] = await Promise.all([
       supabase.rpc('list_visible_estimates' as never),
@@ -46,6 +45,10 @@ export function useEstimates(refreshKey?: number) {
   }, [user]);
 
   useEffect(() => {
+    // setLoading(true) only on the initial mount / user change — not on
+    // background refreshes triggered by onActivity (which would unmount
+    // the open detail modal and cause an infinite flash loop).
+    setLoading(true);
     loadEstimates();
   }, [loadEstimates, refreshKey]);
 
