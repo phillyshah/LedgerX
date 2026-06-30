@@ -532,7 +532,7 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 ### Estimates
 <!-- roles: admin -->
 
-Contractors can submit **estimates** (quotes) for you to review and discuss before any work is invoiced. Open the **Estimates** section from the nav (or the Estimates tile on the admin home). This is a **full-admin** feature — household admins don't see it for now.
+Contractors can submit **estimates** (quotes) for you to review and discuss before any work is invoiced. Open the **Estimates** section from the nav (or the Estimates tile on the admin home).
 
 - See every estimate submitted by contractors, with a red badge showing unread messages
 - Filter by status (Open / Accepted / Rejected) and property; sort by date
@@ -540,6 +540,10 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 - **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
+
+**Billing type:** every estimate now includes a billing type — **Total bill** or **Labor only (materials separate)**. This shows as a badge on each estimate card so you know at a glance whether materials are included in the quoted price.
+
+**Network visibility:** any user who shares a property with the contractor can see that contractor's estimates (read-only). This includes household admins, regular users, and other contractors in the same properties. Network viewers can see the full estimate details, attachments, and conversation history — but only the original submitter and full admins can post messages, and only full admins can change the status.
 
 **Submitting your own estimate:** if a subcontractor sends you a quote directly, you can log it yourself — tap **Submit an estimate** on the admin home, pick any property, and attach the JPEG or PDF. It appears in the Estimates section alongside contractor-submitted ones, ready to accept, reject, or discuss.
 
@@ -631,8 +635,9 @@ Estimates let you send a quote to the admin *before* the work happens — and th
 1. Tap **Submit an estimate**
 2. Pick the **property** the quote is for
 3. Give it a short **title** (e.g. "Roof repair quote") and, optionally, a description
-4. Attach your estimate as a **JPEG or PDF** (you can add more than one file)
-5. Tap **Submit estimate**
+4. Choose the **billing type**: **Total bill** (everything included) or **Labor only (materials separate)**
+5. Attach your estimate as a **JPEG or PDF** (you can add more than one file)
+6. Tap **Submit estimate**
 
 **The conversation thread:** every estimate has its own chat. Open any estimate in **My estimates** to see the files you sent and a message area at the bottom. You and the admin can go back and forth there — ask questions, clarify scope, agree on a number. When the admin replies, a small red badge with the message count appears on that estimate so you know there's something new to read.
 

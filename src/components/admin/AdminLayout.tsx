@@ -21,6 +21,7 @@ const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions
 const ManageUsers         = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
 const AdminInvoices       = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
 const AdminEstimates      = lazy(() => import('./AdminEstimates').then((m) => ({ default: m.AdminEstimates })));
+const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ default: m.HAEstimates })));
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
@@ -253,6 +254,7 @@ export function AdminLayout() {
   // Household-admin nav (unchanged from original haItems list)
   const haNavItems: { key: AdminNavKey; label: string; icon: typeof BarChart3 }[] = [
     { key: 'invoices',        label: t('admin.contractorInvoices'), icon: HardHat },
+    { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
@@ -464,7 +466,8 @@ export function AdminLayout() {
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
               {activeView === 'invoices'      && <AdminInvoices />}
-              {activeView === 'estimates'     && <AdminEstimates />}
+              {activeView === 'estimates'     && isAdmin && <AdminEstimates />}
+              {activeView === 'estimates'     && !isAdmin && <HAEstimates />}
             </Suspense>
 
             {activeView === 'my-transactions' && (

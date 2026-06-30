@@ -212,6 +212,11 @@ export function AdminEstimates() {
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {est.household_name} · {fmtDate(est.created_at.split('T')[0])}
+                      {est.billing_type === 'labor_only' && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700">
+                          {t('estimate.billingLaborOnlyShort')}
+                        </span>
+                      )}
                     </p>
                     {est.description && (
                       <p className="text-xs text-slate-600 mt-1.5 line-clamp-2">{est.description}</p>
@@ -245,6 +250,7 @@ export function AdminEstimates() {
                   { label: t('adminEstimates.detailContractor'), value: `@${detail.submitter_username}` },
                   { label: t('adminEstimates.detailProperty'), value: detail.household_name },
                   { label: t('adminEstimates.detailStatus'), value: <StatusBadge status={detail.status} t={t} /> },
+                  { label: t('estimate.detailBillingType'), value: detail.billing_type === 'labor_only' ? t('estimate.billingLaborOnly') : t('estimate.billingTotal') },
                   { label: t('adminEstimates.detailSubmitted'), value: fmtDate(detail.created_at.split('T')[0]) },
                 ].map(({ label, value }) => (
                   <div key={label}>

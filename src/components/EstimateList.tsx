@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
 import { X, FileText, Plus, ClipboardList, MessageCircle } from 'lucide-react';
@@ -36,6 +37,7 @@ export function EstimateStatusBadge({ status, t }: { status: EstimateStatus; t: 
 }
 
 export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateListProps) {
+  const { user, isAdmin } = useAuth();
   const { t, locale } = useT();
 
   const [detail, setDetail] = useState<Estimate | null>(null);
@@ -118,9 +120,19 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-slate-900 text-sm truncate">{est.title}</span>
+                  {est.submitter_username && est.created_by !== user?.id && (
+                    <span className="text-xs text-slate-500">@{est.submitter_username}</span>
+                  )}
                   {est.household_name && est.household_name !== '—' && (
                     <span className="text-xs text-slate-500 truncate">{est.household_name}</span>
                   )}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                    est.billing_type === 'labor_only'
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {est.billing_type === 'labor_only' ? t('estimate.billingLaborOnlyShort') : t('estimate.billingTotalShort')}
+                  </span>
                   {!!est.unread_count && est.unread_count > 0 && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
                       <MessageCircle className="w-3 h-3" />
@@ -158,8 +170,12 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
                   { label: t('estimate.detailTitleField'), value: detail.title },
+                  ...(detail.submitter_username && detail.created_by !== user?.id
+                    ? [{ label: t('adminEstimates.detailContractor'), value: `@${detail.submitter_username}` }]
+                    : []),
                   { label: t('estimate.detailProperty'), value: detail.household_name ?? '—' },
                   { label: t('estimate.detailStatus'), value: <EstimateStatusBadge status={detail.status} t={t} /> },
+                  { label: t('estimate.detailBillingType'), value: detail.billing_type === 'labor_only' ? t('estimate.billingLaborOnly') : t('estimate.billingTotal') },
                   { label: t('estimate.detailSubmitted'), value: fmtDate(detail.created_at.split('T')[0]) },
                 ].map(({ label, value }) => (
                   <div key={label}>
@@ -224,7 +240,11 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
               })()}
 
               {/* Chat thread */}
-              <EstimateChat estimateId={detail.id} onActivity={onReload} />
+              <EstimateChat
+                estimateId={detail.id}
+                onActivity={onReload}
+                readOnly={detail.created_by !== user?.id && !isAdmin}
+              />
 
               <div className="flex justify-end pt-2">
                 <button

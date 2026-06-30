@@ -10,6 +10,8 @@ interface EstimateChatProps {
   /** Called after a successful post or after the thread is marked read,
    *  so the parent list can refresh its unread badge. */
   onActivity?: () => void;
+  /** Hide the composer. Network viewers can read but not post. */
+  readOnly?: boolean;
 }
 
 /**
@@ -17,7 +19,7 @@ interface EstimateChatProps {
  * estimate-detail modals. Opening the thread marks it read (clearing the
  * unread badge); both parties can post. Messages are immutable.
  */
-export function EstimateChat({ estimateId, onActivity }: EstimateChatProps) {
+export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatProps) {
   const { user } = useAuth();
   const { t, locale } = useT();
   const [messages, setMessages] = useState<EstimateMessage[]>([]);
@@ -119,34 +121,36 @@ export function EstimateChat({ estimateId, onActivity }: EstimateChatProps) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Composer */}
-      <div className="border-t border-slate-200 p-3 bg-slate-50">
-        {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
-        <div className="flex items-end gap-2">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            rows={1}
-            placeholder={t('estimate.chatPlaceholder')}
-            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
-          />
-          <button
-            type="button"
-            onClick={send}
-            disabled={sending || !draft.trim()}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            <span className="hidden sm:inline">{t('estimate.chatSend')}</span>
-          </button>
+      {/* Composer — hidden for read-only (network) viewers */}
+      {!readOnly && (
+        <div className="border-t border-slate-200 p-3 bg-slate-50">
+          {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+          <div className="flex items-end gap-2">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              rows={1}
+              placeholder={t('estimate.chatPlaceholder')}
+              className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
+            />
+            <button
+              type="button"
+              onClick={send}
+              disabled={sending || !draft.trim()}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              <span className="hidden sm:inline">{t('estimate.chatSend')}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
