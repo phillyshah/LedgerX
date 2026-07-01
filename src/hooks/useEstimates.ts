@@ -22,10 +22,13 @@ export function useEstimates(refreshKey?: number) {
   const loadEstimates = useCallback(async () => {
     if (!user) return;
 
-    const [estRes, unreadRes] = await Promise.all([
+    const [estRes, unreadRes] = (await Promise.all([
       supabase.rpc('list_visible_estimates' as never),
       supabase.rpc('list_estimate_unread' as never),
-    ]);
+    ])) as unknown as [
+      { data: unknown; error: unknown },
+      { data: unknown; error: unknown },
+    ];
 
     const unreadMap = new Map(
       (((unreadRes.data as unknown as UnreadRow[]) || [])).map((r) => [r.estimate_id, Number(r.unread_count)])
