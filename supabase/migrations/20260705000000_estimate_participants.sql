@@ -138,6 +138,7 @@ REVOKE ALL ON FUNCTION list_estimate_participants(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION list_estimate_participants(uuid) TO authenticated;
 
 -- ─── 8. Update list_visible_estimates — add is_participant column + OR branch ─
+DROP FUNCTION IF EXISTS list_visible_estimates();
 CREATE OR REPLACE FUNCTION list_visible_estimates()
 RETURNS TABLE (
   id                 uuid,
