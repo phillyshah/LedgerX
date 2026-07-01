@@ -109,22 +109,26 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // 1. Verify shared secret (forwarded from inbound-email).
+    // 1. Verify the shared secret. It arrives in the BODY (not the auth
+    //    header): the platform JWT gate consumes the Authorization header
+    //    (inbound-email sends the service-role key there), so the internal
+    //    secret rides in the payload instead. This keeps the function working
+    //    whether or not verify_jwt is enabled for it.
+    const body = (await req.json()) as {
+      from_email: string;
+      subject?: string;
+      body_text?: string | null;
+      secret?: string;
+    };
+
     const secret = Deno.env.get("INBOUND_EMAIL_SECRET");
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    if (!secret || token !== secret) {
+    if (!secret || body.secret !== secret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const body = (await req.json()) as {
-      from_email: string;
-      subject?: string;
-      body_text?: string | null;
-    };
     const { from_email, subject } = body;
 
     // 2. Resolve sender → bare address, then user.

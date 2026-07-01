@@ -375,9 +375,12 @@ Deno.serve(async (req: Request) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${secret}`,
+            // Authenticate with the service-role key so the platform JWT gate
+            // accepts the call regardless of the function's verify_jwt setting.
+            // email-command then verifies the shared secret from the body.
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
           },
-          body: JSON.stringify({ from_email, subject, body_text }),
+          body: JSON.stringify({ from_email, subject, body_text, secret }),
         });
       } catch (e) {
         console.error("[inbound-email] command forward failed:", e);
