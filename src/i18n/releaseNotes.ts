@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.0',
+    version: 'v11.0',
+    date: '2026-07-05',
+    title: {
+      'en': 'Talk through estimates as a team',
+      'pt-BR': 'Converse sobre orçamentos em equipe',
+    },
+    body: {
+      'en':
+        "Everyone on a property can now take part in an estimate's conversation — not just the person who submitted it and admins. " +
+        "If you're a household admin or a regular member of the property, you can now post messages in any estimate thread you can see, ask questions, and weigh in. " +
+        "(Other contractors on the property still see estimates read-only.)",
+      'pt-BR':
+        'Agora todos em uma propriedade podem participar da conversa de um orçamento — não apenas quem o enviou e os administradores. ' +
+        'Se você é administrador da casa ou membro comum da propriedade, agora pode enviar mensagens em qualquer conversa de orçamento que consiga ver, tirar dúvidas e opinar. ' +
+        '(Outros prestadores na propriedade continuam vendo os orçamentos somente leitura.)',
+    },
+  },
+  {
     id: 'v10.9',
     version: 'v10.9',
     date: '2026-07-05',

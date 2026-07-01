@@ -37,7 +37,7 @@ export function EstimateStatusBadge({ status, t }: { status: EstimateStatus; t: 
 }
 
 export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateListProps) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isContractor } = useAuth();
   const { t, locale } = useT();
 
   const [detail, setDetail] = useState<Estimate | null>(null);
@@ -254,7 +254,12 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
               <EstimateChat
                 estimateId={detail.id}
                 onActivity={onReload}
-                readOnly={detail.created_by !== user?.id && !isAdmin && !detail.is_participant}
+                readOnly={
+                  isContractor &&
+                  detail.created_by !== user?.id &&
+                  !isAdmin &&
+                  !detail.is_participant
+                }
               />
 
               <div className="flex justify-end pt-2">
