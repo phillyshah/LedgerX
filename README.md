@@ -549,6 +549,8 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 
 **Email notifications:** when a contractor submits a new estimate, every full admin with a real email on file is notified — same as invoices and receipts. (Estimates you file yourself don't email the other admins.)
 
+**Inviting participants:** admins can invite any user — regardless of household membership — into a specific estimate's conversation. Open the estimate detail, find the **Invited participants** section, type the person's username (without @), and tap **Invite**. The invited user immediately sees the estimate in their dashboard and can post messages in the conversation thread. Only full admins can invite; invited users cannot add further participants themselves.
+
 ### Activity Report
 <!-- roles: admin, household_admin -->
 

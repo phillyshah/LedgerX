@@ -546,6 +546,8 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 
 **Notificações por e-mail:** quando um prestador envia um novo orçamento, todos os admins completos com e-mail real cadastrado são notificados — igual a notas fiscais e recibos. (Orçamentos que você mesmo registra não enviam e-mail aos outros admins.)
 
+**Convidar participantes:** admins podem convidar qualquer usuário — independentemente de ser membro de uma propriedade — para a conversa de um orçamento específico. Abra o detalhe do orçamento, localize a seção **Participantes convidados**, digite o nome de usuário (sem @) e toque em **Convidar**. O usuário convidado vê imediatamente o orçamento no seu painel e pode enviar mensagens na conversa. Apenas admins completos podem convidar; usuários convidados não podem adicionar outros participantes.
+
 ### Relatório de Atividade
 <!-- roles: admin, household_admin -->
 

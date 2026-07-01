@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
-import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban } from 'lucide-react';
-import type { Estimate, EstimateStatus, EstimateAttachment } from '../../types/estimate';
+import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2 } from 'lucide-react';
+import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
 
 interface HouseholdOption { id: string; name: string; }
@@ -52,6 +52,12 @@ export function AdminEstimates() {
   const [actioning, setActioning] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Invite participants
+  const [participants, setParticipants] = useState<EstimateParticipant[]>([]);
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     const [hhRes, estRes, usersRes, unreadRes] = await Promise.all([
@@ -97,12 +103,22 @@ export function AdminEstimates() {
   };
 
   const openDetail = async (est: AdminEstimateRow) => {
-    setDetail(est); setAttachments([]); setSignedUrls({}); setLoadingDetail(true);
+    setDetail(est);
+    setAttachments([]);
+    setSignedUrls({});
+    setParticipants([]);
+    setInviteUsername('');
+    setInviteError(null);
+    setLoadingDetail(true);
 
-    const { data: atts } = await supabase
-      .from('estimate_attachments').select('*').eq('estimate_id', est.id).order('display_order');
-    const list = (atts || []) as EstimateAttachment[];
+    const [attsRes, partsRes] = await Promise.all([
+      supabase.from('estimate_attachments').select('*').eq('estimate_id', est.id).order('display_order'),
+      supabase.rpc('list_estimate_participants' as never, { p_estimate_id: est.id } as never),
+    ]);
+
+    const list = (attsRes.data || []) as EstimateAttachment[];
     setAttachments(list);
+    setParticipants((partsRes.data as unknown as EstimateParticipant[]) || []);
 
     const paths = Array.from(new Set(
       [est.file_path, ...list.map((a) => a.file_path)].filter((p): p is string => !!p)
@@ -114,6 +130,31 @@ export function AdminEstimates() {
     for (const [p, u] of signed) if (u) urls[p] = u;
     setSignedUrls(urls);
     setLoadingDetail(false);
+  };
+
+  const inviteParticipant = async () => {
+    const username = inviteUsername.trim().replace(/^@/, '');
+    if (!username || !detail) return;
+    setInviting(true);
+    setInviteError(null);
+
+    const { error } = await supabase.rpc('invite_estimate_participant' as never, {
+      p_estimate_id: detail.id,
+      p_username: username,
+    } as never);
+
+    if (error) {
+      setInviteError(error.message);
+      setInviting(false);
+      return;
+    }
+
+    setInviteUsername('');
+    const { data: parts } = await supabase.rpc('list_estimate_participants' as never, {
+      p_estimate_id: detail.id,
+    } as never);
+    setParticipants((parts as unknown as EstimateParticipant[]) || []);
+    setInviting(false);
   };
 
   const setStatus = async (est: AdminEstimateRow, status: EstimateStatus) => {
@@ -316,6 +357,51 @@ export function AdminEstimates() {
 
               {/* Chat thread */}
               <EstimateChat estimateId={detail.id} onActivity={loadData} />
+
+              {/* Invite participants */}
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-2">
+                  {t('adminEstimates.inviteTitle')}
+                </p>
+                {participants.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {participants.map((p) => (
+                      <span
+                        key={p.user_id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-medium text-emerald-800"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        @{p.username}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={inviteUsername}
+                    onChange={(e) => setInviteUsername(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') inviteParticipant(); }}
+                    placeholder={t('adminEstimates.inviteUsernamePlaceholder')}
+                    className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={inviteParticipant}
+                    disabled={inviting || !inviteUsername.trim()}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {inviting
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <UserPlus className="w-4 h-4" />}
+                    {t('adminEstimates.inviteBtn')}
+                  </button>
+                </div>
+                {inviteError && (
+                  <p className="text-xs text-red-600 mt-1.5">{inviteError}</p>
+                )}
+                <p className="text-xs text-slate-400 mt-1.5">{t('adminEstimates.inviteHint')}</p>
+              </div>
 
               {/* Admin actions */}
               <div className="flex flex-wrap gap-2 pt-2">
