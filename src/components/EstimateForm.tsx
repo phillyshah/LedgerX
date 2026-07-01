@@ -173,6 +173,11 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
         }).catch(() => { /* non-critical */ });
       }
 
+      // Fire-and-forget: light "new activity" note to the household.
+      supabase.functions.invoke('send-household-activity', {
+        body: { kind: 'estimate', event: 'submitted', entity_id: estimateId, actor_id: user.id },
+      }).catch(() => { /* non-critical */ });
+
       setTimeout(() => { setJustSaved(false); onClose(); }, 600);
     } catch (err) {
       console.error('Error saving estimate:', err);

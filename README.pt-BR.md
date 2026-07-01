@@ -553,14 +553,39 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 
 Uma linha do tempo de quem fez o quê entre as pessoas que você acompanha. Abra pela navegação (ou pelo botão **Atividade** na tela inicial do admin).
 
-- **Linha do tempo** — todo envio de recibo, envio de nota fiscal e marcação de pagamento em uma única lista cronológica. Toque em qualquer linha para abrir o recibo ou a nota correspondente, sem sair da tela.
+- **Linha do tempo** — todo envio de recibo, envio de nota fiscal, marcação de pagamento e evento de orçamento (enviado, aceito, recusado) em uma única lista cronológica. Toque em qualquer linha para abrir o recibo, a nota ou o orçamento correspondente, sem sair da tela.
 - **Últimos acessos** — uma linha por usuário com a última vez que entrou no app. Útil para identificar prestadores que sumiram.
-- **Filtros** — período (padrão: últimos 30 dias), domicílio, pessoa e chips de tipo de evento, todos no topo.
+- **Filtros** — período (padrão: últimos 30 dias), domicílio, pessoa e chips de tipo de evento, todos no topo (incluindo os três tipos de evento de orçamento).
 
 **Quem vê a atividade de quem:**
 - Admins completos veem a atividade de todos, em todos os domicílios.
 - Admins de propriedade só veem a atividade de prestadores e membros comuns dos domicílios aos quais pertencem. Não veem outros admins, outros admins de propriedade nem a si mesmos.
 - Prestadores e usuários comuns não veem o item Atividade no menu.
+
+### Relatório de Orçamentos
+<!-- roles: admin, household_admin -->
+
+Um relatório focado no fluxo de orçamentos. Abra pela navegação (ou pelo botão **Relatório de orçamentos** na tela inicial do admin).
+
+- **Resumo** — cards de orçamentos enviados, aceitos, recusados e ainda abertos no período selecionado, além da sua **taxa de aceitação** e do **tempo médio de decisão** (quanto tempo do envio até aceitar/recusar). Um detalhamento por prestador mostra os envios/aceitos/recusados de cada um e sua taxa de aceitação.
+- **Abertos e parados** — todos os orçamentos ainda aguardando decisão, dos mais antigos primeiro, com a idade em dias. Qualquer um parado há mais de duas semanas recebe o selo **Parado**, para que nada passe despercebido. (Esta aba sempre mostra todos os orçamentos abertos, independentemente do período.)
+- **Filtros** — propriedade e um período (o período se aplica apenas à aba Resumo).
+
+O **alcance** espelha o Relatório de Atividade: admins completos veem todas as propriedades; admins de propriedade veem prestadores e membros das suas próprias propriedades.
+
+---
+
+### Comandos e Notificações por E-mail
+<!-- roles: all -->
+
+**Pergunte por e-mail:** envie um e-mail para `receipts@90ten.life` com uma única palavra no assunto e o LedgerX responde automaticamente:
+- `help` — qualquer pessoa: a lista de comandos.
+- `estimates` — admins e admins de propriedade: um resumo rápido do fluxo (abertos / aceitos / recusados, taxa de aceitação e quantos estão parados há mais de duas semanas).
+- `invoices` — admins e admins de propriedade: contagem de pendentes vs. pagas e o total pendente.
+
+Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX sabe quem é você. Não precisa de anexo; um e-mail *com* anexo continua sendo processado como recibo/nota normalmente.
+
+**Avisos de atividade:** sempre que uma nota ou orçamento tem nova atividade (enviado, aceito/recusado ou marcado como pago), todos naquela propriedade recebem um aviso curto por e-mail para dar uma olhada — sem valores nem detalhes, apenas um lembrete para abrir o app. Prestadores só são avisados sobre as notas e orçamentos que eles mesmos enviaram, e transações comuns nunca disparam esses e-mails.
 
 ---
 

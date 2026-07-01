@@ -360,6 +360,34 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // 1b. Command dispatch — an attachment-free email whose subject is a known
+    //     command word (help / estimates / invoices) is a request to the
+    //     email-command bot, not a receipt. Forward the payload to that
+    //     function and return before any receipt processing. Receipts almost
+    //     always carry an attachment, so this never intercepts a real forward.
+    const commandWord =
+      (String(subject ?? "").trim().toLowerCase().split(/\s+/)[0] ?? "")
+        .replace(/[^a-z]/g, "");
+    const KNOWN_COMMANDS = ["help", "estimates", "invoices"];
+    if (attachments.length === 0 && KNOWN_COMMANDS.includes(commandWord)) {
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/email-command`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${secret}`,
+          },
+          body: JSON.stringify({ from_email, subject, body_text }),
+        });
+      } catch (e) {
+        console.error("[inbound-email] command forward failed:", e);
+      }
+      return new Response(JSON.stringify({ ok: true, command: commandWord }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 2. Service-role client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
