@@ -135,6 +135,7 @@ export interface Database {
           image_height: number | null;
           display_order: number;
           created_at: string;
+          is_work_evidence: boolean;
         };
         Insert: {
           id?: string;
@@ -145,6 +146,7 @@ export interface Database {
           image_height?: number | null;
           display_order?: number;
           created_at?: string;
+          is_work_evidence?: boolean;
         };
         Update: {
           id?: string;
@@ -155,6 +157,7 @@ export interface Database {
           image_height?: number | null;
           display_order?: number;
           created_at?: string;
+          is_work_evidence?: boolean;
         };
         Relationships: [
           {
@@ -250,6 +253,7 @@ export interface Database {
           image_height: number | null;
           display_order: number;
           created_at: string;
+          is_work_evidence: boolean;
         };
         Insert: {
           id?: string;
@@ -260,6 +264,7 @@ export interface Database {
           image_height?: number | null;
           display_order?: number;
           created_at?: string;
+          is_work_evidence?: boolean;
         };
         Update: {
           id?: string;
@@ -270,6 +275,7 @@ export interface Database {
           image_height?: number | null;
           display_order?: number;
           created_at?: string;
+          is_work_evidence?: boolean;
         };
         Relationships: [
           {
