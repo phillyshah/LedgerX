@@ -9,7 +9,7 @@ import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
-  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart,
 } from 'lucide-react';
 // hasUnreadReleases / LAST_SEEN_KEY removed — BellButton owns all unread tracking internally
 
@@ -24,6 +24,7 @@ const AdminEstimates      = lazy(() => import('./AdminEstimates').then((m) => ({
 const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ default: m.HAEstimates })));
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
+const EstimateReport      = lazy(() => import('./EstimateReport').then((m) => ({ default: m.EstimateReport })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
 const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ default: m.EstimateForm })));
@@ -47,7 +48,7 @@ type AdminView =
   | 'reports'
   | 'my-transactions';
 
-type AdminNavKey = AdminView | 'analytics' | 'activity';
+type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
 
 // ── Home screen (full admin only) ─────────────────────────────────────────────
 
@@ -135,6 +136,7 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice, on
               { key: 'analytics'       as AdminNavKey, icon: BarChart3, label: t('admin.analytics') },
               { key: 'reports'         as AdminNavKey, icon: FileText,  label: t('reports.title') },
               { key: 'activity'        as AdminNavKey, icon: Activity,  label: t('activityReport.title') },
+              { key: 'estimate-report' as AdminNavKey, icon: PieChart,  label: t('estimateReport.navLabel') },
             ] as { key: AdminNavKey; icon: typeof AlertCircle; label: string; warn?: boolean }[]
           ).map(({ key, icon: Icon, label, warn }) => (
             <button
@@ -196,6 +198,7 @@ export function AdminLayout() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showEstimateReport, setShowEstimateReport] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -216,6 +219,8 @@ export function AdminLayout() {
       setShowReports(true);
     } else if (view === 'activity') {
       setShowActivity(true);
+    } else if (view === 'estimate-report') {
+      setShowEstimateReport(true);
     } else {
       setActiveView(view);
     }
@@ -226,6 +231,7 @@ export function AdminLayout() {
     if (key === 'analytics') return showAnalytics;
     if (key === 'reports') return showReports;
     if (key === 'activity') return showActivity;
+    if (key === 'estimate-report') return showEstimateReport;
     return activeView === key;
   };
 
@@ -259,6 +265,7 @@ export function AdminLayout() {
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
+    { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
   ];
 
   // Admin daily-use items (below the Manage group)
@@ -270,6 +277,7 @@ export function AdminLayout() {
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
+    { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
   ];
 
   const manageSubItems: { key: AdminNavKey; label: string; icon: typeof Home }[] = [
@@ -489,6 +497,7 @@ export function AdminLayout() {
         {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
         {showReports   && <Reports        onClose={() => setShowReports(false)} />}
         {showActivity  && <ActivityReport onClose={() => setShowActivity(false)} />}
+        {showEstimateReport && <EstimateReport onClose={() => setShowEstimateReport(false)} />}
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}
         {showSettings  && <UserSettings   onClose={() => setShowSettings(false)} />}

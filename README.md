@@ -556,14 +556,25 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 
 A chronological feed of who's been doing what across the people you oversee. Open it from the nav (or the **Activity** quick-action on the admin home).
 
-- **Activity feed** — every receipt submission, invoice submission, and mark-paid event in one timeline. Tap any row to open the underlying receipt or invoice without leaving the screen.
+- **Activity feed** — every receipt submission, invoice submission, mark-paid event, and estimate event (submitted, accepted, rejected) in one timeline. Tap any row to open the underlying receipt, invoice, or estimate without leaving the screen.
 - **Last logins** — one row per user with the last time they signed in. Handy for spotting contractors who've gone quiet.
-- **Filters** — date range (defaults to the last 30 days), household, person, and event type chips at the top.
+- **Filters** — date range (defaults to the last 30 days), household, person, and event type chips at the top (including the three estimate event types).
 
 **Who sees whose activity:**
 - Full admins see activity for every user, across every household.
 - Household admins see activity only for contractors and regular members of households they belong to. They do not see other admins, other household admins, or themselves.
 - Contractors and regular users do not see the Activity menu item.
+
+### Estimate Report
+<!-- roles: admin, household_admin -->
+
+A focused report on the estimate pipeline. Open it from the nav (or the **Estimate report** quick-action on the admin home).
+
+- **Summary** — cards for estimates submitted, accepted, rejected, and still open in the selected date range, plus your **acceptance rate** and **average decision time** (how long from submission to accept/reject). A per-contractor breakdown shows each contractor's submitted/accepted/rejected counts and their acceptance rate.
+- **Open & aging** — every estimate still awaiting a decision, oldest first, with an age in days. Anything sitting longer than two weeks is flagged **Stale** so nothing slips through the cracks. (This view always shows all open estimates, regardless of the date range.)
+- **Filters** — property and a date range (the range applies to the Summary tab only).
+
+**Scope** mirrors the Activity Report: full admins see all properties; household admins see contractors and members in their own properties.
 
 ---
 

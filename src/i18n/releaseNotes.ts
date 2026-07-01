@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.1',
+    version: 'v11.1',
+    date: '2026-07-05',
+    title: {
+      'en': 'Estimate reports for your team',
+      'pt-BR': 'Relatórios de orçamentos para sua equipe',
+    },
+    body: {
+      'en':
+        'Admins and household admins get a new Estimate report — see how many estimates were submitted, accepted, and rejected, your acceptance rate, average decision time, and a per-contractor breakdown. ' +
+        'A separate "Open & aging" view lists every estimate still awaiting a decision, oldest first, so nothing slips through the cracks. ' +
+        'Estimate activity (submitted, accepted, rejected) now also shows up in the Activity report alongside receipts and invoices.',
+      'pt-BR':
+        'Administradores e admins de propriedade têm um novo Relatório de orçamentos — veja quantos orçamentos foram enviados, aceitos e recusados, sua taxa de aceitação, o tempo médio de decisão e um detalhamento por prestador. ' +
+        'Uma aba separada, "Abertos e parados", lista todos os orçamentos ainda aguardando decisão, dos mais antigos primeiro, para que nada passe despercebido. ' +
+        'A atividade de orçamentos (enviados, aceitos, recusados) agora também aparece no Relatório de atividade, ao lado de recibos e notas.',
+    },
+  },
+  {
     id: 'v11.0',
     version: 'v11.0',
     date: '2026-07-05',

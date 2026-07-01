@@ -6,10 +6,12 @@ import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { loadUserHouseholds, loadAllHouseholds } from '../../lib/queries';
 import {
   X, Activity, Home, Calendar, User as UserIcon, Filter, ChevronRight,
-  FileText, Receipt, CheckCircle, HardHat, LogIn,
+  FileText, Receipt, CheckCircle, HardHat, LogIn, ClipboardList, XCircle,
 } from 'lucide-react';
 import type { Expense, Household } from '../../types/expense';
 import type { ContractorInvoice, InvoiceImage } from '../../types/invoice';
+import type { Estimate, EstimateAttachment } from '../../types/estimate';
+import { EstimateStatusBadge } from '../EstimateList';
 
 const EditExpense = lazy(() => import('../EditExpense').then((m) => ({ default: m.EditExpense })));
 
@@ -17,12 +19,15 @@ type EventType =
   | 'expense_created'
   | 'expense_paid'
   | 'invoice_created'
-  | 'invoice_paid';
+  | 'invoice_paid'
+  | 'estimate_created'
+  | 'estimate_accepted'
+  | 'estimate_rejected';
 
 interface ActivityRow {
   event_id: string;
   event_type: EventType;
-  entity_type: 'expense' | 'invoice';
+  entity_type: 'expense' | 'invoice' | 'estimate';
   entity_id: string;
   actor_id: string | null;
   actor_username: string;
@@ -62,6 +67,9 @@ const EVENT_TYPES: EventType[] = [
   'expense_paid',
   'invoice_created',
   'invoice_paid',
+  'estimate_created',
+  'estimate_accepted',
+  'estimate_rejected',
 ];
 
 export function ActivityReport({ onClose }: ActivityReportProps) {
@@ -90,6 +98,8 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
   // Detail state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [detailInvoice, setDetailInvoice] = useState<ContractorInvoice | null>(null);
+  const [detailEstimate, setDetailEstimate] = useState<Estimate | null>(null);
+  const [estimateAttachments, setEstimateAttachments] = useState<EstimateAttachment[]>([]);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -230,7 +240,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
             household_name: row.household_name ?? undefined,
           } as Expense);
         }
-      } else {
+      } else if (row.entity_type === 'invoice') {
         const { data: inv } = await supabase
           .from('contractor_invoices')
           .select('*')
@@ -256,6 +266,34 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
           for (const [p, u] of signed) if (u) urls[p] = u;
           setSignedUrls(urls);
         }
+      } else if (row.entity_type === 'estimate') {
+        const { data: est } = await supabase
+          .from('estimates')
+          .select('*')
+          .eq('id', row.entity_id)
+          .maybeSingle();
+        if (est) {
+          const estRow = est as Estimate;
+          setDetailEstimate(estRow);
+          const { data: atts } = await supabase
+            .from('estimate_attachments')
+            .select('*')
+            .eq('estimate_id', row.entity_id)
+            .order('display_order');
+          const list = (atts ?? []) as EstimateAttachment[];
+          setEstimateAttachments(list);
+          const paths = Array.from(new Set(
+            [estRow.file_path, ...list.map((a) => a.file_path)]
+              .filter((p): p is string => !!p),
+          ));
+          const signed = await Promise.all(paths.map((p) =>
+            supabase.storage.from('receipts').createSignedUrl(p, 3600)
+              .then((r) => [p, r.data?.signedUrl] as const),
+          ));
+          const urls: Record<string, string> = {};
+          for (const [p, u] of signed) if (u) urls[p] = u;
+          setSignedUrls(urls);
+        }
       }
     } finally {
       setLoadingDetail(false);
@@ -268,6 +306,9 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'expense_paid':    return t('activityReport.eventExpensePaid');
       case 'invoice_created': return t('activityReport.eventInvoiceCreated');
       case 'invoice_paid':    return t('activityReport.eventInvoicePaid');
+      case 'estimate_created':  return t('activityReport.eventEstimateCreated');
+      case 'estimate_accepted': return t('activityReport.eventEstimateAccepted');
+      case 'estimate_rejected': return t('activityReport.eventEstimateRejected');
     }
   };
 
@@ -277,6 +318,9 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'expense_paid':    return CheckCircle;
       case 'invoice_created': return HardHat;
       case 'invoice_paid':    return CheckCircle;
+      case 'estimate_created':  return ClipboardList;
+      case 'estimate_accepted': return CheckCircle;
+      case 'estimate_rejected': return XCircle;
     }
   };
 
@@ -286,6 +330,9 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'expense_paid':    return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'invoice_created': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
       case 'invoice_paid':    return 'bg-green-50 text-green-700 border-green-200';
+      case 'estimate_created':  return 'bg-violet-50 text-violet-700 border-violet-200';
+      case 'estimate_accepted': return 'bg-green-50 text-green-700 border-green-200';
+      case 'estimate_rejected': return 'bg-rose-50 text-rose-700 border-rose-200';
     }
   };
 
@@ -685,6 +732,86 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estimate detail — read-only panel */}
+      {detailEstimate && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-2xl sm:max-h-[90vh] sm:my-4 overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-5 rounded-t-2xl z-10 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">{t('estimate.detailTitle')}</h3>
+              <button
+                onClick={() => { setDetailEstimate(null); setEstimateAttachments([]); setSignedUrls({}); }}
+                className="p-2 hover:bg-slate-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <Field label={t('estimate.detailTitleField')} value={detailEstimate.title} />
+                <Field
+                  label={t('estimate.detailStatus')}
+                  value={<EstimateStatusBadge status={detailEstimate.status} t={t} />}
+                />
+                <Field
+                  label={t('estimate.detailProperty')}
+                  value={households.find((h) => h.id === detailEstimate.household_id)?.name ?? '—'}
+                />
+                <Field
+                  label={t('estimate.detailBillingType')}
+                  value={detailEstimate.billing_type === 'labor_only'
+                    ? t('estimate.billingLaborOnly')
+                    : t('estimate.billingTotal')}
+                />
+                <Field label={t('estimate.detailSubmitted')} value={fmtDateTime(detailEstimate.created_at)} />
+              </div>
+
+              {detailEstimate.description && (
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">{t('estimate.detailDescription')}</p>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{detailEstimate.description}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-2">{t('estimate.detailAttachments')}</p>
+                {(() => {
+                  const paths = Array.from(new Set(
+                    [detailEstimate.file_path, ...estimateAttachments.map((a) => a.file_path)]
+                      .filter((p): p is string => !!p),
+                  ));
+                  if (loadingDetail) return <p className="text-sm text-slate-400">{t('estimate.detailLoadingImages')}</p>;
+                  if (paths.length === 0) return <p className="text-sm text-slate-400">{t('estimate.detailNoAttachments')}</p>;
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {paths.map((path) => {
+                        const url = signedUrls[path];
+                        if (!url) return null;
+                        const isPdf = path.toLowerCase().endsWith('.pdf')
+                          || estimateAttachments.find((a) => a.file_path === path)?.file_mime === 'application/pdf'
+                          || detailEstimate.file_mime === 'application/pdf';
+                        return isPdf ? (
+                          <a key={path} href={url} target="_blank" rel="noreferrer"
+                            className="flex flex-col items-center justify-center h-28 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors gap-1 text-slate-500">
+                            <FileText className="w-7 h-7 text-red-400" />
+                            <span className="text-xs">{t('estimate.detailClickToOpen')}</span>
+                          </a>
+                        ) : (
+                          <a key={path} href={url} target="_blank" rel="noreferrer"
+                            className="block rounded-xl overflow-hidden border border-slate-200 hover:opacity-90 transition-opacity">
+                            <img src={url} alt="Estimate attachment" className="w-full h-28 object-cover" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
