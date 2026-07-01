@@ -42,7 +42,7 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
 
 export function AdminInvoices() {
   const { t, locale } = useT();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   // Only full admins mutate state (mark paid, assign category).
   const canMutateStatus = isAdmin;
 
@@ -166,6 +166,12 @@ export function AdminInvoices() {
       supabase.functions.invoke('send-invoice-notification', {
         body: { type: 'paid', invoice_id: paidInvoiceId },
       }).catch(() => { /* non-critical */ });
+      // Fire-and-forget: light "new activity" note to the household.
+      if (user) {
+        supabase.functions.invoke('send-household-activity', {
+          body: { kind: 'invoice', event: 'paid', entity_id: paidInvoiceId, actor_id: user.id },
+        }).catch(() => { /* non-critical */ });
+      }
     }
     setActioning(false);
   };

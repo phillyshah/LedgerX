@@ -575,6 +575,20 @@ O **alcance** espelha o Relatório de Atividade: admins completos veem todas as 
 
 ---
 
+### Comandos e Notificações por E-mail
+<!-- roles: all -->
+
+**Pergunte por e-mail:** envie um e-mail para `receipts@90ten.life` com uma única palavra no assunto e o LedgerX responde automaticamente:
+- `help` — qualquer pessoa: a lista de comandos.
+- `estimates` — admins e admins de propriedade: um resumo rápido do fluxo (abertos / aceitos / recusados, taxa de aceitação e quantos estão parados há mais de duas semanas).
+- `invoices` — admins e admins de propriedade: contagem de pendentes vs. pagas e o total pendente.
+
+Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX sabe quem é você. Não precisa de anexo; um e-mail *com* anexo continua sendo processado como recibo/nota normalmente.
+
+**Avisos de atividade:** sempre que uma nota ou orçamento tem nova atividade (enviado, aceito/recusado ou marcado como pago), todos naquela propriedade recebem um aviso curto por e-mail para dar uma olhada — sem valores nem detalhes, apenas um lembrete para abrir o app. Prestadores só são avisados sobre as notas e orçamentos que eles mesmos enviaram, e transações comuns nunca disparam esses e-mails.
+
+---
+
 ## Função de Admin de Propriedade
 <!-- roles: admin -->
 

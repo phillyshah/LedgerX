@@ -433,6 +433,11 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
         }).catch(() => { /* non-critical */ });
       }
 
+      // Fire-and-forget: light "new activity" note to the household.
+      supabase.functions.invoke('send-household-activity', {
+        body: { kind: 'invoice', event: 'submitted', entity_id: invoiceData.id, actor_id: user.id },
+      }).catch(() => { /* non-critical */ });
+
       return true;
     } catch (error) {
       console.error('Error saving invoice:', error);

@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.2',
+    version: 'v11.2',
+    date: '2026-07-05',
+    title: {
+      'en': 'Email commands + activity nudges',
+      'pt-BR': 'Comandos por e-mail + avisos de atividade',
+    },
+    body: {
+      'en':
+        "Two email additions. Email receipts@90ten.life with a one-word subject and get an instant reply: send \"help\" for the command list, or (admins & household admins) \"estimates\" or \"invoices\" for a quick status summary. It only works from the email address saved on your profile. " +
+        "And whenever there's new activity on an invoice or estimate in one of your properties, everyone in that property now gets a short heads-up email so they can check in — contractors only hear about the invoices and estimates they submitted themselves.",
+      'pt-BR':
+        "Duas novidades por e-mail. Envie um e-mail para receipts@90ten.life com uma palavra no assunto e receba uma resposta na hora: mande \"help\" para ver os comandos, ou (admins e admins de propriedade) \"estimates\" ou \"invoices\" para um resumo rápido. Só funciona a partir do e-mail salvo no seu perfil. " +
+        "E sempre que houver nova atividade em uma nota ou orçamento de uma das suas propriedades, todos naquela propriedade agora recebem um aviso curto por e-mail para dar uma olhada — prestadores só são avisados sobre as notas e orçamentos que eles mesmos enviaram.",
+    },
+  },
+  {
     id: 'v11.1',
     version: 'v11.1',
     date: '2026-07-05',

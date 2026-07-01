@@ -578,6 +578,20 @@ A focused report on the estimate pipeline. Open it from the nav (or the **Estima
 
 ---
 
+### Email Commands & Notifications
+<!-- roles: all -->
+
+**Ask by email:** email `receipts@90ten.life` with a single word as the subject and LedgerX replies automatically:
+- `help` — anyone: the list of commands.
+- `estimates` — admins & household admins: a quick pipeline summary (open / accepted / rejected, acceptance rate, and how many are aging past two weeks).
+- `invoices` — admins & household admins: pending vs. paid counts and the pending total.
+
+It only works from the email address saved on your profile — that's how LedgerX knows who you are. No attachment is needed; an email *with* an attachment is still processed as a receipt/invoice as usual.
+
+**Activity nudges:** whenever an invoice or estimate sees new activity (submitted, accepted/rejected, or marked paid), everyone in that property gets a short heads-up email so they can check in — no amounts or details, just a nudge to open the app. Contractors are only nudged about the invoices and estimates they submitted themselves, and ordinary transactions never trigger these emails.
+
+---
+
 ## Household Admin Role
 <!-- roles: admin -->
 

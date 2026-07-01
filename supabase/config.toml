@@ -3,3 +3,8 @@ verify_jwt = false
 
 [functions.lookup-npi]
 verify_jwt = false
+
+# Called server-to-server by inbound-email with the shared INBOUND_EMAIL_SECRET
+# (not a user JWT), so JWT verification must be off — same as inbound-email.
+[functions.email-command]
+verify_jwt = false

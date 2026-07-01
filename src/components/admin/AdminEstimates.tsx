@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
+import { useAuth } from '../../contexts/AuthContext';
 import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2 } from 'lucide-react';
 import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
@@ -35,6 +36,7 @@ function StatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => 
 
 export function AdminEstimates() {
   const { t, locale } = useT();
+  const { user } = useAuth();
 
   const [estimates, setEstimates] = useState<AdminEstimateRow[]>([]);
   const [households, setHouseholds] = useState<HouseholdOption[]>([]);
@@ -173,6 +175,11 @@ export function AdminEstimates() {
     setActioning(false);
     if (error) { alert(t('adminEstimates.actionError')); return; }
     setDetail((d) => (d && d.id === est.id ? { ...d, status } : d));
+    if ((status === 'accepted' || status === 'rejected') && user) {
+      supabase.functions.invoke('send-household-activity', {
+        body: { kind: 'estimate', event: status, entity_id: est.id, actor_id: user.id },
+      }).catch(() => { /* non-critical */ });
+    }
     await loadData();
   };
 
