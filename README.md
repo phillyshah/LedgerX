@@ -543,7 +543,7 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 
 **Billing type:** every estimate now includes a billing type — **Total bill** or **Labor only (materials separate)**. This shows as a badge on each estimate card so you know at a glance whether materials are included in the quoted price.
 
-**Network visibility:** any user who shares a property with the contractor can see that contractor's estimates (read-only). This includes household admins, regular users, and other contractors in the same properties. Network viewers can see the full estimate details, attachments, and conversation history — but only the original submitter and full admins can post messages, and only full admins can change the status.
+**Network visibility:** any user who shares a property with the contractor can see that contractor's estimates. This includes household admins, regular users, and other contractors in the same properties. Network viewers can see the full estimate details, attachments, and conversation history. Non-contractor members of the property — household admins and regular users — can also **join the conversation and post messages**, alongside the original submitter and full admins. Other contractors in the same property stay read-only (they can view but not post) unless they're the submitter or were explicitly invited. Only full admins can change the estimate's status.
 
 **Submitting your own estimate:** if a subcontractor sends you a quote directly, you can log it yourself — tap **Submit an estimate** on the admin home, pick any property, and attach the JPEG or PDF. It appears in the Estimates section alongside contractor-submitted ones, ready to accept, reject, or discuss.
 
