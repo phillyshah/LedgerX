@@ -33,6 +33,23 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v10.9',
+    version: 'v10.9',
+    date: '2026-07-05',
+    title: {
+      'en': 'Estimate fixes + fully translated chat',
+      'pt-BR': 'Correções de orçamentos + chat traduzido',
+    },
+    body: {
+      'en':
+        'Two fixes to the estimates feature. You can now submit a new estimate at any time — the submit button was disappearing once your dashboard filled up with estimates shared from your network. ' +
+        'And every message in the estimates area, including the conversation thread and invite notices, now appears fully in your selected language.',
+      'pt-BR':
+        'Duas correções no recurso de orçamentos. Agora você pode enviar um novo orçamento a qualquer momento — o botão de enviar sumia quando o seu painel enchia de orçamentos compartilhados pela sua rede. ' +
+        'E todas as mensagens na área de orçamentos, incluindo a conversa e os avisos de convite, agora aparecem totalmente no idioma selecionado.',
+    },
+  },
+  {
     id: 'v10.8',
     version: 'v10.8',
     date: '2026-07-05',

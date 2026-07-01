@@ -72,7 +72,7 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
       .insert({ estimate_id: estimateId, sender_id: user.id, body } as never);
 
     if (insErr) {
-      setError(insErr.message);
+      setError(t('estimate.chatSendError'));
       setSending(false);
       return;
     }

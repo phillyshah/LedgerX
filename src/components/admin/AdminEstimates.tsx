@@ -144,7 +144,14 @@ export function AdminEstimates() {
     } as never);
 
     if (error) {
-      setInviteError(error.message);
+      const m = error.message || '';
+      setInviteError(
+        /not found/i.test(m)
+          ? t('adminEstimates.inviteNotFound')
+          : /already the estimate submitter/i.test(m)
+            ? t('adminEstimates.inviteAlreadySubmitter')
+            : t('adminEstimates.inviteFailed')
+      );
       setInviting(false);
       return;
     }
@@ -164,7 +171,7 @@ export function AdminEstimates() {
       p_status: status,
     } as never);
     setActioning(false);
-    if (error) { alert(error.message); return; }
+    if (error) { alert(t('adminEstimates.actionError')); return; }
     setDetail((d) => (d && d.id === est.id ? { ...d, status } : d));
     await loadData();
   };
@@ -174,7 +181,7 @@ export function AdminEstimates() {
     setDeletingId(est.id);
     const { error } = await supabase.from('estimates').delete().eq('id', est.id);
     setDeletingId(null);
-    if (error) { alert(error.message); return; }
+    if (error) { alert(t('adminEstimates.actionError')); return; }
     setDetail(null);
     await loadData();
   };

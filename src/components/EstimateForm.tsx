@@ -38,7 +38,7 @@ function isAllowed(file: File): boolean {
 }
 
 export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
-  const { user, isContractor, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useT();
   useEscapeClose(onClose);
 
