@@ -21,7 +21,10 @@ Shared household expense tracker with receipt OCR and admin analytics. React 18 
 
 ## Subdocs
 
-- `.claude/ARCHITECTURE.md` — directory layout, schema, data flow, i18n layer
+- **`.claude/HANDOFF.md` — READ THIS FIRST.** Current project state, latest
+  session's work, environment specifics, and deployment gotchas. Update it at
+  the end of any substantial session.
+- `.claude/ARCHITECTURE.md` — directory layout, schema, data flow, i18n layer (stale as of `v11.2` — see HANDOFF.md)
 - `.claude/QUICK_START.md` — commands, env vars, deploy
 - `.claude/COMMON_MISTAKES.md` — recurring bugs to avoid
 - `.claude/DECISIONS.md` — design rationale
