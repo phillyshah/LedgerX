@@ -74,7 +74,16 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
     if (insErr) {
       // Surface the real Postgres/RLS error to the console for diagnosis while
       // keeping a friendly message for the user (RLS rejections show here).
-      console.error('[EstimateChat] message insert failed:', insErr.message ?? insErr, insErr);
+      // Also compare the app's cached user id against who Supabase actually
+      // authenticated the request as — a stale/mismatched session (e.g. still
+      // signed in as a different account) fails RLS's `sender_id = auth.uid()`
+      // check regardless of any participant invite or role.
+      const { data: authCheck } = await supabase.auth.getUser();
+      console.error(
+        '[EstimateChat] message insert failed:', insErr.message ?? insErr, insErr,
+        '| app user.id=', user.id, '| actual authenticated uid=', authCheck?.user?.id,
+        '| MATCH=', user.id === authCheck?.user?.id,
+      );
       setError(t('estimate.chatSendError'));
       setSending(false);
       return;
