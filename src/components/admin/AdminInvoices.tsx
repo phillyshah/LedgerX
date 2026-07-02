@@ -40,7 +40,7 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function AdminInvoices() {
+export function AdminInvoices({ onAdd }: { onAdd?: () => void }) {
   const { t, locale } = useT();
   const { isAdmin, user } = useAuth();
   // Only full admins mutate state (mark paid, assign category).
@@ -248,9 +248,20 @@ export function AdminInvoices() {
   return (
     <div>
       {/* Page header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">{t('adminInvoices.title')}</h2>
-        <p className="text-slate-500 mt-1">{t('adminInvoices.subtitle')}</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">{t('adminInvoices.title')}</h2>
+          <p className="text-slate-500 mt-1">{t('adminInvoices.subtitle')}</p>
+        </div>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99]"
+          >
+            <FileText className="w-4 h-4" />
+            {t('invoice.submitInvoice')}
+          </button>
+        )}
       </div>
 
       {/* Filter bar */}

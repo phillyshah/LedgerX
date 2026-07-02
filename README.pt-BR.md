@@ -92,11 +92,13 @@ Se você pertence a várias residências, use o **seletor de residência** para 
 
 ### Menu da conta (avatar no canto superior direito)
 
-O cabeçalho mostra apenas dois ícones à direita: o **sino** para Novidades e seu **avatar** — um único menu suspenso que contém **Configurações**, **Ajuda** e **Sair**, com a versão do app no rodapé. Toque fora do menu (ou pressione **Esc**) para fechar.
+O cabeçalho mostra apenas um ícone de **avatar** à direita — um menu suspenso que contém **Configurações**, **Ajuda** e **Sair**, com a versão do app no rodapé. Toque fora do menu (ou pressione **Esc**) para fechar. (O link **Novidades** agora fica no rodapé, na parte de baixo da página — veja abaixo.)
 
 ### Seções Recolhíveis
 
-Cada área principal do Painel — **Caixa de Entrada**, **Resumo**, **Gráficos de gastos** e **Transações** — tem uma pequena seta (▾) ao lado do título. Toque no título da seção para recolher; toque novamente para expandir. Suas escolhas ficam salvas neste dispositivo entre recargas, então você pode ocultar as partes que não usa no dia a dia e manter a página arrumada.
+A tela inicial começa com suas ações principais e sua lista de **Transações**. Os resumos e gráficos de gastos ficam reunidos em uma única seção **Análises** que começa recolhida — abra quando quiser ver os números. Cada área principal (**Caixa de Entrada**, **Transações**, **Orçamentos da Rede**, **Análises**) tem uma pequena seta (▾) ao lado do título. Toque no título da seção para recolher; toque novamente para expandir. Suas escolhas ficam salvas neste dispositivo entre recargas, então você pode ocultar as partes que não usa no dia a dia e manter a página arrumada.
+
+As telas de **Orçamentos** e **Notas Fiscais** têm cada uma seu próprio botão **Enviar**, para você começar um novo sem voltar à tela inicial.
 
 A seção **Caixa de Entrada** só aparece quando há pelo menos um item encaminhado aguardando revisão.
 
@@ -390,20 +392,22 @@ Os resultados vêm do registro público CMS NPPES. O botão fica oculto em resid
 
 ---
 
-## Novidades (Ícone do Sino)
+## Novidades (Link no Rodapé)
 <!-- roles: contractor, member, admin -->
 
-Um **ícone de sino** fica no topo direito de cada página (e na base da
-barra lateral admin no desktop). Toque para ver o que foi lançado
+Um link **Novidades** fica no **rodapé**, na parte de baixo de cada
+página, ao lado da versão do app. Toque para ver o que foi lançado
 recentemente — versão, data e uma breve descrição de cada release.
 
-O sino fica **âmbar com um pequeno ponto vermelho** quando há novidades
-não lidas. Abrir o painel limpa o ponto. O estado de leitura é por
+O link fica com um **pequeno ponto vermelho** quando há novidades não
+lidas. Abrir o painel limpa o ponto. O estado de leitura é por
 navegador/dispositivo, portanto entrar pelo celular após ler no laptop
-mostra o ponto brevemente novamente até você tocar no sino lá também.
+mostra o ponto brevemente novamente até você abri-lo lá também.
 
 Usamos isso para mantê-lo informado conforme novos recursos forem
-lançados — sem mais atualizações silenciosas.
+lançados — sem mais atualizações silenciosas. (O **sino** do cabeçalho
+está sendo reservado para notificações de verdade — novas mensagens de
+chat, orçamentos e notas — que chegam em um próximo lançamento.)
 
 ---
 
@@ -463,7 +467,7 @@ Seu administrador pode adicioná-lo a mais residências. Cada residência tem su
 
 Contas de administrador veem um **Painel de Administração** no lugar do Painel normal.
 
-O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX, Sino (Novidades), Ajuda e Sair — consistente com todos os outros tipos de usuário. Abaixo dele, a barra lateral cuida da navegação e a área principal exibe a visualização ativa.
+O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX e o menu do avatar (Configurações, Ajuda, Sair) — consistente com todos os outros tipos de usuário. O link **Novidades** fica no rodapé, na parte de baixo da página. Abaixo do cabeçalho, a barra lateral cuida da navegação e a área principal exibe a visualização ativa. As telas de gestão de **Notas Fiscais** e **Orçamentos** incluem cada uma um botão **Enviar**, para adicionar um sem sair da tela.
 
 **Tela inicial:** Ao entrar como administrador, você cai em uma tela de comando central com:
 - **Ações Rápidas** — botões Adicionar Transação e Enviar Nota Fiscal
