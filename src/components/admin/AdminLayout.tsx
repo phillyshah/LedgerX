@@ -472,7 +472,11 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
-              {activeView === 'invoices'      && <AdminInvoices onAdd={() => setShowInvoiceForm(true)} />}
+              {/* Full admins get the in-header Submit button (their quick actions
+                  live only on Home). Household admins already have a persistent
+                  Submit Invoice in the action row above, so omit it to avoid a
+                  duplicate button on the Invoices tab. */}
+              {activeView === 'invoices'      && <AdminInvoices onAdd={isAdmin ? () => setShowInvoiceForm(true) : undefined} />}
               {activeView === 'estimates'     && isAdmin && <AdminEstimates onAdd={() => setShowEstimateForm(true)} />}
               {activeView === 'estimates'     && !isAdmin && <HAEstimates onAdd={() => setShowEstimateForm(true)} />}
             </Suspense>
