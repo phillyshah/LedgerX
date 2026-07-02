@@ -151,11 +151,13 @@ Deno.serve(async (req: Request) => {
     });
     if (!userId) {
       // Silent ignore — never email an address we can't resolve.
+      console.log(`[email-command] no user match for "${senderAddress}" — dropping`);
       return new Response(JSON.stringify({ ok: true, matched: false }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log(`[email-command] matched user=${userId} sender=${senderAddress}`);
 
     // 3. Load the profile for language + greeting.
     const { data: profile } = await supabase
@@ -263,7 +265,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    await fetch("https://api.resend.com/emails", {
+    const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
@@ -272,11 +274,18 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: fromEmail,
         to: senderAddress,
-        reply_to: senderAddress,
         subject: replySubject,
         html,
       }),
     });
+    if (!resendRes.ok) {
+      console.error(
+        `[email-command] Resend send FAILED (${resendRes.status}) ` +
+          `to=${senderAddress} from=${fromEmail}: ${await resendRes.text()}`,
+      );
+    } else {
+      console.log(`[email-command] sent command="${command}" to=${senderAddress}`);
+    }
 
     // 7. Done.
     return new Response(JSON.stringify({ ok: true, matched: true, command }), {

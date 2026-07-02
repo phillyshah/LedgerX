@@ -72,6 +72,9 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
       .insert({ estimate_id: estimateId, sender_id: user.id, body } as never);
 
     if (insErr) {
+      // Surface the real Postgres/RLS error to the console for diagnosis while
+      // keeping a friendly message for the user (RLS rejections show here).
+      console.error('[EstimateChat] message insert failed:', insErr.message ?? insErr, insErr);
       setError(t('estimate.chatSendError'));
       setSending(false);
       return;
