@@ -2,7 +2,7 @@ import { useEstimates } from '../../hooks/useEstimates';
 import { EstimateList } from '../EstimateList';
 import { useT } from '../../hooks/useT';
 
-export function HAEstimates() {
+export function HAEstimates({ onAdd }: { onAdd?: () => void }) {
   const { t } = useT();
   const { estimates, loading, reloadEstimates } = useEstimates();
   return (
@@ -11,7 +11,7 @@ export function HAEstimates() {
         <h2 className="text-2xl font-bold text-slate-900">{t('adminEstimates.title')}</h2>
         <p className="text-slate-500 mt-1">{t('estimate.networkEstimatesHint')}</p>
       </div>
-      <EstimateList estimates={estimates} loading={loading} onReload={reloadEstimates} />
+      <EstimateList estimates={estimates} loading={loading} onReload={reloadEstimates} onAdd={onAdd} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2 } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList } from 'lucide-react';
 import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
 
@@ -34,7 +34,7 @@ function StatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => 
   );
 }
 
-export function AdminEstimates() {
+export function AdminEstimates({ onAdd }: { onAdd?: () => void }) {
   const { t, locale } = useT();
   const { user } = useAuth();
 
@@ -195,9 +195,20 @@ export function AdminEstimates() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">{t('adminEstimates.title')}</h2>
-        <p className="text-slate-500 mt-1">{t('adminEstimates.subtitle')}</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">{t('adminEstimates.title')}</h2>
+          <p className="text-slate-500 mt-1">{t('adminEstimates.subtitle')}</p>
+        </div>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99]"
+          >
+            <ClipboardList className="w-4 h-4" />
+            {t('estimate.submitEstimate')}
+          </button>
+        )}
       </div>
 
       {/* Filter bar */}

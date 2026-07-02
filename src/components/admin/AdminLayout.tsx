@@ -2,16 +2,16 @@ import { Suspense, lazy, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
-import { BellButton } from '../BellButton';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
+import { AppFooter } from '../AppFooter';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart,
 } from 'lucide-react';
-// hasUnreadReleases / LAST_SEEN_KEY removed — BellButton owns all unread tracking internally
+// hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
 
 const ManageHouseholds    = lazy(() => import('./ManageHouseholds').then((m) => ({ default: m.ManageHouseholds })));
 const ManageCategories    = lazy(() => import('./ManageCategories').then((m) => ({ default: m.ManageCategories })));
@@ -203,7 +203,7 @@ export function AdminLayout() {
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  // No hasUnread state here — BellButton manages its own unread tracking via storage events
+  // No hasUnread state here — AppFooter manages its own unread tracking via storage events
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showEstimateForm, setShowEstimateForm] = useState(false);
@@ -310,7 +310,6 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-1">
-            <BellButton onClick={() => setShowWhatsNew(true)} dark compact />
             <UserMenu
               variant="dark"
               username={username}
@@ -473,9 +472,13 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
-              {activeView === 'invoices'      && <AdminInvoices />}
-              {activeView === 'estimates'     && isAdmin && <AdminEstimates />}
-              {activeView === 'estimates'     && !isAdmin && <HAEstimates />}
+              {/* Full admins get the in-header Submit button (their quick actions
+                  live only on Home). Household admins already have a persistent
+                  Submit Invoice in the action row above, so omit it to avoid a
+                  duplicate button on the Invoices tab. */}
+              {activeView === 'invoices'      && <AdminInvoices onAdd={isAdmin ? () => setShowInvoiceForm(true) : undefined} />}
+              {activeView === 'estimates'     && isAdmin && <AdminEstimates onAdd={() => setShowEstimateForm(true)} />}
+              {activeView === 'estimates'     && !isAdmin && <HAEstimates onAdd={() => setShowEstimateForm(true)} />}
             </Suspense>
 
             {activeView === 'my-transactions' && (
@@ -489,6 +492,8 @@ export function AdminLayout() {
                 onAdd={() => setShowAddExpense(true)}
               />
             )}
+
+            <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />
           </div>
         </main>
       </div>

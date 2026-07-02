@@ -96,11 +96,13 @@ If you belong to multiple households, use the **household selector** to switch b
 
 ### Account menu (top-right avatar)
 
-The header shows just two icons on the right: the **bell** for What's New, and your **avatar** — a single dropdown that contains **Settings**, **Help**, and **Sign out**, with the app version at the bottom. Tapping outside the menu (or pressing **Esc**) closes it.
+The header shows a single **avatar** icon on the right — a dropdown that contains **Settings**, **Help**, and **Sign out**, with the app version at the bottom. Tapping outside the menu (or pressing **Esc**) closes it. (The **What's New** link now lives in the footer at the bottom of the page — see below.)
 
 ### Collapsible Sections
 
-Each major area on the Dashboard — **Email Inbox**, **Summary**, **Spending charts**, **Transactions** — has a small chevron (▾) next to its title. Tap the section title to collapse it; tap again to expand. Your choices stick on this device across reloads, so you can hide the parts you don't use day-to-day and keep the page tidy.
+The home screen leads with your main actions and your **Transactions** list. Spending summaries and charts are folded into a single **Insights** section that starts collapsed — open it when you want the numbers. Each major area (**Email Inbox**, **Transactions**, **Network Estimates**, **Insights**) has a small chevron (▾) next to its title. Tap the section title to collapse it; tap again to expand. Your choices stick on this device across reloads, so you can hide the parts you don't use day-to-day and keep the page tidy.
+
+The **Estimates** and **Invoices** screens each carry their own **Submit** button, so you can start a new one without returning to the home page.
 
 The **Email Inbox** section only appears when you have at least one forwarded item waiting to be reviewed.
 
@@ -392,21 +394,21 @@ Results come from the public CMS NPPES registry. The button is hidden for househ
 
 ---
 
-## What's New (Bell Icon)
+## What's New (Footer Link)
 <!-- roles: contractor, member, admin -->
 
-A **bell icon** lives in the top-right of every page (and at the bottom
-of the admin sidebar on desktop). Tap it to see what's been shipped
+A **What's New** link lives in the **footer** at the bottom of every
+page, next to the app version. Tap it to see what's been shipped
 recently — version, date, and a short description of each release.
 
-The bell turns **amber with a small red dot** when there's a release you
-haven't read. Opening the panel clears the dot. Read state is per
-browser/device, so signing in on your phone after reading on your
-laptop will briefly show the dot again until you tap the bell there
-too.
+The link shows a **small red dot** when there's a release you haven't
+read. Opening the panel clears the dot. Read state is per browser/device,
+so signing in on your phone after reading on your laptop will briefly
+show the dot again until you open it there too.
 
 We use this to keep you in the loop as features ship — no more silent
-updates.
+updates. (The header **bell** is being reserved for real notifications —
+new chat messages, estimates, and invoices — coming in an upcoming release.)
 
 ---
 
@@ -466,7 +468,7 @@ Your admin can add you to additional households. Each household has its own tran
 
 Admin accounts see an **Admin Panel** instead of the regular Dashboard.
 
-The admin panel has a **full-width dark header** at the top with the LedgerX logo, Bell (What's New), Help, and Sign Out — consistent with all other user types. Below it, a sidebar handles navigation and the main area shows the active view.
+The admin panel has a **full-width dark header** at the top with the LedgerX logo plus the avatar menu (Settings, Help, Sign Out) — consistent with all other user types. The **What's New** link sits in the footer at the bottom of the page. Below the header, a sidebar handles navigation and the main area shows the active view. The **Invoices** and **Estimates** management screens each include a **Submit** button so you can add one without leaving the screen.
 
 **Home screen:** When you sign in as a full admin, you land on a command-center home screen with:
 - **Quick Actions** — Add Transaction and Submit Invoice buttons

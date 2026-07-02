@@ -33,6 +33,25 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.3',
+    version: 'v11.3',
+    date: '2026-07-06',
+    title: {
+      'en': 'A cleaner, simpler home',
+      'pt-BR': 'Uma tela inicial mais limpa e simples',
+    },
+    body: {
+      'en':
+        "We tidied up the home screen. It now leads with your main actions and your transactions, and the Summary and charts are tucked into a single \"Insights\" section you can open when you want it. " +
+        "You'll also find a Submit button right inside the Estimates and Invoices screens, so you no longer have to go back to the home page to start one. " +
+        "Finally, \"What's New\" (this window) has moved to a link at the bottom of the screen — freeing up the bell for real notifications coming soon.",
+      'pt-BR':
+        "Deixamos a tela inicial mais organizada. Agora ela começa com suas ações principais e suas transações, e o Resumo e os gráficos ficam reunidos em uma única seção \"Análises\" que você abre quando quiser. " +
+        "Você também encontra um botão Enviar dentro das telas de Orçamentos e Notas, então não precisa mais voltar à tela inicial para começar um. " +
+        "Por fim, as \"Novidades\" (esta janela) foram para um link na parte de baixo da tela — liberando o sininho para notificações de verdade, que chegam em breve.",
+    },
+  },
+  {
     id: 'v11.2',
     version: 'v11.2',
     date: '2026-07-05',

@@ -12,13 +12,13 @@ import { InvoiceList } from './InvoiceList';
 import { EstimateList } from './EstimateList';
 import { Plus, Download, FileText, ClipboardList } from 'lucide-react';
 import { LogoText } from './LogoText';
-import { BellButton } from './BellButton';
 import { UserMenu } from './UserMenu';
+import { AppFooter } from './AppFooter';
 import { EmailInboxPanel } from './EmailInboxPanel';
 import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
-import { Mail, Inbox, BarChart3, ListChecks, FileSignature } from 'lucide-react';
+import { Mail, BarChart3, ListChecks, FileSignature } from 'lucide-react';
 
 // Modals + heavy chart bundles only mount on user action, so lazy-loading
 // keeps them out of the initial Dashboard chunk.
@@ -141,7 +141,6 @@ export function Dashboard() {
 
   const HeaderActions = (
     <div className="flex items-center gap-1 sm:gap-2">
-      <BellButton onClick={() => setShowWhatsNew(true)} />
       <UserMenu
         variant="light"
         username={username}
@@ -264,6 +263,8 @@ export function Dashboard() {
               onAdd={() => setShowAddExpense(true)}
             />
           </CollapsibleSection>
+
+          <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />
         </main>
 
         <Suspense fallback={null}>
@@ -363,22 +364,21 @@ export function Dashboard() {
             />
           </CollapsibleSection>
 
+          {/* Transactions lead — the list a household member most often wants. */}
           <CollapsibleSection
-            storageKey="dashboard.summary"
-            title={t('dashboard.summaryTitle')}
-            icon={<Inbox className="w-4 h-4" />}
+            storageKey="dashboard.transactions"
+            title={t('expenses.heading')}
+            icon={<ListChecks className="w-4 h-4" />}
+            meta={expenses.length > 0 ? `${expenses.length}` : undefined}
           >
-            <DashboardSummary expenses={expenses} loading={loading} />
-          </CollapsibleSection>
-
-          <CollapsibleSection
-            storageKey="dashboard.charts"
-            title={t('dashboard.chartsTitle')}
-            icon={<BarChart3 className="w-4 h-4" />}
-          >
-            <Suspense fallback={<ChartsSkeleton />}>
-              <SpendingCharts expenses={expenses} loading={loading} />
-            </Suspense>
+            <ExpenseList
+              expenses={expenses}
+              households={households}
+              loading={loading}
+              onReload={reloadExpenses}
+              hideHeader
+              onAdd={() => setShowAddExpense(true)}
+            />
           </CollapsibleSection>
 
           <CollapsibleSection
@@ -395,22 +395,24 @@ export function Dashboard() {
             />
           </CollapsibleSection>
 
+          {/* Analytics folded into a single "Insights" section, collapsed by
+              default so the home leads with actions and the transaction list. */}
           <CollapsibleSection
-            storageKey="dashboard.transactions"
-            title={t('expenses.heading')}
-            icon={<ListChecks className="w-4 h-4" />}
-            meta={expenses.length > 0 ? `${expenses.length}` : undefined}
+            storageKey="dashboard.insights"
+            title={t('dashboard.insightsTitle')}
+            icon={<BarChart3 className="w-4 h-4" />}
+            defaultExpanded={false}
           >
-            <ExpenseList
-              expenses={expenses}
-              households={households}
-              loading={loading}
-              onReload={reloadExpenses}
-              hideHeader
-              onAdd={() => setShowAddExpense(true)}
-            />
+            <div className="space-y-6">
+              <DashboardSummary expenses={expenses} loading={loading} />
+              <Suspense fallback={<ChartsSkeleton />}>
+                <SpendingCharts expenses={expenses} loading={loading} />
+              </Suspense>
+            </div>
           </CollapsibleSection>
         </div>
+
+        <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />
       </main>
 
       <Suspense fallback={null}>
