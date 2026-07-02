@@ -360,16 +360,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 1b. Command dispatch — an attachment-free email whose subject is a known
-    //     command word (help / estimates / invoices) is a request to the
-    //     email-command bot, not a receipt. Forward the payload to that
-    //     function and return before any receipt processing. Receipts almost
-    //     always carry an attachment, so this never intercepts a real forward.
-    const commandWord =
-      (String(subject ?? "").trim().toLowerCase().split(/\s+/)[0] ?? "")
-        .replace(/[^a-z]/g, "");
+    // 1b. Command dispatch — if the WHOLE subject (normalized to letters) is a
+    //     known command word (help / estimates / invoices), this is a request
+    //     to the email-command bot, not a receipt. Forward it and return before
+    //     any receipt processing. We match the entire subject (not just the
+    //     first word) so a real forward like "Invoices from Acme Corp" is NOT
+    //     hijacked, and we intentionally ignore attachments — a mail signature
+    //     or a forwarded copy shouldn't stop "help" from being a command.
+    const normalizedSubject =
+      String(subject ?? "").trim().toLowerCase().replace(/[^a-z]+/g, " ").trim();
     const KNOWN_COMMANDS = ["help", "estimates", "invoices"];
-    if (attachments.length === 0 && KNOWN_COMMANDS.includes(commandWord)) {
+    if (KNOWN_COMMANDS.includes(normalizedSubject)) {
       try {
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/email-command`, {
           method: "POST",
@@ -385,7 +386,8 @@ Deno.serve(async (req: Request) => {
       } catch (e) {
         console.error("[inbound-email] command forward failed:", e);
       }
-      return new Response(JSON.stringify({ ok: true, command: commandWord }), {
+      console.log(`[inbound-email] handled as command="${normalizedSubject}"`);
+      return new Response(JSON.stringify({ ok: true, command: normalizedSubject }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
