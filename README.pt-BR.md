@@ -90,6 +90,10 @@ O botão **Adicionar Transação** é o cartão verde em destaque no topo — es
 
 Se você pertence a várias residências, use o **seletor de residência** para alternar entre elas. Tudo — transações, exportações, gráficos — fica restrito à residência selecionada.
 
+### Botão de início (o logo)
+
+O **logo do LedgerX** no canto superior esquerdo é um **botão de Início** em todas as telas, no computador e no celular. Onde quer que você esteja — vários níveis dentro de um relatório, uma tela de gestão ou um formulário aberto — toque no logo para voltar direto à sua tela inicial (ele fecha qualquer painel aberto e rola para o topo). É a saída rápida se você se sentir preso.
+
 ### Menu da conta (avatar no canto superior direito)
 
 O cabeçalho mostra apenas um ícone de **avatar** à direita — um menu suspenso que contém **Configurações**, **Ajuda** e **Sair**, com a versão do app no rodapé. Toque fora do menu (ou pressione **Esc**) para fechar. (O link **Novidades** agora fica no rodapé, na parte de baixo da página — veja abaixo.)
