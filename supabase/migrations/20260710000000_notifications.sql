@@ -49,13 +49,14 @@ CREATE POLICY "Users read own notifications"
   ON notifications FOR SELECT
   USING (user_id = auth.uid());
 
--- Only read_at is ever changed by clients (via the RPC). No client INSERT/DELETE
--- policy exists, so rows can only be created by the SECURITY DEFINER triggers.
+-- No INSERT/UPDATE/DELETE policies for clients. Rows are created only by the
+-- SECURITY DEFINER triggers below, and read_at is flipped only via the
+-- SECURITY DEFINER mark_notifications_read() RPC (which bypasses RLS) — so no
+-- client-facing write policy is needed. Omitting one also stops an
+-- authenticated user from rewriting their own rows' kind/title/actor via a
+-- direct PostgREST PATCH. (An older draft had a "Users update own
+-- notifications" policy — intentionally dropped here.)
 DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
-CREATE POLICY "Users update own notifications"
-  ON notifications FOR UPDATE
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
 
 -- ─── 3. Fan-out trigger: new estimate ────────────────────────────────────────
 CREATE OR REPLACE FUNCTION notify_estimate_created()
@@ -80,6 +81,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION notify_estimate_created() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS estimates_notify_created ON estimates;
 CREATE TRIGGER estimates_notify_created
@@ -117,6 +120,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION notify_estimate_status() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS estimates_notify_status ON estimates;
 CREATE TRIGGER estimates_notify_status
@@ -164,6 +169,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION notify_estimate_message() FROM PUBLIC;
+
 DROP TRIGGER IF EXISTS estimate_messages_notify ON estimate_messages;
 CREATE TRIGGER estimate_messages_notify
   AFTER INSERT ON estimate_messages
@@ -192,6 +199,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION notify_invoice_created() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS invoices_notify_created ON contractor_invoices;
 CREATE TRIGGER invoices_notify_created
@@ -227,6 +236,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION notify_invoice_paid() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS invoices_notify_paid ON contractor_invoices;
 CREATE TRIGGER invoices_notify_paid

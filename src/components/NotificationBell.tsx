@@ -53,15 +53,25 @@ export function NotificationBell({ compact = false, dark = false }: Notification
 
   const messageFor = (n: AppNotification): string => {
     const name = n.actor_username || t('notifications.someone');
-    const label = n.title
-      || (n.entity_type === 'estimate' ? t('notifications.anEstimate') : t('notifications.anInvoice'));
+    // Estimates always have a title; invoices may lack an invoice number, so
+    // fall back to number-free copy rather than an awkward "invoice: an invoice".
     switch (n.kind) {
-      case 'chat_message':     return t('notifications.kindChatMessage', { name, title: label });
-      case 'estimate_created': return t('notifications.kindEstimateCreated', { name, title: label });
-      case 'estimate_status':  return t('notifications.kindEstimateStatus', { title: label });
-      case 'invoice_created':  return t('notifications.kindInvoiceCreated', { name, title: label });
-      case 'invoice_paid':     return t('notifications.kindInvoicePaid', { title: label });
-      default:                 return label;
+      case 'chat_message':
+        return t('notifications.kindChatMessage', { name, title: n.title || t('notifications.anEstimate') });
+      case 'estimate_created':
+        return t('notifications.kindEstimateCreated', { name, title: n.title || t('notifications.anEstimate') });
+      case 'estimate_status':
+        return t('notifications.kindEstimateStatus', { title: n.title || t('notifications.anEstimate') });
+      case 'invoice_created':
+        return n.title
+          ? t('notifications.kindInvoiceCreated', { name, title: n.title })
+          : t('notifications.kindInvoiceCreatedNoTitle', { name });
+      case 'invoice_paid':
+        return n.title
+          ? t('notifications.kindInvoicePaid', { title: n.title })
+          : t('notifications.kindInvoicePaidNoTitle');
+      default:
+        return n.title || '';
     }
   };
 
