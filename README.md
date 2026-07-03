@@ -677,7 +677,7 @@ Estimates let you send a quote to the admin *before* the work happens — and th
 
 Your estimate files stay on record until an admin removes them — there's no contractor delete button for estimates, so nothing you send disappears on its own.
 
-**Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
+**Household admins** get the same **Add Transaction**, **Submit Invoice**, and **Submit Estimate** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 
 ---
 

@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.4',
+    version: 'v11.4',
+    date: '2026-07-07',
+    title: {
+      'en': 'Household admins can submit estimates',
+      'pt-BR': 'Admins de propriedade podem enviar orçamentos',
+    },
+    body: {
+      'en':
+        "If you're a household admin, you'll now find a Submit Estimate button right next to Add Transaction and Submit Invoice at the top of your panel — so you can file your own estimates without any workarounds.",
+      'pt-BR':
+        "Se você é admin de propriedade, agora encontra um botão Enviar Orçamento logo ao lado de Adicionar Transação e Enviar Nota Fiscal no topo do seu painel — assim você pode registrar seus próprios orçamentos sem contornos.",
+    },
+  },
+  {
     id: 'v11.3',
     version: 'v11.3',
     date: '2026-07-06',
