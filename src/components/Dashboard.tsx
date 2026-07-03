@@ -138,6 +138,7 @@ export function Dashboard() {
     setShowWhatsNew(false);
     setExpenseInitialData(undefined);
     setInvoiceInitialData(undefined);
+    setAcceptToast(null);
     window.scrollTo({ top: 0 });
   };
 
