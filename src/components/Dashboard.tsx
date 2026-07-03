@@ -14,6 +14,7 @@ import { Plus, Download, FileText, ClipboardList } from 'lucide-react';
 import { LogoText } from './LogoText';
 import { UserMenu } from './UserMenu';
 import { AppFooter } from './AppFooter';
+import { NotificationBell } from './NotificationBell';
 import { EmailInboxPanel } from './EmailInboxPanel';
 import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -141,6 +142,7 @@ export function Dashboard() {
 
   const HeaderActions = (
     <div className="flex items-center gap-1 sm:gap-2">
+      <NotificationBell />
       <UserMenu
         variant="light"
         username={username}

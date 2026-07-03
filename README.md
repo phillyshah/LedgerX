@@ -407,8 +407,23 @@ so signing in on your phone after reading on your laptop will briefly
 show the dot again until you open it there too.
 
 We use this to keep you in the loop as features ship — no more silent
-updates. (The header **bell** is being reserved for real notifications —
-new chat messages, estimates, and invoices — coming in an upcoming release.)
+updates.
+
+## Notifications (Bell Icon)
+<!-- roles: contractor, member, admin -->
+
+The **bell** in the top corner is a real notification center. It shows a
+count when there's something new for you:
+
+- a **new message** on an estimate you're part of,
+- a **new estimate or invoice** submitted in your household,
+- an **estimate reviewed** (accepted/rejected) or an **invoice marked paid**.
+
+Tap the bell to see the list, tap any item to mark it read, or use **Mark all
+read**. You're only notified about things that involve you — you never get a
+note about your own action, and contractors only hear about the estimates and
+invoices they submitted themselves. (Receipts/expenses don't generate bell
+notifications.) The list refreshes when you return to the tab.
 
 ---
 

@@ -5,6 +5,7 @@ import { ExpenseList } from '../ExpenseList';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
 import { AppFooter } from '../AppFooter';
+import { NotificationBell } from '../NotificationBell';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
@@ -310,6 +311,7 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-1">
+            <NotificationBell dark compact />
             <UserMenu
               variant="dark"
               username={username}
