@@ -407,8 +407,23 @@ so signing in on your phone after reading on your laptop will briefly
 show the dot again until you open it there too.
 
 We use this to keep you in the loop as features ship — no more silent
-updates. (The header **bell** is being reserved for real notifications —
-new chat messages, estimates, and invoices — coming in an upcoming release.)
+updates.
+
+## Notifications (Bell Icon)
+<!-- roles: contractor, member, admin -->
+
+The **bell** in the top corner is a real notification center. It shows a
+count when there's something new for you:
+
+- a **new message** on an estimate you're part of,
+- a **new estimate or invoice** submitted in your household,
+- an **estimate reviewed** (accepted/rejected) or an **invoice marked paid**.
+
+Tap the bell to see the list, tap any item to mark it read, or use **Mark all
+read**. You're only notified about things that involve you — you never get a
+note about your own action, and contractors only hear about the estimates and
+invoices they submitted themselves. (Receipts/expenses don't generate bell
+notifications.) The list refreshes when you return to the tab.
 
 ---
 
@@ -677,7 +692,7 @@ Estimates let you send a quote to the admin *before* the work happens — and th
 
 Your estimate files stay on record until an admin removes them — there's no contractor delete button for estimates, so nothing you send disappears on its own.
 
-**Household admins** get the same **Add Transaction** and **Submit Invoice** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
+**Household admins** get the same **Add Transaction**, **Submit Invoice**, and **Submit Estimate** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
 
 ---
 

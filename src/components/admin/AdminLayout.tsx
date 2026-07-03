@@ -5,6 +5,7 @@ import { ExpenseList } from '../ExpenseList';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
 import { AppFooter } from '../AppFooter';
+import { NotificationBell } from '../NotificationBell';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import {
@@ -310,6 +311,7 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-1">
+            <NotificationBell dark compact />
             <UserMenu
               variant="dark"
               username={username}
@@ -452,6 +454,18 @@ export function AdminLayout() {
                     <div className="lg:hidden text-xs text-emerald-700/70 mt-1">{t('invoice.submitInvoiceHint')}</div>
                   </div>
                 </button>
+                <button
+                  onClick={() => setShowEstimateForm(true)}
+                  className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
+                >
+                  <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-emerald-100 lg:bg-transparent flex items-center justify-center group-hover:bg-emerald-200 lg:group-hover:bg-transparent transition-colors">
+                    <ClipboardList className="w-5 h-5 lg:w-4 lg:h-4" />
+                  </div>
+                  <div className="lg:contents">
+                    <div className="font-semibold text-sm leading-tight">{t('estimate.submitEstimate')}</div>
+                    <div className="lg:hidden text-xs text-emerald-700/70 mt-1">{t('estimate.submitEstimateHint')}</div>
+                  </div>
+                </button>
               </div>
             )}
 
@@ -478,7 +492,10 @@ export function AdminLayout() {
                   duplicate button on the Invoices tab. */}
               {activeView === 'invoices'      && <AdminInvoices onAdd={isAdmin ? () => setShowInvoiceForm(true) : undefined} />}
               {activeView === 'estimates'     && isAdmin && <AdminEstimates onAdd={() => setShowEstimateForm(true)} />}
-              {activeView === 'estimates'     && !isAdmin && <HAEstimates onAdd={() => setShowEstimateForm(true)} />}
+              {/* Household admins submit estimates from the quick-action row above
+                  (parity with Submit Invoice), so no in-tab button here — avoids a
+                  duplicate, matching the AdminInvoices treatment. */}
+              {activeView === 'estimates'     && !isAdmin && <HAEstimates />}
             </Suspense>
 
             {activeView === 'my-transactions' && (

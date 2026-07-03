@@ -33,6 +33,38 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.5',
+    version: 'v11.5',
+    date: '2026-07-08',
+    title: {
+      'en': 'The bell now shows real notifications',
+      'pt-BR': 'O sininho agora mostra notificações de verdade',
+    },
+    body: {
+      'en':
+        "The bell in the top corner is now a real notification center. It lights up with a count when there's something new for you — a new message on an estimate you're part of, a new estimate or invoice submitted in your household, or an estimate/invoice that was reviewed or marked paid. Tap the bell to see the list, tap any item to mark it read, or use \"Mark all read\". " +
+        "You'll only be notified about things that involve you: you never get a note about your own action, and contractors only hear about the estimates and invoices they submitted. (\"What's New\" — this window — now lives at the bottom of the screen.)",
+      'pt-BR':
+        "O sininho no canto superior agora é uma central de notificações de verdade. Ele acende com um número quando há algo novo para você — uma nova mensagem em um orçamento do qual você participa, um novo orçamento ou nota fiscal enviado na sua propriedade, ou um orçamento/nota que foi avaliado ou marcado como pago. Toque no sininho para ver a lista, toque em um item para marcá-lo como lido, ou use \"Marcar tudo como lido\". " +
+        "Você só é notificado sobre coisas que envolvem você: nunca recebe aviso da sua própria ação, e prestadores só são avisados sobre os orçamentos e notas que eles mesmos enviaram. (As \"Novidades\" — esta janela — agora ficam na parte de baixo da tela.)",
+    },
+  },
+  {
+    id: 'v11.4',
+    version: 'v11.4',
+    date: '2026-07-07',
+    title: {
+      'en': 'Household admins can submit estimates',
+      'pt-BR': 'Admins de propriedade podem enviar orçamentos',
+    },
+    body: {
+      'en':
+        "If you're a household admin, you'll now find a Submit Estimate button right next to Add Transaction and Submit Invoice at the top of your panel — so you can file your own estimates without any workarounds.",
+      'pt-BR':
+        "Se você é admin de propriedade, agora encontra um botão Enviar Orçamento logo ao lado de Adicionar Transação e Enviar Nota Fiscal no topo do seu painel — assim você pode registrar seus próprios orçamentos sem contornos.",
+    },
+  },
+  {
     id: 'v11.3',
     version: 'v11.3',
     date: '2026-07-06',

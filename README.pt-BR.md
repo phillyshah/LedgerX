@@ -405,9 +405,23 @@ navegador/dispositivo, portanto entrar pelo celular após ler no laptop
 mostra o ponto brevemente novamente até você abri-lo lá também.
 
 Usamos isso para mantê-lo informado conforme novos recursos forem
-lançados — sem mais atualizações silenciosas. (O **sino** do cabeçalho
-está sendo reservado para notificações de verdade — novas mensagens de
-chat, orçamentos e notas — que chegam em um próximo lançamento.)
+lançados — sem mais atualizações silenciosas.
+
+## Notificações (Ícone do Sino)
+<!-- roles: contractor, member, admin -->
+
+O **sino** no canto superior é uma central de notificações de verdade. Ele
+mostra um número quando há algo novo para você:
+
+- uma **nova mensagem** em um orçamento do qual você participa,
+- um **novo orçamento ou nota fiscal** enviado na sua propriedade,
+- um **orçamento avaliado** (aceito/recusado) ou uma **nota marcada como paga**.
+
+Toque no sino para ver a lista, toque em um item para marcá-lo como lido, ou
+use **Marcar tudo como lido**. Você só é notificado sobre coisas que envolvem
+você — nunca recebe aviso da sua própria ação, e prestadores só são avisados
+sobre os orçamentos e notas que eles mesmos enviaram. (Recibos/despesas não
+geram notificações no sino.) A lista é atualizada quando você volta à aba.
 
 ---
 
@@ -676,7 +690,7 @@ Os orçamentos permitem enviar uma cotação ao administrador *antes* de o servi
 
 Os arquivos do seu orçamento ficam registrados até que um administrador os remova — não há botão de exclusão de orçamento para o prestador, então nada que você enviar some sozinho.
 
-**Administradores de Imóvel** também veem os botões **Adicionar Transação** e **Enviar Nota Fiscal** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
+**Administradores de Imóvel** também veem os botões **Adicionar Transação**, **Enviar Nota Fiscal** e **Enviar Orçamento** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
 
 ---
 
