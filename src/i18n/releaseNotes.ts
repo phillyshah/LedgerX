@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.6',
+    version: 'v11.6',
+    date: '2026-07-09',
+    title: {
+      'en': 'Tap the logo to go home',
+      'pt-BR': 'Toque no logo para voltar ao início',
+    },
+    body: {
+      'en':
+        "The LedgerX logo in the top corner is now a Home button on every screen — on desktop and mobile alike. Wherever you are, a few levels deep in a report or a management screen, tap the logo to jump straight back to your home screen. No more feeling stuck.",
+      'pt-BR':
+        "O logo do LedgerX no canto superior agora é um botão de Início em todas as telas — tanto no computador quanto no celular. Onde quer que você esteja, vários níveis dentro de um relatório ou de uma tela de gestão, toque no logo para voltar direto à tela inicial. Sem mais aquela sensação de ficar preso.",
+    },
+  },
+  {
     id: 'v11.5',
     version: 'v11.5',
     date: '2026-07-08',

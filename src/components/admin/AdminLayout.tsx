@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
@@ -213,6 +213,28 @@ export function AdminLayout() {
 
   const username = user?.email?.split('@')[0] ?? 'admin';
 
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Tapping the logo returns to the landing screen and clears any nested
+  // state, so users deep in a view (or a modal) always have a one-tap way out.
+  // Full admins land on 'home'; household admins have no home view, so their
+  // landing is the invoices list (mirrors the initial activeView above).
+  const goHome = () => {
+    setActiveView(isAdmin ? 'home' : 'invoices');
+    setShowAnalytics(false);
+    setShowReports(false);
+    setShowActivity(false);
+    setShowEstimateReport(false);
+    setShowHelp(false);
+    setShowWhatsNew(false);
+    setShowSettings(false);
+    setShowAddExpense(false);
+    setShowInvoiceForm(false);
+    setShowEstimateForm(false);
+    setMobileMenuOpen(false);
+    mainRef.current?.scrollTo({ top: 0 });
+  };
+
   const handleViewChange = (view: AdminNavKey) => {
     if (view === 'analytics') {
       setShowAnalytics(true);
@@ -296,7 +318,13 @@ export function AdminLayout() {
       {/* ── Full-width top header ── */}
       <header className="bg-gradient-to-r from-emerald-950 to-emerald-900 sticky top-0 z-20">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14">
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goHome}
+            aria-label={t('common.home')}
+            title={t('common.home')}
+            className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          >
             <div className="w-8 h-8 bg-emerald-700 rounded-xl flex items-center justify-center shrink-0">
               <FileText className="w-4 h-4 text-white" />
             </div>
@@ -308,7 +336,7 @@ export function AdminLayout() {
                 Admin Panel
               </span>
             </div>
-          </div>
+          </button>
 
           <div className="flex items-center gap-1">
             <NotificationBell dark compact />
@@ -414,7 +442,7 @@ export function AdminLayout() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto">
+        <main ref={mainRef} className="flex-1 overflow-auto">
           <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
 
             {/* Email inbox — household admins see this above every view

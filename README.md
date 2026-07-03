@@ -94,6 +94,10 @@ The **Add Transaction** button is the prominent green card at the top — that's
 
 If you belong to multiple households, use the **household selector** to switch between them. Everything — transactions, exports, charts — is scoped to the selected household.
 
+### Home button (the logo)
+
+The **LedgerX logo** in the top-left corner is a **Home button** on every screen, desktop and mobile. Wherever you are — several levels deep in a report, a management screen, or an open form — tap the logo to jump straight back to your home screen (it closes any open panel and scrolls to the top). It's the quick way out if you ever feel stuck.
+
 ### Account menu (top-right avatar)
 
 The header shows a single **avatar** icon on the right — a dropdown that contains **Settings**, **Help**, and **Sign out**, with the app version at the bottom. Tapping outside the menu (or pressing **Esc**) closes it. (The **What's New** link now lives in the footer at the bottom of the page — see below.)

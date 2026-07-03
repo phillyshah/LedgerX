@@ -123,8 +123,32 @@ export function Dashboard() {
     }
   };
 
+  // Tapping the logo returns to the top of the home screen and closes any open
+  // modal, so users never feel stranded a few levels deep. The Dashboard is a
+  // single scrolling page (no view/route to reset), so "home" = close overlays
+  // + scroll the window to the top.
+  const goHome = () => {
+    setShowAddExpense(false);
+    setShowInvoiceForm(false);
+    setShowEstimateForm(false);
+    setShowExport(false);
+    setShowReports(false);
+    setShowSettings(false);
+    setShowHelp(false);
+    setShowWhatsNew(false);
+    setExpenseInitialData(undefined);
+    setInvoiceInitialData(undefined);
+    window.scrollTo({ top: 0 });
+  };
+
   const Logo = (
-    <div className="flex items-center gap-3">
+    <button
+      type="button"
+      onClick={goHome}
+      aria-label={t('common.home')}
+      title={t('common.home')}
+      className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+    >
       <div className="w-9 h-9 bg-emerald-900 rounded-xl flex items-center justify-center">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M6 3C5.44772 3 5 3.44772 5 4V20C5 20.5523 5.44772 21 6 21H8V3H6Z" fill="white" fillOpacity="0.9"/>
@@ -137,7 +161,7 @@ export function Dashboard() {
       <h1 className="text-2xl font-bold text-slate-900">
         <LogoText betaClassName="text-emerald-700" />
       </h1>
-    </div>
+    </button>
   );
 
   const HeaderActions = (
