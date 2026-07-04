@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.9',
+    version: 'v11.9',
+    date: '2026-07-12',
+    title: {
+      'en': 'Add photos to an invoice or estimate any time',
+      'pt-BR': 'Adicione fotos a uma nota ou orçamento a qualquer momento',
+    },
+    body: {
+      'en':
+        "You no longer have to get every photo right when you first submit. Open any invoice or estimate you can see, and there's now an \"Add photos\" button right under the attachments — snap or pick more pictures and they're added to the record. Anyone on the household can add to a shared invoice or estimate, not just whoever created it. Photos are automatically shrunk to a sharp, readable size before they're saved, so they stay legible while using far less storage. (PDFs are kept exactly as-is.)",
+      'pt-BR':
+        "Você não precisa mais acertar todas as fotos logo no envio. Abra qualquer nota fiscal ou orçamento que você possa ver e agora há um botão \"Adicionar fotos\" logo abaixo dos anexos — tire ou escolha mais fotos e elas são adicionadas ao registro. Qualquer pessoa da residência pode adicionar a uma nota ou orçamento compartilhado, não apenas quem o criou. As fotos são automaticamente reduzidas para um tamanho nítido e legível antes de salvar, então continuam legíveis usando muito menos armazenamento. (PDFs são mantidos exatamente como estão.)",
+    },
+  },
+  {
     id: 'v11.8',
     version: 'v11.8',
     date: '2026-07-11',

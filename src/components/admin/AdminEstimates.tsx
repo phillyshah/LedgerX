@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList } from 'lucide-react';
 import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
+import { AttachmentAdder } from '../AttachmentAdder';
 
 interface HouseholdOption { id: string; name: string; }
 
@@ -392,6 +393,13 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                         {paths.map((p) => renderTile(p))}
                       </div>
                     )}
+                    <AttachmentAdder
+                      kind="estimate"
+                      recordId={detail.id}
+                      householdId={detail.household_id}
+                      nextOrder={attachments.length}
+                      onUploaded={() => openDetail(detail)}
+                    />
                   </div>
                 );
               })()}

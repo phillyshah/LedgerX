@@ -1,10 +1,10 @@
-import { compressImage } from './imageCompression';
+import { compressToDocumentJpeg } from './imageCompression';
 import type { ImageItem } from '../types/expense';
 
 export async function prepareImageItem(file: File): Promise<ImageItem> {
-  const fileToUse = file.type.startsWith('image/')
-    ? await compressImage(file, 2)
-    : file;
+  // Document preset (1600px / q0.8 / ~0.6MB) — legible receipts, small storage.
+  // Non-images (PDFs) pass through untouched inside compressToDocumentJpeg.
+  const fileToUse = await compressToDocumentJpeg(file);
   const preview = await new Promise<string>((resolve) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);

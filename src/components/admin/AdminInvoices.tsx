@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { X, ChevronDown, ChevronUp, FileText, Check, Tag, Trash2, Edit2 } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
+import { AttachmentAdder } from '../AttachmentAdder';
 
 interface HouseholdOption {
   id: string;
@@ -561,6 +562,13 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
                           {primaryPaths.map((p) => renderTile(p, false))}
                         </div>
                       )}
+                      <AttachmentAdder
+                        kind="invoice"
+                        recordId={detailInvoice.id}
+                        householdId={detailInvoice.household_id}
+                        nextOrder={detailImages.length}
+                        onUploaded={() => openDetail(detailInvoice)}
+                      />
                     </div>
 
                     {workEvidencePaths.length > 0 && (

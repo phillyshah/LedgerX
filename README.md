@@ -549,6 +549,7 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - Click any invoice to see full details and attached documents
 - **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
 - **Assign Category** (full admins only) — tag any invoice with a category so it rolls up into Analytics alongside receipts. The picker only shows categories valid for the invoice's household (globals + any explicitly mapped).
+- **Add photos any time** — open any invoice and use the **Add photos** button under the attachments to add more pictures after submission. Anyone on the property can contribute, not just the submitter. Images are auto-shrunk to a sharp, readable size (~1600px, ~0.6MB) before saving to keep them legible while saving storage; PDFs are kept as-is.
 
 **Email notifications:** Both new invoice AND new receipt submissions trigger an email summary to every full admin with a real email on file. Household admins also get the email, but only for submissions in households they actually belong to — so a household admin for *Beach House* never sees a *Mountain Cabin* notification. The submitter is never emailed about their own submission. When a full admin marks an invoice as paid, the submitter receives a separate confirmation email.
 
@@ -565,6 +566,8 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 - **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
+
+**Add photos any time:** open any estimate you can see and use the **Add photos** button under the attachments to add more pictures after it was submitted — anyone on the property can contribute, not just the submitter. Images are automatically shrunk to a sharp, readable size (roughly 1600px, ~0.6MB) before saving, so they stay legible while using far less storage; PDFs are kept exactly as-is.
 
 **Billing type:** every estimate now includes a billing type — **Total bill** or **Labor only (materials separate)**. This shows as a badge on each estimate card so you know at a glance whether materials are included in the quoted price.
 

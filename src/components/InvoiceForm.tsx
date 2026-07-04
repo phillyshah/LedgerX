@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageCompression';
+import { compressImage, compressToDocumentJpeg } from '../lib/imageCompression';
 import { scanInvoice } from '../lib/invoiceScanner';
 import { X, Upload, Check, Loader2, Plus, FileText, AlertTriangle } from 'lucide-react';
 import { findInvoiceDuplicates, type InvoiceDuplicate } from '../lib/duplicates';
@@ -212,10 +212,8 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
 
     for (const file of Array.from(files)) {
       try {
-        let fileToUse = file;
-        if (file.type.startsWith('image/')) {
-          fileToUse = await compressImage(file, 2);
-        }
+        // Document preset (1600px / q0.8 / ~0.6MB); PDFs pass through untouched.
+        const fileToUse = await compressToDocumentJpeg(file);
         const preview = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);

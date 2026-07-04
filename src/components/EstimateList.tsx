@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { X, FileText, Plus, ClipboardList, MessageCircle } from 'lucide-react';
 import type { Estimate, EstimateStatus, EstimateAttachment } from '../types/estimate';
 import { EstimateChat } from './EstimateChat';
+import { AttachmentAdder } from './AttachmentAdder';
 
 interface EstimateListProps {
   estimates: Estimate[];
@@ -265,6 +266,13 @@ export function EstimateList({ estimates, loading, onReload, onAdd, openId, onOp
                         {paths.map((p) => renderTile(p))}
                       </div>
                     )}
+                    <AttachmentAdder
+                      kind="estimate"
+                      recordId={detail.id}
+                      householdId={detail.household_id}
+                      nextOrder={attachments.length}
+                      onUploaded={() => openDetail(detail)}
+                    />
                   </div>
                 );
               })()}

@@ -99,3 +99,17 @@ export async function compressToMediumJpeg(file: File): Promise<File> {
   if (!file.type.startsWith('image/')) return file;
   return compressImage(file, 0.4, 1280, 1280, 'image/jpeg', 0.75);
 }
+
+/**
+ * Compress a *document* photo — receipts, invoices, estimates. These need the
+ * text to stay legible, so we keep more resolution than work-evidence: a 1600px
+ * longest edge renders a full letter-size page at ~150–190 DPI (fine print
+ * stays readable), JPEG quality 0.8 avoids artifacts on text edges, and the
+ * ~0.6MB cap trims a raw multi-MB phone photo by roughly 80%. HEIC/PNG are
+ * re-encoded to JPEG for a further size win; PDFs and anything non-image pass
+ * through untouched (they're never rasterized for storage).
+ */
+export async function compressToDocumentJpeg(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  return compressImage(file, 0.6, 1600, 1600, 'image/jpeg', 0.8);
+}
