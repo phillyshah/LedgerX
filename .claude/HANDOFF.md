@@ -20,8 +20,11 @@ substantial session.
     Without it @mentions produce no email and no "mentioned you" bell entry.
   - **Deploy the new `send-mention-notification` edge function** (v12.0). Without it
     the mention-email invoke fails silently — best-effort, never blocks the chat post.
-  - **`20260714000000_attachment_inserts.sql`** (v11.9) — confirm applied (the file
-    IS in main via #68, but the v11.9 review-fix/handoff commits were NOT — see #6).
+  - **`20260714000000_attachment_inserts.sql`** (v11.9) — **RE-RUN this** even if once
+    applied: main shipped the LOOSER invoice INSERT policy (the `is_household_admin()`
+    tightening from the v11.9 review never merged — see #6). Re-running replaces the
+    policy (idempotent DROP+CREATE) and closes the gap where a plain household member
+    could insert `invoice_images` on an invoice they can't view.
   - **`20260712000000_email_pending_activity.sql`** (v11.8) — confirm applied.
   - `20260710000000_notifications.sql` (v11.5) should already be applied (bell works).
 
