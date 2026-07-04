@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.0',
+    version: 'v12.0',
+    date: '2026-07-04',
+    title: {
+      'en': 'Get an email when someone @mentions you in a chat',
+      'pt-BR': 'Receba um e-mail quando alguém @mencionar você em uma conversa',
+    },
+    body: {
+      'en':
+        "In an estimate conversation, type “@” followed by someone's username to call them out directly — for example “@maria can you take a look?”. They'll get an email letting them know they were mentioned, with a button that opens LedgerX straight to that conversation. Mentions are also highlighted in the chat and show up in the notification bell as “mentioned you”, so nothing important slips past. Only people who can already see that estimate can be mentioned.",
+      'pt-BR':
+        "Em uma conversa de orçamento, digite “@” seguido do nome de usuário de alguém para chamá-lo diretamente — por exemplo “@maria pode dar uma olhada?”. A pessoa receberá um e-mail avisando que foi mencionada, com um botão que abre o LedgerX direto naquela conversa. As menções também ficam destacadas no chat e aparecem no sino de notificações como “mencionou você”, para que nada importante passe despercebido. Só é possível mencionar quem já pode ver aquele orçamento.",
+    },
+  },
+  {
     id: 'v11.9',
     version: 'v11.9',
     date: '2026-07-12',

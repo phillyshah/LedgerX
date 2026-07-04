@@ -1,5 +1,6 @@
 export type NotificationKind =
   | 'chat_message'
+  | 'chat_mention'
   | 'estimate_created'
   | 'estimate_status'
   | 'invoice_created'

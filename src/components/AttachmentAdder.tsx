@@ -87,7 +87,7 @@ export function AttachmentAdder({ kind, recordId, householdId, nextOrder, onUplo
               file_width: width,
               file_height: height,
               display_order: order,
-            });
+            } as never);
 
         const { error: insErr } = await insert;
         if (insErr) {

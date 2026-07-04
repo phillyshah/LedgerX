@@ -34,6 +34,33 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
       month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
     });
 
+  // The signed-in user's own username (login email is `username@ledgerx.local`),
+  // used to give "@you" mentions a stronger highlight than other @names.
+  const myUsername = user?.email?.split('@')[0]?.toLowerCase() ?? null;
+
+  // Render a message body with @username tokens emphasized. A mention of the
+  // current viewer gets an amber highlight; any other @name is just bolded.
+  const renderBody = (text: string, mine: boolean) => {
+    const parts = text.split(/(@[A-Za-z0-9_]{3,20})/g);
+    return parts.map((part, i) => {
+      const m = /^@([A-Za-z0-9_]{3,20})$/.exec(part);
+      if (!m) return part;
+      const isMe = myUsername !== null && m[1].toLowerCase() === myUsername;
+      if (isMe) {
+        return (
+          <span key={i} className="font-semibold rounded px-1 bg-amber-200 text-amber-900">
+            {part}
+          </span>
+        );
+      }
+      return (
+        <span key={i} className={`font-semibold ${mine ? 'text-emerald-50' : 'text-emerald-700'}`}>
+          {part}
+        </span>
+      );
+    });
+  };
+
   const loadMessages = useCallback(async () => {
     const { data } = await supabase.rpc('list_estimate_messages' as never, {
       p_estimate_id: estimateId,
@@ -89,6 +116,18 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
       return;
     }
 
+    // Fire-and-forget the @mention emails. The edge function (backed by
+    // estimate_mention_recipients) decides who — if anyone — actually gets one;
+    // we only bother invoking it when the message contains an "@" at all. A
+    // failure here must never block or fail the post, so we swallow errors.
+    if (body.includes('@')) {
+      supabase.functions
+        .invoke('send-mention-notification', {
+          body: { estimate_id: estimateId, actor_id: user.id, body },
+        })
+        .catch(() => { /* mention email is best-effort */ });
+    }
+
     setDraft('');
     await loadMessages();
     // Posting also counts as reading — keep our own pointer current.
@@ -121,7 +160,7 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
                       : 'bg-slate-100 text-slate-800 rounded-bl-sm'
                   }`}
                 >
-                  {m.body}
+                  {renderBody(m.body, mine)}
                 </div>
                 <span className="text-[11px] text-slate-400 mt-1 px-1">
                   {mine ? t('estimate.chatYou') : `@${m.sender_username}`} · {fmtTime(m.created_at)}

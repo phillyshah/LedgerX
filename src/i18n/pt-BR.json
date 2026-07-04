@@ -13,6 +13,7 @@
   "notifications.anEstimate": "um orçamento",
   "notifications.anInvoice": "uma nota fiscal",
   "notifications.kindChatMessage": "{name} enviou uma mensagem em “{title}”",
+  "notifications.kindChatMention": "{name} mencionou você em “{title}”",
   "notifications.kindEstimateCreated": "{name} enviou um novo orçamento: “{title}”",
   "notifications.kindEstimateStatus": "Seu orçamento “{title}” foi avaliado",
   "notifications.kindInvoiceCreated": "{name} enviou uma nova nota fiscal: {title}",
