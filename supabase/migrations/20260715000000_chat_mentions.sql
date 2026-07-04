@@ -141,8 +141,7 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 STABLE
 AS $$
-  WITH mentions AS (SELECT extract_mentions(p_body) AS names),
-  actor_ok AS (
+  WITH actor_ok AS (
     SELECT 1 FROM estimate_audience(p_estimate_id) WHERE uid = p_actor
   )
   SELECT up.real_email AS email,
@@ -154,8 +153,9 @@ AS $$
     AND a.uid <> p_actor
     AND up.real_email IS NOT NULL
     AND up.real_email <> ''
-    AND array_length((SELECT names FROM mentions), 1) IS NOT NULL
-    AND lower(up.username) = ANY (SELECT names FROM mentions);
+    -- Array form of ANY: compares against each element of the text[] that
+    -- extract_mentions returns. An empty array simply matches no one.
+    AND lower(up.username) = ANY (extract_mentions(p_body));
 $$;
 
 REVOKE ALL ON FUNCTION estimate_mention_recipients(uuid, uuid, text) FROM PUBLIC;
