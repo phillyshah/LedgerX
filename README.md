@@ -423,11 +423,15 @@ count when there's something new for you:
 - a **new estimate or invoice** submitted in your household,
 - an **estimate reviewed** (accepted/rejected) or an **invoice marked paid**.
 
-Tap the bell to see the list, tap any item to mark it read, or use **Mark all
-read**. You're only notified about things that involve you — you never get a
-note about your own action, and contractors only hear about the estimates and
-invoices they submitted themselves. (Receipts/expenses don't generate bell
-notifications.) The list refreshes when you return to the tab.
+Tap the bell to see the list, then **tap an item to jump straight to it** —
+LedgerX opens the exact estimate (with its chat thread) or invoice the
+notification is about — anything you have access to view — and marks it read at
+the same time. Use **Mark all
+read** to clear everything at once. You're only notified about things that
+involve you — you never get a note about your own action, and contractors only
+hear about the estimates and invoices they submitted themselves.
+(Receipts/expenses don't generate bell notifications.) The list refreshes when
+you return to the tab.
 
 ---
 
@@ -606,6 +610,10 @@ A focused report on the estimate pipeline. Open it from the nav (or the **Estima
 - `help` — anyone: the list of commands.
 - `estimates` — admins & household admins: a quick pipeline summary (open / accepted / rejected, acceptance rate, and how many are aging past two weeks).
 - `invoices` — admins & household admins: pending vs. paid counts and the pending total.
+- `pending` (or `todo`) — admins & household admins: what needs attention — invoices awaiting approval and estimates open for over two weeks (full admins also see the count of uncategorized transactions).
+- `activity` — admins & household admins: a last-7-days pulse — new estimates, invoices, and receipts, plus how many members haven't signed in for over two weeks.
+
+Household admins get results scoped to their own households; full admins see everything.
 
 It only works from the email address saved on your profile — that's how LedgerX knows who you are. No attachment is needed; an email *with* an attachment is still processed as a receipt/invoice as usual.
 

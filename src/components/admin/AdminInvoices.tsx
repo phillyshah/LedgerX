@@ -40,7 +40,12 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function AdminInvoices({ onAdd }: { onAdd?: () => void }) {
+export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
+  onAdd?: () => void;
+  /** Notification deep-link: opens the matching invoice's detail once loaded. */
+  openId?: string | null;
+  onOpenHandled?: () => void;
+}) {
   const { t, locale } = useT();
   const { isAdmin, user } = useAuth();
   // Only full admins mutate state (mark paid, assign category).
@@ -244,6 +249,19 @@ export function AdminInvoices({ onAdd }: { onAdd?: () => void }) {
     setSignedUrls(urls);
     setLoadingDetail(false);
   };
+
+  // Deep-link from a notification: open the target invoice once it's loaded.
+  // Matches against the full (unfiltered) list so an active status/household
+  // filter never hides the deep-linked row.
+  useEffect(() => {
+    if (!openId) return;
+    const match = invoices.find((inv) => inv.id === openId);
+    if (match) {
+      openDetail(match);
+      onOpenHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, invoices]);
 
   return (
     <div>

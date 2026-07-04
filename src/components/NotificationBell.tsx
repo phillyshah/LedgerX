@@ -9,6 +9,12 @@ interface NotificationBellProps {
   compact?: boolean;
   /** Dark emerald header palette (admin bar). */
   dark?: boolean;
+  /**
+   * Deep-link handler. Fired (in addition to mark-read) when a row is tapped,
+   * so the host shell can open the referenced estimate/invoice. When omitted,
+   * a tap only marks the row read (legacy behavior).
+   */
+  onOpen?: (n: AppNotification) => void;
 }
 
 const KIND_ICON: Record<NotificationKind, typeof Bell> = {
@@ -37,7 +43,7 @@ function relativeTime(iso: string, locale: string): string {
  * dropdown of recent activity — new chat messages, new estimates/invoices, and
  * status changes. Data + read-tracking come from `useNotifications`.
  */
-export function NotificationBell({ compact = false, dark = false }: NotificationBellProps) {
+export function NotificationBell({ compact = false, dark = false, onOpen }: NotificationBellProps) {
   const { t, locale } = useT();
   const { notifications, unreadCount, markRead } = useNotifications();
   const [open, setOpen] = useState(false);
@@ -124,7 +130,11 @@ export function NotificationBell({ compact = false, dark = false }: Notification
                     return (
                       <li key={n.id}>
                         <button
-                          onClick={() => { if (unread) markRead([n.id]); }}
+                          onClick={() => {
+                            if (unread) markRead([n.id]);
+                            onOpen?.(n);
+                            setOpen(false);
+                          }}
                           className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${
                             unread ? 'bg-emerald-50/60 hover:bg-emerald-50' : 'hover:bg-slate-50'
                           }`}

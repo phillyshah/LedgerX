@@ -33,6 +33,36 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v11.8',
+    version: 'v11.8',
+    date: '2026-07-11',
+    title: {
+      'en': 'Two new email commands: pending & activity',
+      'pt-BR': 'Dois novos comandos por e-mail: pending e activity',
+    },
+    body: {
+      'en':
+        "Admins and household admins can now get quick answers by email — just send a message to the LedgerX address with one of these as the subject. \"pending\" (or \"todo\") replies with what needs attention: invoices waiting for approval and estimates that have been sitting open for over two weeks (plus, for full admins, how many transactions are uncategorized). \"activity\" replies with a last-7-days summary: new estimates, invoices, and receipts, and how many members haven't signed in recently. As always, replies respect your role — household admins only see their own households.",
+      'pt-BR':
+        "Administradores e administradores de residência agora podem obter respostas rápidas por e-mail — basta enviar uma mensagem para o endereço do LedgerX com um destes no assunto. \"pending\" (ou \"todo\") responde com o que precisa de atenção: faturas aguardando aprovação e orçamentos parados em aberto há mais de duas semanas (e, para admins completos, quantas transações estão sem categoria). \"activity\" responde com um resumo dos últimos 7 dias: novos orçamentos, faturas e recibos, e quantos membros não acessaram recentemente. Como sempre, as respostas respeitam o seu papel — administradores de residência veem apenas suas próprias residências.",
+    },
+  },
+  {
+    id: 'v11.7',
+    version: 'v11.7',
+    date: '2026-07-10',
+    title: {
+      'en': 'Tap a notification to jump straight to it',
+      'pt-BR': 'Toque numa notificação para ir direto a ela',
+    },
+    body: {
+      'en':
+        "The bell just got more useful: tap a notification and LedgerX takes you straight to the item it's about — opening the exact estimate (with its chat thread) or invoice you can view — instead of only marking it read. New message on an estimate? One tap opens the conversation. Works on desktop and mobile alike.",
+      'pt-BR':
+        "O sininho ficou mais útil: toque numa notificação e o LedgerX leva você direto ao item relacionado — abrindo o orçamento exato (com a conversa) ou a nota fiscal que você pode ver — em vez de apenas marcá-la como lida. Nova mensagem num orçamento? Um toque abre a conversa. Funciona no computador e no celular.",
+    },
+  },
+  {
     id: 'v11.6',
     version: 'v11.6',
     date: '2026-07-09',

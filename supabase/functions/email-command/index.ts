@@ -2,8 +2,9 @@
  * email-command edge function
  *
  * An email-command bot. A user emails receipts@90ten.life with a one-word
- * command as the SUBJECT (help / estimates / invoices). The inbound-email
- * function forwards command emails here with the same shared secret. This
+ * command as the SUBJECT (help / estimates / invoices / pending / todo /
+ * activity). The inbound-email function forwards command emails here with the
+ * same shared secret. This
  * function:
  *
  *   1. Verifies the shared secret (INBOUND_EMAIL_SECRET env var)
@@ -52,12 +53,15 @@ function extractEmailAddress(input: string): string {
 // Take the subject, lowercase it, grab the first whitespace-delimited token,
 // and strip any surrounding non-letters (so "Estimates:", "[help]" etc. all
 // resolve). Anything we don't recognize (including empty) falls back to help.
-type Command = "help" | "estimates" | "invoices";
+type Command = "help" | "estimates" | "invoices" | "pending" | "activity";
 
 function parseCommand(subject: string | undefined): Command {
   const first = (subject ?? "").trim().toLowerCase().split(/\s+/)[0] ?? "";
   const cleaned = first.replace(/^[^a-z]+|[^a-z]+$/g, "");
   if (cleaned === "estimates" || cleaned === "invoices") return cleaned;
+  // "todo" is an alias for the "pending" action digest.
+  if (cleaned === "pending" || cleaned === "todo") return "pending";
+  if (cleaned === "activity") return "activity";
   return "help";
 }
 
@@ -78,6 +82,35 @@ interface EmailCommandReport {
     paid: number;
     pending_total: number;
   };
+}
+
+// ── Report shapes for the "pending" and "activity" commands ───────────────────
+interface EmailCommandPending {
+  role: "admin" | "household_admin" | "member";
+  invoices_pending: number;
+  estimates_aging: number;
+  uncategorized: number;
+}
+
+interface EmailCommandActivity {
+  role: "admin" | "household_admin" | "member";
+  new_estimates: number;
+  new_invoices: number;
+  new_expenses: number;
+  inactive_members: number;
+}
+
+// Shared "admin-only command" reply body. Returns the localized subject+html.
+function adminOnlyReply(lang: Lang): { subject: string; html: string } {
+  return lang === "pt-BR"
+    ? {
+        subject: "Comando disponível apenas para administradores",
+        html: `<p style="margin:0;">Este comando está disponível apenas para administradores e administradores de residência.</p>`,
+      }
+    : {
+        subject: "Admin-only command",
+        html: `<p style="margin:0;">This command is only available to admins and household admins.</p>`,
+      };
 }
 
 // ── Small inline HTML shell ───────────────────────────────────────────────────
@@ -185,14 +218,68 @@ Deno.serve(async (req: Request) => {
           <p style="margin:0 0 12px;">Olá <strong>@${username}</strong>! Você pode responder a este endereço com um destes comandos no assunto:</p>
           <p style="margin:0 0 6px;"><strong>help</strong> — mostra esta lista de comandos.</p>
           <p style="margin:0 0 6px;"><strong>estimates</strong> — resumo dos orçamentos (requer conta de administrador ou administrador de residência).</p>
-          <p style="margin:0 0 6px;"><strong>invoices</strong> — resumo das faturas (requer conta de administrador ou administrador de residência).</p>`;
+          <p style="margin:0 0 6px;"><strong>invoices</strong> — resumo das faturas (requer conta de administrador ou administrador de residência).</p>
+          <p style="margin:0 0 6px;"><strong>pending</strong> — o que precisa de atenção: faturas a aprovar e orçamentos parados (admin / administrador de residência).</p>
+          <p style="margin:0 0 6px;"><strong>activity</strong> — resumo dos últimos 7 dias (admin / administrador de residência).</p>`;
       } else {
         replySubject = "LedgerX commands";
         bodyHtml = `
           <p style="margin:0 0 12px;">Hi <strong>@${username}</strong>! You can reply to this address with any of these commands in the subject line:</p>
           <p style="margin:0 0 6px;"><strong>help</strong> — shows this list of commands.</p>
           <p style="margin:0 0 6px;"><strong>estimates</strong> — a summary of your estimates (requires an admin or household-admin account).</p>
-          <p style="margin:0 0 6px;"><strong>invoices</strong> — a summary of your invoices (requires an admin or household-admin account).</p>`;
+          <p style="margin:0 0 6px;"><strong>invoices</strong> — a summary of your invoices (requires an admin or household-admin account).</p>
+          <p style="margin:0 0 6px;"><strong>pending</strong> — what needs attention: invoices to approve and stalled estimates (admin / household admin).</p>
+          <p style="margin:0 0 6px;"><strong>activity</strong> — a last-7-days summary (admin / household admin).</p>`;
+      }
+    } else if (command === "pending") {
+      // "What needs attention" digest — admin / household-admin only.
+      const { data } = await supabase.rpc("email_command_pending", { p_user_id: userId });
+      const report = data as EmailCommandPending | null;
+
+      if (!report || report.role === "member") {
+        const r = adminOnlyReply(lang);
+        replySubject = r.subject;
+        bodyHtml = r.html;
+      } else if (lang === "pt-BR") {
+        replySubject = "O que precisa de atenção";
+        bodyHtml = `
+          <p style="margin:0 0 6px;">Faturas aguardando aprovação: <strong>${report.invoices_pending}</strong></p>
+          <p style="margin:0 0 6px;">Orçamentos em aberto há mais de 2 semanas: <strong>${report.estimates_aging}</strong></p>` +
+          (report.role === "admin"
+            ? `<p style="margin:0;">Transações sem categoria: <strong>${report.uncategorized}</strong></p>`
+            : "");
+      } else {
+        replySubject = "What needs attention";
+        bodyHtml = `
+          <p style="margin:0 0 6px;">Invoices awaiting approval: <strong>${report.invoices_pending}</strong></p>
+          <p style="margin:0 0 6px;">Estimates open for over 2 weeks: <strong>${report.estimates_aging}</strong></p>` +
+          (report.role === "admin"
+            ? `<p style="margin:0;">Uncategorized transactions: <strong>${report.uncategorized}</strong></p>`
+            : "");
+      }
+    } else if (command === "activity") {
+      // Last-7-days pulse — admin / household-admin only.
+      const { data } = await supabase.rpc("email_command_activity", { p_user_id: userId });
+      const report = data as EmailCommandActivity | null;
+
+      if (!report || report.role === "member") {
+        const r = adminOnlyReply(lang);
+        replySubject = r.subject;
+        bodyHtml = r.html;
+      } else if (lang === "pt-BR") {
+        replySubject = "Atividade dos últimos 7 dias";
+        bodyHtml = `
+          <p style="margin:0 0 6px;">Novos orçamentos: <strong>${report.new_estimates}</strong></p>
+          <p style="margin:0 0 6px;">Novas faturas: <strong>${report.new_invoices}</strong></p>
+          <p style="margin:0 0 6px;">Novos recibos: <strong>${report.new_expenses}</strong></p>
+          <p style="margin:0;">Membros sem acesso há mais de 2 semanas: <strong>${report.inactive_members}</strong></p>`;
+      } else {
+        replySubject = "Last 7 days activity";
+        bodyHtml = `
+          <p style="margin:0 0 6px;">New estimates: <strong>${report.new_estimates}</strong></p>
+          <p style="margin:0 0 6px;">New invoices: <strong>${report.new_invoices}</strong></p>
+          <p style="margin:0 0 6px;">New receipts: <strong>${report.new_expenses}</strong></p>
+          <p style="margin:0;">Members inactive for over 2 weeks: <strong>${report.inactive_members}</strong></p>`;
       }
     } else {
       // estimates / invoices — both need the report + an admin-ish role.

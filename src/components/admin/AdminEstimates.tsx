@@ -34,7 +34,12 @@ function StatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => 
   );
 }
 
-export function AdminEstimates({ onAdd }: { onAdd?: () => void }) {
+export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
+  onAdd?: () => void;
+  /** Notification deep-link: opens the matching estimate's detail once loaded. */
+  openId?: string | null;
+  onOpenHandled?: () => void;
+}) {
   const { t, locale } = useT();
   const { user } = useAuth();
 
@@ -133,6 +138,17 @@ export function AdminEstimates({ onAdd }: { onAdd?: () => void }) {
     setSignedUrls(urls);
     setLoadingDetail(false);
   };
+
+  // Deep-link from a notification: open the target estimate once it's loaded.
+  useEffect(() => {
+    if (!openId) return;
+    const match = estimates.find((est) => est.id === openId);
+    if (match) {
+      openDetail(match);
+      onOpenHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, estimates]);
 
   const inviteParticipant = async () => {
     const username = inviteUsername.trim().replace(/^@/, '');

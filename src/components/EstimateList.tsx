@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,11 @@ interface EstimateListProps {
   onReload: () => void;
   /** Optional CTA shown in the empty state. */
   onAdd?: () => void;
+  /** When set to an estimate id present in `estimates`, opens its detail
+   *  (notification deep-link). Cleared by the host via `onOpenHandled`. */
+  openId?: string | null;
+  /** Called once the `openId` row has been opened, so the host can reset it. */
+  onOpenHandled?: () => void;
 }
 
 export function EstimateStatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => string }) {
@@ -36,7 +41,7 @@ export function EstimateStatusBadge({ status, t }: { status: EstimateStatus; t: 
   );
 }
 
-export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateListProps) {
+export function EstimateList({ estimates, loading, onReload, onAdd, openId, onOpenHandled }: EstimateListProps) {
   const { user, isAdmin, isContractor } = useAuth();
   const { t, locale } = useT();
 
@@ -72,6 +77,20 @@ export function EstimateList({ estimates, loading, onReload, onAdd }: EstimateLi
     setSignedUrls(urls);
     setLoadingDetail(false);
   };
+
+  // Deep-link: when the host passes an openId matching a loaded estimate, open
+  // its detail. Runs once the row is present (estimates may still be loading).
+  useEffect(() => {
+    if (!openId) return;
+    const match = estimates.find((e) => e.id === openId);
+    if (match) {
+      openDetail(match);
+      onOpenHandled?.();
+    }
+    // openDetail/onOpenHandled are stable enough for this one-shot; re-running
+    // on every render is avoided because onOpenHandled clears openId.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, estimates]);
 
   if (loading) {
     return (

@@ -361,15 +361,16 @@ Deno.serve(async (req: Request) => {
     }
 
     // 1b. Command dispatch — if the WHOLE subject (normalized to letters) is a
-    //     known command word (help / estimates / invoices), this is a request
-    //     to the email-command bot, not a receipt. Forward it and return before
-    //     any receipt processing. We match the entire subject (not just the
-    //     first word) so a real forward like "Invoices from Acme Corp" is NOT
-    //     hijacked, and we intentionally ignore attachments — a mail signature
-    //     or a forwarded copy shouldn't stop "help" from being a command.
+    //     known command word (help / estimates / invoices / pending / todo /
+    //     activity), this is a request to the email-command bot, not a receipt.
+    //     Forward it and return before any receipt processing. We match the
+    //     entire subject (not just the first word) so a real forward like
+    //     "Invoices from Acme Corp" is NOT hijacked, and we intentionally ignore
+    //     attachments — a mail signature or a forwarded copy shouldn't stop
+    //     "help" from being a command.
     const normalizedSubject =
       String(subject ?? "").trim().toLowerCase().replace(/[^a-z]+/g, " ").trim();
-    const KNOWN_COMMANDS = ["help", "estimates", "invoices"];
+    const KNOWN_COMMANDS = ["help", "estimates", "invoices", "pending", "todo", "activity"];
     if (KNOWN_COMMANDS.includes(normalizedSubject)) {
       try {
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/email-command`, {

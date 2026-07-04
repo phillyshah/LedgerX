@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,11 @@ interface InvoiceListProps {
   /** Optional CTA — when set, the empty state shows a primary "Submit invoice"
    *  button that calls this. Without it, the empty state stays static. */
   onAdd?: () => void;
+  /** When set to an invoice id present in `invoices`, opens its detail
+   *  (notification deep-link). Cleared by the host via `onOpenHandled`. */
+  openId?: string | null;
+  /** Called once the `openId` row has been opened, so the host can reset it. */
+  onOpenHandled?: () => void;
 }
 
 function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => string }) {
@@ -36,7 +41,7 @@ function StatusBadge({ status, t }: { status: InvoiceStatus; t: (k: string) => s
   );
 }
 
-export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onReload, onAdd, openId, onOpenHandled }: InvoiceListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
@@ -79,6 +84,17 @@ export function InvoiceList({ invoices, loading, onReload, onAdd }: InvoiceListP
     setSignedUrls(urls);
     setLoadingDetail(false);
   };
+
+  // Deep-link: open the detail for a host-provided invoice id once it's loaded.
+  useEffect(() => {
+    if (!openId) return;
+    const match = invoices.find((i) => i.id === openId);
+    if (match) {
+      openDetail(match);
+      onOpenHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, invoices]);
 
   // Submitter-only delete with two-tap confirm. RLS allows DELETE only when
   // auth.uid() = created_by (or the user is a full admin), so even if this
