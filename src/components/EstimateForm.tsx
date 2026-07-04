@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageCompression';
+import { compressToDocumentJpeg } from '../lib/imageCompression';
 import { X, Upload, Check, Plus, FileText } from 'lucide-react';
 import type { BillingType } from '../types/estimate';
 
@@ -88,7 +88,8 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
       }
       try {
         const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        const fileToUse = isPdf ? file : await compressImage(file, 2);
+        // Document preset (1600px / q0.8 / ~0.6MB); PDFs pass through untouched.
+        const fileToUse = await compressToDocumentJpeg(file);
         const preview = isPdf
           ? ''
           : await new Promise<string>((resolve) => {

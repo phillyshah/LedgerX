@@ -547,6 +547,7 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 - Clique em qualquer nota para ver os detalhes completos e documentos anexados
 - **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos
 - **Atribuir Categoria** (apenas admins completos) — etiquete qualquer nota fiscal com uma categoria para que apareça no Analytics junto com os recibos. O seletor só mostra as categorias válidas para o grupo da nota (globais + mapeadas explicitamente).
+- **Adicione fotos a qualquer momento** — abra qualquer nota fiscal e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens após o envio. Qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade e economizando armazenamento; PDFs são mantidos como estão.
 
 **Notificações por e-mail:** Tanto envios novos de nota fiscal quanto de recibo disparam um e-mail de resumo para todos os admins completos com e-mail real cadastrado. Os admins de propriedade também recebem o e-mail, mas só para envios em propriedades das quais fazem parte — quem cuida da *Casa de Praia* nunca recebe notificação da *Cabana na Montanha*. O próprio remetente nunca recebe e-mail do que ele mesmo enviou. Quando um admin marca uma nota como paga, o remetente recebe um e-mail de confirmação separado.
 
@@ -563,6 +564,8 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 - **Converse** — responda dentro do próprio orçamento; o prestador vê e pode responder
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
+
+**Adicione fotos a qualquer momento:** abra qualquer orçamento que você possa ver e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens depois do envio — qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade com muito menos armazenamento; PDFs são mantidos como estão.
 
 **Tipo de cobrança:** cada orçamento agora inclui um tipo de cobrança — **Valor total** ou **Somente mão de obra (materiais à parte)**. Isso aparece como um selo em cada cartão de orçamento para que você saiba de relance se os materiais estão incluídos.
 

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { X, FileText, Tag, Trash2, FileSignature, Plus, Image as ImageIcon } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
+import { AttachmentAdder } from './AttachmentAdder';
 
 interface InvoiceListProps {
   invoices: ContractorInvoice[];
@@ -326,6 +327,13 @@ export function InvoiceList({ invoices, loading, onReload, onAdd, openId, onOpen
                           {primaryPaths.map((p) => renderTile(p, false))}
                         </div>
                       )}
+                      <AttachmentAdder
+                        kind="invoice"
+                        recordId={detailInvoice.id}
+                        householdId={detailInvoice.household_id}
+                        nextOrder={detailImages.length}
+                        onUploaded={() => openDetail(detailInvoice)}
+                      />
                     </div>
                     {workEvidencePaths.length > 0 && (
                       <div>

@@ -17,6 +17,7 @@ import type { Language } from '../i18n';
 // Map a release id (or version) to a big emoji that non-technical users
 // will immediately associate with the feature.
 const VERSION_EMOJI: Record<string, string> = {
+  'v11.9': '📎',
   'v11.8': '📬',
   'v11.7': '🔗',
   'v11.6': '🏠',
