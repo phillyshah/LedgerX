@@ -28,7 +28,9 @@ CREATE POLICY "Viewers insert invoice images"
         AND (
           is_admin()
           OR ci.created_by = auth.uid()
-          OR (ci.household_id IS NOT NULL AND ci.household_id IN (SELECT user_households()))
+          -- Mirror invoice SELECT visibility: plain household members can't view
+          -- invoices, only household ADMINS can — so scope the add to them.
+          OR (is_household_admin() AND ci.household_id IS NOT NULL AND ci.household_id IN (SELECT user_households()))
         )
     )
   );

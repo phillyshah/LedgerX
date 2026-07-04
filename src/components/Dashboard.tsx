@@ -1,9 +1,10 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useCallback, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useT } from '../hooks/useT';
 import { useExpenses } from '../hooks/useExpenses';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEstimates } from '../hooks/useEstimates';
+import { useInitialDeepLink } from '../hooks/useInitialDeepLink';
 import { ExpenseList } from './ExpenseList';
 import { DashboardSummary } from './DashboardSummary';
 import type { AddExpenseInitialData } from './AddExpense';
@@ -81,11 +82,18 @@ export function Dashboard() {
   const [estimatesExpand, setEstimatesExpand] = useState(0);
   const [invoicesExpand, setInvoicesExpand] = useState(0);
 
-  const handleNotificationOpen = (n: AppNotification) => {
-    setDeepLink({ type: n.entity_type, id: n.entity_id });
-    if (n.entity_type === 'estimate') setEstimatesExpand((x) => x + 1);
+  // Open an estimate/invoice detail: set the deep-link target and bump the
+  // matching section's expand signal so its (possibly-collapsed) list mounts.
+  const openEntity = useCallback((type: 'estimate' | 'invoice', id: string) => {
+    setDeepLink({ type, id });
+    if (type === 'estimate') setEstimatesExpand((x) => x + 1);
     else setInvoicesExpand((x) => x + 1);
-  };
+  }, []);
+
+  const handleNotificationOpen = (n: AppNotification) => openEntity(n.entity_type, n.entity_id);
+
+  // Honor a deep link arriving in the URL (e.g. from a mention email).
+  useInitialDeepLink((target) => openEntity(target.type, target.id));
 
   const handleExpenseAdded = async () => {
     reloadExpenses();

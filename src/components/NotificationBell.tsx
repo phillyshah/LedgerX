@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, MessageCircle, ClipboardList, FileText, CheckCheck } from 'lucide-react';
+import { Bell, MessageCircle, AtSign, ClipboardList, FileText, CheckCheck } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { useNotifications } from '../hooks/useNotifications';
 import type { AppNotification, NotificationKind } from '../types/notification';
@@ -19,6 +19,7 @@ interface NotificationBellProps {
 
 const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   chat_message: MessageCircle,
+  chat_mention: AtSign,
   estimate_created: ClipboardList,
   estimate_status: ClipboardList,
   invoice_created: FileText,
@@ -64,6 +65,8 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
     switch (n.kind) {
       case 'chat_message':
         return t('notifications.kindChatMessage', { name, title: n.title || t('notifications.anEstimate') });
+      case 'chat_mention':
+        return t('notifications.kindChatMention', { name, title: n.title || t('notifications.anEstimate') });
       case 'estimate_created':
         return t('notifications.kindEstimateCreated', { name, title: n.title || t('notifications.anEstimate') });
       case 'estimate_status':

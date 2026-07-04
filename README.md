@@ -420,6 +420,7 @@ The **bell** in the top corner is a real notification center. It shows a
 count when there's something new for you:
 
 - a **new message** on an estimate you're part of,
+- **someone @mentioned you** in a conversation (shown as "mentioned you"),
 - a **new estimate or invoice** submitted in your household,
 - an **estimate reviewed** (accepted/rejected) or an **invoice marked paid**.
 
@@ -432,6 +433,25 @@ involve you — you never get a note about your own action, and contractors only
 hear about the estimates and invoices they submitted themselves.
 (Receipts/expenses don't generate bell notifications.) The list refreshes when
 you return to the tab.
+
+### @mentioning someone in a conversation
+
+Inside any estimate conversation, you can call out a specific person by typing
+**`@` followed by their username** — for example, `@maria can you confirm the
+price?`. When you send the message:
+
+- **they get an email** letting them know they were mentioned, with a button
+  that opens LedgerX **straight to that conversation** (they'll need to be
+  signed in);
+- the mention is **highlighted** in the chat bubble, and appears in their
+  notification bell as "**mentioned you**" (a stronger signal than an ordinary
+  new-message note — they won't get both);
+- the email goes only to that person, and only to the **real email address**
+  they've saved in Settings.
+
+You can only mention people who can already see that estimate (its creator,
+invited participants, and the property's members/admins). A typed `@name` that
+doesn't match someone on the estimate is simply ignored — no email is sent.
 
 ---
 

@@ -13,6 +13,7 @@
   "notifications.anEstimate": "an estimate",
   "notifications.anInvoice": "an invoice",
   "notifications.kindChatMessage": "{name} sent a message on “{title}”",
+  "notifications.kindChatMention": "{name} mentioned you on “{title}”",
   "notifications.kindEstimateCreated": "{name} submitted a new estimate: “{title}”",
   "notifications.kindEstimateStatus": "Your estimate “{title}” was reviewed",
   "notifications.kindInvoiceCreated": "{name} submitted a new invoice: {title}",

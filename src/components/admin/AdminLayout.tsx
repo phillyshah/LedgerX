@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useRef } from 'react';
+import { Suspense, lazy, useCallback, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
@@ -9,6 +9,7 @@ import { NotificationBell } from '../NotificationBell';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
 import type { AppNotification } from '../../types/notification';
+import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart,
@@ -214,11 +215,16 @@ export function AdminLayout() {
   // the target id to that view, which opens its detail once its data loads.
   const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
 
-  const handleNotificationOpen = (n: AppNotification) => {
-    setDeepLink({ type: n.entity_type, id: n.entity_id });
-    setActiveView(n.entity_type === 'estimate' ? 'estimates' : 'invoices');
+  const openEntity = useCallback((type: 'estimate' | 'invoice', id: string) => {
+    setDeepLink({ type, id });
+    setActiveView(type === 'estimate' ? 'estimates' : 'invoices');
     setMobileMenuOpen(false);
-  };
+  }, []);
+
+  const handleNotificationOpen = (n: AppNotification) => openEntity(n.entity_type, n.entity_id);
+
+  // Honor a deep link arriving in the URL (e.g. from a mention email).
+  useInitialDeepLink((target) => openEntity(target.type, target.id));
 
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
 

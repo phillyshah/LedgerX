@@ -418,6 +418,7 @@ O **sino** no canto superior é uma central de notificações de verdade. Ele
 mostra um número quando há algo novo para você:
 
 - uma **nova mensagem** em um orçamento do qual você participa,
+- **alguém @mencionou você** em uma conversa (mostrado como "mencionou você"),
 - um **novo orçamento ou nota fiscal** enviado na sua propriedade,
 - um **orçamento avaliado** (aceito/recusado) ou uma **nota marcada como paga**.
 
@@ -430,6 +431,25 @@ que envolvem você — nunca recebe aviso da sua própria ação, e prestadores 
 são avisados sobre os orçamentos e notas que eles mesmos enviaram.
 (Recibos/despesas não geram notificações no sino.) A lista é atualizada quando
 você volta à aba.
+
+### @mencionando alguém em uma conversa
+
+Dentro de qualquer conversa de orçamento, você pode chamar uma pessoa
+específica digitando **`@` seguido do nome de usuário dela** — por exemplo,
+`@maria pode confirmar o preço?`. Ao enviar a mensagem:
+
+- **a pessoa recebe um e-mail** avisando que foi mencionada, com um botão que
+  abre o LedgerX **direto naquela conversa** (ela precisa estar conectada);
+- a menção fica **destacada** no balão do chat e aparece no sino de
+  notificações dela como "**mencionou você**" (um sinal mais forte do que um
+  aviso comum de nova mensagem — ela não recebe os dois);
+- o e-mail vai só para essa pessoa, e apenas para o **e-mail real** que ela
+  cadastrou em Configurações.
+
+Você só pode mencionar quem já consegue ver aquele orçamento (o criador, os
+participantes convidados e os membros/admins da propriedade). Um `@nome`
+digitado que não corresponde a ninguém do orçamento é simplesmente ignorado —
+nenhum e-mail é enviado.
 
 ---
 
