@@ -15,6 +15,7 @@ import { LogoText } from './LogoText';
 import { UserMenu } from './UserMenu';
 import { AppFooter } from './AppFooter';
 import { NotificationBell } from './NotificationBell';
+import type { AppNotification } from '../types/notification';
 import { EmailInboxPanel } from './EmailInboxPanel';
 import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -71,6 +72,20 @@ export function Dashboard() {
   // hand-off into Recent Transactions / Invoices.
   const [pendingInboxId, setPendingInboxId] = useState<string | null>(null);
   const [acceptToast, setAcceptToast] = useState<'expense' | 'invoice' | null>(null);
+
+  // Notification deep-linking: tapping a bell row records which estimate/invoice
+  // to open, and bumps the matching section's expand signal so its (possibly
+  // collapsed) content mounts and can receive the open. The list component
+  // clears `deepLink` via onOpenHandled once it's opened the row.
+  const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
+  const [estimatesExpand, setEstimatesExpand] = useState(0);
+  const [invoicesExpand, setInvoicesExpand] = useState(0);
+
+  const handleNotificationOpen = (n: AppNotification) => {
+    setDeepLink({ type: n.entity_type, id: n.entity_id });
+    if (n.entity_type === 'estimate') setEstimatesExpand((x) => x + 1);
+    else setInvoicesExpand((x) => x + 1);
+  };
 
   const handleExpenseAdded = async () => {
     reloadExpenses();
@@ -167,7 +182,7 @@ export function Dashboard() {
 
   const HeaderActions = (
     <div className="flex items-center gap-1 sm:gap-2">
-      <NotificationBell />
+      <NotificationBell onOpen={handleNotificationOpen} />
       <UserMenu
         variant="light"
         username={username}
@@ -252,12 +267,15 @@ export function Dashboard() {
             storageKey="contractor.invoices"
             title={t('invoice.myInvoices')}
             icon={<FileSignature className="w-4 h-4" />}
+            expandSignal={invoicesExpand}
           >
             <InvoiceList
               invoices={invoices}
               loading={invoicesLoading}
               onReload={reloadInvoices}
               onAdd={() => setShowInvoiceForm(true)}
+              openId={deepLink?.type === 'invoice' ? deepLink.id : null}
+              onOpenHandled={() => setDeepLink(null)}
             />
           </CollapsibleSection>
 
@@ -265,12 +283,15 @@ export function Dashboard() {
             storageKey="contractor.estimates"
             title={t('estimate.myEstimates')}
             icon={<ClipboardList className="w-4 h-4" />}
+            expandSignal={estimatesExpand}
           >
             <EstimateList
               estimates={estimates}
               loading={estimatesLoading}
               onReload={reloadEstimates}
               onAdd={() => setShowEstimateForm(true)}
+              openId={deepLink?.type === 'estimate' ? deepLink.id : null}
+              onOpenHandled={() => setDeepLink(null)}
             />
           </CollapsibleSection>
 
@@ -413,12 +434,15 @@ export function Dashboard() {
             title={t('estimate.networkEstimates')}
             icon={<ClipboardList className="w-4 h-4" />}
             meta={estimates.length > 0 ? `${estimates.length}` : undefined}
+            expandSignal={estimatesExpand}
           >
             <EstimateList
               estimates={estimates}
               loading={estimatesLoading}
               onReload={reloadEstimates}
               onAdd={() => setShowEstimateForm(true)}
+              openId={deepLink?.type === 'estimate' ? deepLink.id : null}
+              onOpenHandled={() => setDeepLink(null)}
             />
           </CollapsibleSection>
 

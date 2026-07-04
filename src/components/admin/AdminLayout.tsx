@@ -8,6 +8,7 @@ import { AppFooter } from '../AppFooter';
 import { NotificationBell } from '../NotificationBell';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
+import type { AppNotification } from '../../types/notification';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart,
@@ -209,6 +210,16 @@ export function AdminLayout() {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showEstimateForm, setShowEstimateForm] = useState(false);
 
+  // Notification deep-linking: switch to the estimates/invoices view and hand
+  // the target id to that view, which opens its detail once its data loads.
+  const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
+
+  const handleNotificationOpen = (n: AppNotification) => {
+    setDeepLink({ type: n.entity_type, id: n.entity_id });
+    setActiveView(n.entity_type === 'estimate' ? 'estimates' : 'invoices');
+    setMobileMenuOpen(false);
+  };
+
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
 
   const username = user?.email?.split('@')[0] ?? 'admin';
@@ -339,7 +350,7 @@ export function AdminLayout() {
           </button>
 
           <div className="flex items-center gap-1">
-            <NotificationBell dark compact />
+            <NotificationBell dark compact onOpen={handleNotificationOpen} />
             <UserMenu
               variant="dark"
               username={username}
@@ -518,12 +529,29 @@ export function AdminLayout() {
                   live only on Home). Household admins already have a persistent
                   Submit Invoice in the action row above, so omit it to avoid a
                   duplicate button on the Invoices tab. */}
-              {activeView === 'invoices'      && <AdminInvoices onAdd={isAdmin ? () => setShowInvoiceForm(true) : undefined} />}
-              {activeView === 'estimates'     && isAdmin && <AdminEstimates onAdd={() => setShowEstimateForm(true)} />}
+              {activeView === 'invoices'      && (
+                <AdminInvoices
+                  onAdd={isAdmin ? () => setShowInvoiceForm(true) : undefined}
+                  openId={deepLink?.type === 'invoice' ? deepLink.id : null}
+                  onOpenHandled={() => setDeepLink(null)}
+                />
+              )}
+              {activeView === 'estimates'     && isAdmin && (
+                <AdminEstimates
+                  onAdd={() => setShowEstimateForm(true)}
+                  openId={deepLink?.type === 'estimate' ? deepLink.id : null}
+                  onOpenHandled={() => setDeepLink(null)}
+                />
+              )}
               {/* Household admins submit estimates from the quick-action row above
                   (parity with Submit Invoice), so no in-tab button here — avoids a
                   duplicate, matching the AdminInvoices treatment. */}
-              {activeView === 'estimates'     && !isAdmin && <HAEstimates />}
+              {activeView === 'estimates'     && !isAdmin && (
+                <HAEstimates
+                  openId={deepLink?.type === 'estimate' ? deepLink.id : null}
+                  onOpenHandled={() => setDeepLink(null)}
+                />
+              )}
             </Suspense>
 
             {activeView === 'my-transactions' && (

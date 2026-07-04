@@ -421,11 +421,15 @@ mostra um número quando há algo novo para você:
 - um **novo orçamento ou nota fiscal** enviado na sua propriedade,
 - um **orçamento avaliado** (aceito/recusado) ou uma **nota marcada como paga**.
 
-Toque no sino para ver a lista, toque em um item para marcá-lo como lido, ou
-use **Marcar tudo como lido**. Você só é notificado sobre coisas que envolvem
-você — nunca recebe aviso da sua própria ação, e prestadores só são avisados
-sobre os orçamentos e notas que eles mesmos enviaram. (Recibos/despesas não
-geram notificações no sino.) A lista é atualizada quando você volta à aba.
+Toque no sino para ver a lista e **toque num item para ir direto a ele** — o
+LedgerX abre o orçamento exato (com a conversa) ou a nota fiscal a que a
+notificação se refere — desde que você tenha acesso para visualizá-lo — e marca
+como lida ao mesmo tempo. Use **Marcar
+tudo como lido** para limpar tudo de uma vez. Você só é notificado sobre coisas
+que envolvem você — nunca recebe aviso da sua própria ação, e prestadores só
+são avisados sobre os orçamentos e notas que eles mesmos enviaram.
+(Recibos/despesas não geram notificações no sino.) A lista é atualizada quando
+você volta à aba.
 
 ---
 
@@ -604,6 +608,10 @@ O **alcance** espelha o Relatório de Atividade: admins completos veem todas as 
 - `help` — qualquer pessoa: a lista de comandos.
 - `estimates` — admins e admins de propriedade: um resumo rápido do fluxo (abertos / aceitos / recusados, taxa de aceitação e quantos estão parados há mais de duas semanas).
 - `invoices` — admins e admins de propriedade: contagem de pendentes vs. pagas e o total pendente.
+- `pending` (ou `todo`) — admins e admins de propriedade: o que precisa de atenção — faturas aguardando aprovação e orçamentos em aberto há mais de duas semanas (admins completos também veem a contagem de transações sem categoria).
+- `activity` — admins e admins de propriedade: um resumo dos últimos 7 dias — novos orçamentos, faturas e recibos, além de quantos membros não acessam há mais de duas semanas.
+
+Administradores de residência recebem resultados restritos às suas próprias residências; admins completos veem tudo.
 
 Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX sabe quem é você. Não precisa de anexo; um e-mail *com* anexo continua sendo processado como recibo/nota normalmente.
 

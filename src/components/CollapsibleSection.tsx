@@ -27,6 +27,12 @@ interface Props {
   defaultExpanded?: boolean;
   /** When true, render nothing at all. Useful for "auto-hide empty sections". */
   hidden?: boolean;
+  /**
+   * Increment this to force the section open (e.g. deep-linking a notification
+   * into a collapsed section so its content mounts). Any change to a truthy
+   * value expands; the user can still collapse again afterward.
+   */
+  expandSignal?: number;
   children: ReactNode;
 }
 
@@ -57,6 +63,7 @@ export function CollapsibleSection({
   meta,
   defaultExpanded = true,
   hidden = false,
+  expandSignal = 0,
   children,
 }: Props) {
   const [expanded, setExpanded] = useState<boolean>(() =>
@@ -66,6 +73,13 @@ export function CollapsibleSection({
   useEffect(() => {
     writeStored(storageKey, expanded);
   }, [storageKey, expanded]);
+
+  // Force open when the host bumps expandSignal (e.g. a deep-link needs this
+  // section's content mounted). Skip the initial 0 so we don't override the
+  // user's stored collapsed preference on mount.
+  useEffect(() => {
+    if (expandSignal > 0) setExpanded(true);
+  }, [expandSignal]);
 
   if (hidden) return null;
 
