@@ -122,8 +122,10 @@ REVOKE ALL ON FUNCTION notify_estimate_message() FROM PUBLIC;
 -- Called by the send-mention-notification edge function (service role). Given a
 -- message's estimate, its sender, and its raw body, returns the deliverable
 -- email + language for each @mentioned member of the audience (minus the sender).
--- The actor must themselves be in the audience — a stranger can't invoke this to
--- fire mention emails at people on an estimate they have no part in.
+-- p_actor MUST be the authenticated caller (the edge function derives it from the
+-- JWT, never from the request body) and must itself be in the audience — so a
+-- member can't fire mention emails on an estimate they have no part in, nor
+-- impersonate another member as the sender.
 CREATE OR REPLACE FUNCTION estimate_mention_recipients(
   p_estimate_id uuid,
   p_actor       uuid,

@@ -4,11 +4,14 @@
 // person a short "you were mentioned — come take a look" nudge with a link that
 // opens the app straight to that estimate (and thus its chat thread).
 //
-// Security lives in SQL: estimate_mention_recipients() only returns addresses for
-// @mentioned members of the estimate's real audience, and only when the actor is
-// themselves in that audience. This function trusts that RPC — it never picks
-// recipients from the raw @names itself. Invoked from the authenticated frontend
-// via supabase.functions.invoke(...), exactly like send-household-activity.
+// Security: the actor is the AUTHENTICATED caller (derived from their JWT), never
+// a value taken from the request body — otherwise a signed-in user could name any
+// estimate member as the "sender" and fire impersonated, arbitrarily-worded emails
+// at the rest of the thread. estimate_mention_recipients() then only returns
+// addresses for @mentioned members of the estimate's real audience, and only when
+// that verified actor is themselves in the audience. This function trusts that RPC
+// — it never picks recipients from the raw @names itself. Invoked from the
+// authenticated frontend via supabase.functions.invoke(...).
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -98,14 +101,26 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
+    // Derive the actor from the caller's JWT — NOT from the request body. The
+    // frontend forwards the signed-in user's access token as the Authorization
+    // header; validating it here is what stops one member impersonating another.
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: { user: caller } } = await supabase.auth.getUser(token);
+    if (!caller) {
+      return new Response(
+        JSON.stringify({ error: "unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const actorId = caller.id;
+
     const payload = await req.json();
     const estimateId = payload.estimate_id as string | undefined;
-    const actorId = payload.actor_id as string | undefined;
     const body = (payload.body as string | undefined) ?? "";
 
-    if (!estimateId || !actorId) {
+    if (!estimateId) {
       return new Response(
-        JSON.stringify({ error: "estimate_id and actor_id are required" }),
+        JSON.stringify({ error: "estimate_id is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

@@ -121,9 +121,11 @@ export function EstimateChat({ estimateId, onActivity, readOnly }: EstimateChatP
     // we only bother invoking it when the message contains an "@" at all. A
     // failure here must never block or fail the post, so we swallow errors.
     if (body.includes('@')) {
+      // The actor is derived server-side from the caller's JWT (not sent here),
+      // so a member can't impersonate someone else as the mention's sender.
       supabase.functions
         .invoke('send-mention-notification', {
-          body: { estimate_id: estimateId, actor_id: user.id, body },
+          body: { estimate_id: estimateId, body },
         })
         .catch(() => { /* mention email is best-effort */ });
     }
