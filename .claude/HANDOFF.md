@@ -6,27 +6,21 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.0`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.1`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
   `git checkout -B <branch> origin/main` to start fresh on top of merged work.
   **The remote branch auto-deletes when its PR merges** — see deploy gotcha #6.
-- **⚠️ Pending manual steps** (idempotent SQL — paste in the **Supabase SQL editor**;
-  edge functions — paste in **Edge Functions → Deploy**):
-  - **`20260715000000_chat_mentions.sql`** (v12.0) — `extract_mentions` /
-    `estimate_audience` helpers, the rewritten `notify_estimate_message` trigger
-    (adds the `chat_mention` notification kind), and `estimate_mention_recipients`.
-    Without it @mentions produce no email and no "mentioned you" bell entry.
-  - **Deploy the new `send-mention-notification` edge function** (v12.0). Without it
-    the mention-email invoke fails silently — best-effort, never blocks the chat post.
-  - **`20260714000000_attachment_inserts.sql`** (v11.9) — **RE-RUN this** even if once
-    applied: main shipped the LOOSER invoice INSERT policy (the `is_household_admin()`
-    tightening from the v11.9 review never merged — see #6). Re-running replaces the
-    policy (idempotent DROP+CREATE) and closes the gap where a plain household member
-    could insert `invoice_images` on an invoice they can't view.
-  - **`20260712000000_email_pending_activity.sql`** (v11.8) — confirm applied.
-  - `20260710000000_notifications.sql` (v11.5) should already be applied (bell works).
+- **⚠️ Pending manual step** (idempotent SQL — paste in the **Supabase SQL editor**):
+  - **`20260716000000_admin_edit_and_payment_method.sql`** (v12.1) — adds
+    `payment_method`/`payment_method_note` columns; extends `admin_update_invoice_status`
+    (5 args) + `admin_update_invoice_details` (10 args, incl. `p_set_invoice_number`);
+    adds `admin_update_estimate` + `delete_notifications`. Without it: admin field edits,
+    payment-method-on-paid, and bell delete all error. **No edge-function changes** this
+    release. Migration was unit-tested against a local Postgres 16 before shipping.
+- **Verified live earlier (v12.0)**: `…715 chat_mentions.sql` ran + `send-mention-notification`
+  edge fn deployed (user confirmed). v11.9 `…714` re-run + v11.8 `…712` assumed applied.
 
 ## Environment (no CLI — everything manual via dashboard)
 
@@ -55,6 +49,7 @@ substantial session.
 | v11.8 | **Email commands `pending` + `activity`** (read-only, admin/HA; `todo`=alias) | `…712 email_pending_activity.sql`, `email-command`, `inbound-email` |
 | v11.9 | **Add photos to existing invoice/estimate** (anyone who can view) + document image compression | `…714 attachment_inserts.sql`, `AttachmentAdder.tsx`, `imageCompression.ts` |
 | v12.0 | **@mention in estimate chat → email + distinct "mentioned you" bell entry**, deep-linked from the email; @mentions highlighted in bubbles | `…715 chat_mentions.sql`, `send-mention-notification`, `EstimateChat.tsx`, `useInitialDeepLink.ts` |
+| v12.1 | **Admin edits invoice/estimate fields** (fix a missing invoice #, amount, dates, title…); **payment method on mark-paid** (venmo/zelle/ach/check/credit/other + note); **delete notifications** from the bell (per-row + clear-all) | `…716 admin_edit_and_payment_method.sql`, `AdminInvoices.tsx`, `AdminEstimates.tsx`, `NotificationBell.tsx`, `useNotifications.ts` |
 
 ## Decisions (don't re-litigate)
 
@@ -69,6 +64,13 @@ substantial session.
   never a body-supplied `actor_id` — a review found the body-trust version let any
   member send impersonated mention emails. Mentionable set = the estimate's audience
   (creator ∪ participants ∪ non-contractor household members ∪ prior posters).
+- **Admin edits + payment method + notif delete (v12.1)**: all field edits are
+  **full-admin only** (`is_admin()` in the RPC; no UPDATE RLS exists — same convention as
+  status changes). Estimates have **no amount** (edit title/description/billing_type/
+  household/admin_notes only). Payment method is **optional** at mark-paid; "other" reveals
+  a free-text note; stored on `contractor_invoices.payment_method(_note)`. `delete_notifications`
+  removes only the caller's own bell rows — the estimate/invoice/messages live elsewhere and
+  are untouched. Blanking an invoice description is a no-op (column is NOT NULL) — by design.
 - **Add-photos audience (v11.9)** = anyone who can *view* the record (invoices: creator
   + admins + household admins; estimates: creator + admins + household members +
   participants). Enforced by RLS mirroring each table's SELECT. Non-owner adds target
@@ -113,7 +115,8 @@ substantial session.
 `…709 fix_estimate_participants_select` · `…710 notifications` ·
 **`…712 email_pending_activity` ← confirm applied** ·
 **`…714 attachment_inserts` ← confirm applied** ·
-**`…715 chat_mentions` ← confirm applied (v12.0)**
+`…715 chat_mentions` (v12.0, applied) ·
+**`…716 admin_edit_and_payment_method` ← confirm applied (v12.1)**
 
 ## Open items
 

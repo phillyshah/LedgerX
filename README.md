@@ -428,11 +428,14 @@ Tap the bell to see the list, then **tap an item to jump straight to it** —
 LedgerX opens the exact estimate (with its chat thread) or invoice the
 notification is about — anything you have access to view — and marks it read at
 the same time. Use **Mark all
-read** to clear everything at once. You're only notified about things that
-involve you — you never get a note about your own action, and contractors only
-hear about the estimates and invoices they submitted themselves.
-(Receipts/expenses don't generate bell notifications.) The list refreshes when
-you return to the tab.
+read** to mark everything read at once. To tidy the list, hover (or tap) a
+notification and use its **trash icon** to remove it, or **Clear all** to empty
+the bell entirely — removing a notification only clears it from your bell; the
+underlying invoice, estimate, and chat messages are untouched. You're only
+notified about things that involve you — you never get a note about your own
+action, and contractors only hear about the estimates and invoices they
+submitted themselves. (Receipts/expenses don't generate bell notifications.)
+The list refreshes when you return to the tab.
 
 ### @mentioning someone in a conversation
 
@@ -567,7 +570,8 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 - View all invoices submitted by contractors and household admins
 - Filter by status (Pending / Paid) and property
 - Click any invoice to see full details and attached documents
-- **Mark Paid** to record that payment was issued (timestamp recorded); full admins only
+- **Mark Paid** to record that payment was issued (timestamp recorded); full admins only. When you mark an invoice paid you can optionally record **how** it was paid — Venmo, Zelle, ACH/bank transfer, check, credit card, or "Other" (with a free-text note) — and the method then shows on the invoice detail.
+- **Edit Details** (full admins only) — fix any core field on an invoice: the **invoice number** (handy when a contractor submits without one), **amount**, **description**, **service dates**, property, category, and admin notes. Opens a single edit dialog from the invoice detail.
 - **Assign Category** (full admins only) — tag any invoice with a category so it rolls up into Analytics alongside receipts. The picker only shows categories valid for the invoice's household (globals + any explicitly mapped).
 - **Add photos any time** — open any invoice and use the **Add photos** button under the attachments to add more pictures after submission. Anyone on the property can contribute, not just the submitter. Images are auto-shrunk to a sharp, readable size (~1600px, ~0.6MB) before saving to keep them legible while saving storage; PDFs are kept as-is.
 
@@ -585,6 +589,7 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 - Click an estimate to open it: the submitted JPEG/PDF files (PDFs open in a new tab), the contractor's description, and the **conversation thread**
 - **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
+- **Edit** (full admins only) — fix the estimate's title, description, billing type, property, or admin notes from the detail view.
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
 
 **Add photos any time:** open any estimate you can see and use the **Add photos** button under the attachments to add more pictures after it was submitted — anyone on the property can contribute, not just the submitter. Images are automatically shrunk to a sharp, readable size (roughly 1600px, ~0.6MB) before saving, so they stay legible while using far less storage; PDFs are kept exactly as-is.

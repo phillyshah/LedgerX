@@ -426,7 +426,11 @@ Toque no sino para ver a lista e **toque num item para ir direto a ele** — o
 LedgerX abre o orçamento exato (com a conversa) ou a nota fiscal a que a
 notificação se refere — desde que você tenha acesso para visualizá-lo — e marca
 como lida ao mesmo tempo. Use **Marcar
-tudo como lido** para limpar tudo de uma vez. Você só é notificado sobre coisas
+tudo como lido** para marcar tudo como lido de uma vez. Para organizar a lista,
+passe o mouse (ou toque) sobre uma notificação e use o **ícone de lixeira** para
+removê-la, ou **Limpar tudo** para esvaziar o sino — remover uma notificação só
+a apaga do seu sino; a nota, o orçamento e as mensagens do chat permanecem
+intactos. Você só é notificado sobre coisas
 que envolvem você — nunca recebe aviso da sua própria ação, e prestadores só
 são avisados sobre os orçamentos e notas que eles mesmos enviaram.
 (Recibos/despesas não geram notificações no sino.) A lista é atualizada quando
@@ -565,7 +569,8 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 - Visualize todas as notas fiscais enviadas por prestadores e admins de propriedade
 - Filtre por status (Pendente / Paga) e propriedade
 - Clique em qualquer nota para ver os detalhes completos e documentos anexados
-- **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos
+- **Marcar como Paga** para registrar que o pagamento foi efetuado (com data e hora); apenas admins completos. Ao marcar como paga, você pode registrar **como** foi paga — Venmo, Zelle, ACH/transferência bancária, cheque, cartão de crédito ou "Outro" (com uma observação em texto livre) — e a forma passa a aparecer nos detalhes da nota.
+- **Editar detalhes** (apenas admins completos) — corrija qualquer campo principal de uma nota: o **número da nota** (útil quando um prestador envia sem número), **valor**, **descrição**, **datas do serviço**, propriedade, categoria e notas do admin. Abre um único diálogo de edição a partir dos detalhes da nota.
 - **Atribuir Categoria** (apenas admins completos) — etiquete qualquer nota fiscal com uma categoria para que apareça no Analytics junto com os recibos. O seletor só mostra as categorias válidas para o grupo da nota (globais + mapeadas explicitamente).
 - **Adicione fotos a qualquer momento** — abra qualquer nota fiscal e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens após o envio. Qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade e economizando armazenamento; PDFs são mantidos como estão.
 
@@ -583,6 +588,7 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 - Clique em um orçamento para abri-lo: os arquivos JPEG/PDF enviados (PDFs abrem em nova aba), a descrição do prestador e a **conversa**
 - **Converse** — responda dentro do próprio orçamento; o prestador vê e pode responder
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
+- **Editar** (apenas admins completos) — corrija o título, a descrição, o tipo de cobrança, a propriedade ou as notas do admin a partir do detalhe.
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
 
 **Adicione fotos a qualquer momento:** abra qualquer orçamento que você possa ver e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens depois do envio — qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade com muito menos armazenamento; PDFs são mantidos como estão.

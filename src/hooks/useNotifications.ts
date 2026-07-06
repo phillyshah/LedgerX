@@ -63,5 +63,18 @@ export function useNotifications() {
     [user],
   );
 
-  return { notifications, unreadCount, loading, reload, markRead };
+  // Remove notification rows from the caller's feed. This deletes only the
+  // recipient's own notification rows — the estimate/invoice/message the
+  // notification points at lives in other tables and is untouched. Passing no
+  // ids clears the whole feed.
+  const remove = useCallback(
+    async (ids?: string[]) => {
+      if (!user) return;
+      setNotifications((prev) => (ids ? prev.filter((n) => !ids.includes(n.id)) : []));
+      await supabase.rpc('delete_notifications' as never, { p_ids: ids ?? null } as never);
+    },
+    [user],
+  );
+
+  return { notifications, unreadCount, loading, reload, markRead, remove };
 }
