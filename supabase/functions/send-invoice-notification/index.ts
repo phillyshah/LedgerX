@@ -187,14 +187,18 @@ Deno.serve(async (req: Request) => {
     // Fetch submitter profile (username + real email)
     const { data: submitterProfile } = await supabase
       .from("user_profiles")
-      .select("username, real_email, email")
+      .select("username, real_email, email, notify_channel")
       .eq("id", invoice.created_by)
       .single();
 
     const submitterUsername = submitterProfile?.username ?? "Unknown";
-    const submitterEmail = submitterProfile?.real_email
-      ? (isRealEmail(submitterProfile.real_email) ? submitterProfile.real_email : null)
-      : (isRealEmail(submitterProfile?.email ?? "") ? submitterProfile?.email : null);
+    // Channel preference: invoice created/paid also reach the bell + WhatsApp
+    // outbox via the notifications triggers, so 'whatsapp' means no email here.
+    const submitterEmail = submitterProfile?.notify_channel === "whatsapp"
+      ? null
+      : submitterProfile?.real_email
+        ? (isRealEmail(submitterProfile.real_email) ? submitterProfile.real_email : null)
+        : (isRealEmail(submitterProfile?.email ?? "") ? submitterProfile?.email : null);
 
     // Fetch caller profile for "paid by" attribution
     const { data: callerProfile } = await supabase
@@ -213,7 +217,7 @@ Deno.serve(async (req: Request) => {
       // Notify all admins with real emails
       const { data: adminProfiles } = await supabase
         .from("user_profiles")
-        .select("username, real_email, email, user_id:id")
+        .select("username, real_email, email, notify_channel, user_id:id")
         .in(
           "id",
           (await supabase
@@ -224,6 +228,7 @@ Deno.serve(async (req: Request) => {
         );
 
       toEmails = (adminProfiles ?? [])
+        .filter((p) => p.notify_channel !== "whatsapp") // WhatsApp-only admins hear via the outbox
         .map((p) => p.real_email && isRealEmail(p.real_email) ? p.real_email : (isRealEmail(p.email ?? "") ? p.email : null))
         .filter((e): e is string => !!e);
 
@@ -289,7 +294,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

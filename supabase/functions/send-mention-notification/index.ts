@@ -133,7 +133,24 @@ Deno.serve(async (req: Request) => {
       p_body: body,
     });
 
-    const recipients = (recipientsData ?? []) as RecipientRow[];
+    let recipients = (recipientsData ?? []) as RecipientRow[];
+
+    // Channel preference: mentions also land as chat_mention bell entries and
+    // fan out to the WhatsApp outbox, so 'whatsapp'-preference members get no
+    // email. real_email is unique, so it doubles as the lookup key.
+    if (recipients.length > 0) {
+      const { data: prefs } = await supabase
+        .from("user_profiles")
+        .select("real_email, notify_channel")
+        .in("real_email", recipients.map((r) => r.email).filter(Boolean));
+      const whatsappOnly = new Set(
+        ((prefs ?? []) as Array<{ real_email: string | null; notify_channel: string }>)
+          .filter((p) => p.notify_channel === "whatsapp" && p.real_email)
+          .map((p) => p.real_email as string),
+      );
+      recipients = recipients.filter((r) => !r.email || !whatsappOnly.has(r.email));
+    }
+
     if (recipients.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0 }),

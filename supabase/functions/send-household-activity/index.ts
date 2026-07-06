@@ -144,7 +144,25 @@ Deno.serve(async (req: Request) => {
       p_actor: actorId,
     });
 
-    const recipients = (recipientsData ?? []) as RecipientRow[];
+    let recipients = (recipientsData ?? []) as RecipientRow[];
+
+    // Channel preference: estimate/invoice activity also reaches the bell +
+    // WhatsApp outbox via the notifications triggers, so recipients whose
+    // notify_channel is 'whatsapp' get no email nudge. The RPC returns
+    // real_email (unique), so it doubles as the lookup key.
+    if (recipients.length > 0) {
+      const { data: prefs } = await supabase
+        .from("user_profiles")
+        .select("real_email, notify_channel")
+        .in("real_email", recipients.map((r) => r.email).filter(Boolean));
+      const whatsappOnly = new Set(
+        ((prefs ?? []) as Array<{ real_email: string | null; notify_channel: string }>)
+          .filter((p) => p.notify_channel === "whatsapp" && p.real_email)
+          .map((p) => p.real_email as string),
+      );
+      recipients = recipients.filter((r) => !r.email || !whatsappOnly.has(r.email));
+    }
+
     if (recipients.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0 }),

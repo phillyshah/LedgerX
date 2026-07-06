@@ -148,16 +148,31 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !callerUser) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     const payload = await req.json();
+
+    // Two auth paths:
+    //  a) A user JWT — the actor is whoever the token belongs to (frontend).
+    //  b) The service-role key + an explicit actor_id in the body — server-to-
+    //     server callers (the WhatsApp bot) that act on a user's behalf. Only
+    //     holders of the service key can use this, the same trust model as
+    //     inbound-email → email-command. The ownership check below still runs
+    //     against the supplied actor, so a bot bug can't announce someone
+    //     else's rows.
+    const token = authHeader.replace("Bearer ", "");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    let callerId: string;
+    if (serviceKey && token === serviceKey && typeof payload.actor_id === "string" && payload.actor_id) {
+      callerId = payload.actor_id;
+    } else {
+      const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !callerUser) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      callerId = callerUser.id;
+    }
     const { type } = payload;
     if (!type || !["invoice_submitted", "expense_submitted", "estimate_submitted"].includes(type)) {
       return new Response(
@@ -268,11 +283,11 @@ Deno.serve(async (req: Request) => {
     // insert). Full admins are also allowed for any admin-on-behalf tooling.
     // Without this, any authenticated user could trigger admin emails for
     // arbitrary invoice/expense ids.
-    if (callerUser.id !== submitterId) {
+    if (callerId !== submitterId) {
       const { data: callerRole } = await supabase
         .from("user_roles")
         .select("is_admin")
-        .eq("user_id", callerUser.id)
+        .eq("user_id", callerId)
         .maybeSingle();
       if (!callerRole?.is_admin) {
         return new Response(
@@ -345,11 +360,17 @@ Deno.serve(async (req: Request) => {
     // Resolve real emails.
     const { data: recipProfiles } = await supabase
       .from("user_profiles")
-      .select("id, username, real_email, email")
+      .select("id, username, real_email, email, notify_channel")
       .in("id", Array.from(recipientIds));
 
     const recipients: RecipientRow[] = [];
     for (const p of recipProfiles ?? []) {
+      // Channel preference: 'whatsapp' means no email for events the WhatsApp
+      // outbox also carries (invoice/estimate created reach household members
+      // via the notifications trigger). Expense submissions have no bell/
+      // WhatsApp equivalent, so those emails ignore the preference — a
+      // whatsapp-only admin must not lose them entirely.
+      if (p.notify_channel === "whatsapp" && kind !== "expense") continue;
       const realEmail = isRealEmail(p.real_email) ? p.real_email : (isRealEmail(p.email) ? p.email : null);
       if (!realEmail) continue;
       recipients.push({
