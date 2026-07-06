@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.2',
+    version: 'v12.2',
+    date: '2026-07-06',
+    title: {
+      'en': 'Talk to LedgerX on WhatsApp',
+      'pt-BR': 'Converse com o LedgerX pelo WhatsApp',
+    },
+    body: {
+      'en':
+        "LedgerX now has a WhatsApp number. Once an admin links your phone, just text it like you'd text a person: send a photo of a receipt and it reads the amount and date for you, or type things like \"add a $120 plumbing invoice for Oak House\". It always shows you a summary and waits for your YES before saving anything. You can also attach more photos to an existing invoice or estimate, and admins can ask for quick reports by texting \"pending\" or \"activity\". In Settings you can choose where your notifications go — email, WhatsApp, or both — and WhatsApp notices tap straight through to the right invoice or estimate.",
+      'pt-BR':
+        "O LedgerX agora tem um número de WhatsApp. Depois que um administrador vincular seu telefone, é só mandar mensagem como para uma pessoa: envie a foto de um recibo e ele lê o valor e a data para você, ou escreva algo como \"adicionar fatura de encanador de R$120 para Casa Oak\". Ele sempre mostra um resumo e espera seu SIM antes de salvar qualquer coisa. Você também pode anexar mais fotos a uma fatura ou orçamento existente, e administradores podem pedir relatórios rápidos enviando \"pending\" ou \"activity\". Em Configurações, você escolhe para onde vão suas notificações — e-mail, WhatsApp ou ambos — e os avisos no WhatsApp abrem direto na fatura ou orçamento certo.",
+    },
+  },
+  {
     id: 'v12.1',
     version: 'v12.1',
     date: '2026-07-06',

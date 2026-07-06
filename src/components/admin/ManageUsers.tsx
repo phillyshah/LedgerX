@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat } from 'lucide-react';
+import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
 import { useT } from '../../hooks/useT';
+import { PHONE_E164_RE, type NotifyChannel, type PhoneNumberRow } from '../../hooks/useWhatsApp';
 
 type Role = 'regular' | 'admin' | 'contractor' | 'household_admin';
 
@@ -51,6 +52,13 @@ export function ManageUsers() {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHouseholdIds, setSelectedHouseholdIds] = useState<string[]>([]);
   const [savingHouseholds, setSavingHouseholds] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [waPhones, setWaPhones] = useState<PhoneNumberRow[]>([]);
+  const [waChannel, setWaChannel] = useState<NotifyChannel>('email');
+  const [waNewPhone, setWaNewPhone] = useState('');
+  const [waNewLabel, setWaNewLabel] = useState('');
+  const [waAdding, setWaAdding] = useState(false);
+  const [waError, setWaError] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -274,6 +282,70 @@ export function ManageUsers() {
     }
   };
 
+  const openWhatsAppModal = async (userId: string, username: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserUsername(username);
+    setWaNewPhone('');
+    setWaNewLabel('');
+    setWaError('');
+    setError('');
+
+    const [phonesRes, profileRes] = await Promise.all([
+      supabase
+        .from('user_phone_numbers')
+        .select('id, user_id, phone, label, created_at')
+        .eq('user_id', userId)
+        .order('created_at'),
+      supabase.from('user_profiles').select('notify_channel').eq('id', userId).maybeSingle(),
+    ]);
+    setWaPhones((phonesRes.data ?? []) as PhoneNumberRow[]);
+    setWaChannel(((profileRes.data?.notify_channel as NotifyChannel | undefined) ?? 'email'));
+    setShowWhatsAppModal(true);
+  };
+
+  const addWaPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const phone = waNewPhone.replace(/[\s()-]/g, '');
+    if (!PHONE_E164_RE.test(phone)) {
+      setWaError(t('whatsapp.phoneInvalid'));
+      return;
+    }
+    setWaAdding(true);
+    setWaError('');
+    const { error: insertError } = await supabase.from('user_phone_numbers').insert({
+      user_id: selectedUserId,
+      phone,
+      label: waNewLabel.trim() || null,
+    });
+    setWaAdding(false);
+    if (insertError) {
+      setWaError(
+        insertError.message.toLowerCase().includes('duplicate') || insertError.code === '23505'
+          ? t('whatsapp.phoneDuplicate')
+          : insertError.message
+      );
+      return;
+    }
+    setWaNewPhone('');
+    setWaNewLabel('');
+    const { data } = await supabase
+      .from('user_phone_numbers')
+      .select('id, user_id, phone, label, created_at')
+      .eq('user_id', selectedUserId)
+      .order('created_at');
+    setWaPhones((data ?? []) as PhoneNumberRow[]);
+  };
+
+  const removeWaPhone = async (id: string) => {
+    setWaError('');
+    const { error: deleteError } = await supabase.from('user_phone_numbers').delete().eq('id', id);
+    if (deleteError) {
+      setWaError(deleteError.message);
+      return;
+    }
+    setWaPhones(prev => prev.filter(p => p.id !== id));
+  };
+
   const openHouseholdModal = async (userId: string, username: string) => {
     setSelectedUserId(userId);
     setSelectedUserUsername(username);
@@ -468,6 +540,14 @@ export function ManageUsers() {
                           {t('admin.households')}
                         </button>
                         <button
+                          onClick={() => openWhatsAppModal(user.id, user.username)}
+                          className="flex items-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 text-xs font-medium rounded-lg transition-all"
+                          title={t('whatsapp.adminModalTitle')}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          {t('whatsapp.manageButton')}
+                        </button>
+                        <button
                           onClick={() => openPasswordModal(user.id, user.username)}
                           className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-medium rounded-lg transition-all"
                           title={t('admin.changeMyPassword')}
@@ -486,6 +566,14 @@ export function ManageUsers() {
                         >
                           <Home className="w-3.5 h-3.5" />
                           {t('admin.households')}
+                        </button>
+                        <button
+                          onClick={() => openWhatsAppModal(user.id, user.username)}
+                          disabled={isLoading}
+                          className="p-2 hover:bg-green-50 rounded-lg transition-all disabled:opacity-50"
+                          title={t('whatsapp.adminModalTitle')}
+                        >
+                          <MessageCircle className="w-4 h-4 text-green-600" />
                         </button>
                         <select
                           value={currentRole(user)}
@@ -813,6 +901,87 @@ export function ManageUsers() {
                   {savingHouseholds ? t('common.saving') : t('common.save')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">{t('whatsapp.adminModalTitle')}</h3>
+                  <p className="text-sm text-slate-500 mt-1">{selectedUserUsername}</p>
+                </div>
+                <button
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-500">
+                {t('whatsapp.notifyPref')}:{' '}
+                <span className="font-medium text-slate-700">
+                  {t(waChannel === 'email' ? 'whatsapp.channelEmail' : waChannel === 'whatsapp' ? 'whatsapp.channelWhatsapp' : 'whatsapp.channelBoth')}
+                </span>
+              </p>
+
+              {waPhones.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {waPhones.map(p => (
+                    <li key={p.id} className="flex items-center gap-2 text-sm bg-slate-50 rounded-xl px-3 py-2">
+                      <MessageCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                      <span className="flex-1 font-medium text-slate-700 truncate">{p.phone}</span>
+                      {p.label && <span className="text-xs text-slate-400 italic">{p.label}</span>}
+                      <button
+                        onClick={() => removeWaPhone(p.id)}
+                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title={t('whatsapp.removePhone')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500">{t('whatsapp.noNumberLinked')}</p>
+              )}
+
+              <form onSubmit={addWaPhone} className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={waNewPhone}
+                    onChange={e => setWaNewPhone(e.target.value)}
+                    placeholder={t('whatsapp.phonePlaceholder')}
+                    className="flex-1 min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={waNewLabel}
+                    onChange={e => setWaNewLabel(e.target.value)}
+                    placeholder={t('whatsapp.labelPlaceholder')}
+                    className="w-28 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                  />
+                </div>
+                <p className="text-xs text-slate-500">{t('whatsapp.phoneHint')}</p>
+                {waError && <p className="text-xs text-red-600">{waError}</p>}
+                <button
+                  type="submit"
+                  disabled={waAdding || !waNewPhone.trim()}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                >
+                  {waAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {t('whatsapp.addPhone')}
+                </button>
+              </form>
             </div>
           </div>
         </div>

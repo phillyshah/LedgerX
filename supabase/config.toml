@@ -8,3 +8,13 @@ verify_jwt = false
 # (not a user JWT), so JWT verification must be off — same as inbound-email.
 [functions.email-command]
 verify_jwt = false
+
+# Twilio posts form-encoded webhooks authenticated by X-Twilio-Signature
+# (HMAC-SHA1 over the pinned TWILIO_WEBHOOK_URL) — no JWT involved.
+[functions.whatsapp-inbound]
+verify_jwt = false
+
+# Invoked by pg_cron via pg_net with the shared X-Cron-Secret header — same
+# handshake as send-inactivity-reminder.
+[functions.whatsapp-send]
+verify_jwt = false

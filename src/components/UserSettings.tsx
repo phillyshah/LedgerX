@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Trash2, Check, Loader2 } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Trash2, Check, Loader2, MessageCircle } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { LANGUAGES, type Language } from '../i18n';
 import { useSenderEmails } from '../hooks/useEmailInbox';
+import { useMyPhoneNumbers, useNotifyChannel, type NotifyChannel } from '../hooks/useWhatsApp';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 
 interface UserSettingsProps {
@@ -34,6 +35,9 @@ export function UserSettings({ onClose }: UserSettingsProps) {
   const [newSenderLabel, setNewSenderLabel] = useState('');
   const [senderAdding, setSenderAdding] = useState(false);
   const [senderError, setSenderError] = useState('');
+  const myPhones = useMyPhoneNumbers();
+  const { channel: notifyChannel, save: saveNotifyChannel } = useNotifyChannel();
+  const [channelError, setChannelError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -331,6 +335,61 @@ export function UserSettings({ onClose }: UserSettingsProps) {
                   {t('inbox.addSender')}
                 </button>
               </form>
+            </div>
+
+            {/* ── WhatsApp ── */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <MessageCircle className="w-5 h-5 text-slate-600" />
+                <h3 className="text-lg font-semibold text-slate-900">{t('whatsapp.settingsTitle')}</h3>
+              </div>
+
+              {myPhones.length > 0 ? (
+                <ul className="space-y-1.5 mb-3">
+                  {myPhones.map(p => (
+                    <li key={p.id} className="flex items-center gap-2 text-sm bg-slate-50 rounded-xl px-3 py-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                      <span className="flex-1 font-medium text-slate-700 truncate">{p.phone}</span>
+                      {p.label && <span className="text-xs text-slate-400 italic">{p.label}</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-500 mb-3">{t('whatsapp.noNumberLinked')}</p>
+              )}
+              <p className="text-xs text-slate-500 mb-4">{t('whatsapp.askAdmin')}</p>
+
+              <p className="text-sm font-medium text-slate-700 mb-2">{t('whatsapp.channelLabel')}</p>
+              <div className="flex gap-2 mb-2">
+                {(['email', 'whatsapp', 'both'] as NotifyChannel[]).map(c => {
+                  // WhatsApp-only suppresses ALL emails, so it needs a linked
+                  // phone or every notification would vanish (the RPC enforces
+                  // this too). 'Both' is safe without one — email still flows.
+                  const disabled = c === 'whatsapp' && myPhones.length === 0;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      disabled={disabled}
+                      title={disabled ? t('whatsapp.noNumberLinked') : undefined}
+                      onClick={async () => {
+                        setChannelError('');
+                        const err = await saveNotifyChannel(c);
+                        if (err) setChannelError(t('whatsapp.channelError'));
+                      }}
+                      className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-xl border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                        notifyChannel === c
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {t(c === 'email' ? 'whatsapp.channelEmail' : c === 'whatsapp' ? 'whatsapp.channelWhatsapp' : 'whatsapp.channelBoth')}
+                    </button>
+                  );
+                })}
+              </div>
+              {channelError && <p className="text-xs text-red-600 mb-2">{channelError}</p>}
+              <p className="text-xs text-slate-500">{t('whatsapp.sandboxHint')}</p>
             </div>
 
           </div>

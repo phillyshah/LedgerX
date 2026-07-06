@@ -12,6 +12,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Adding a Transaction](#adding-a-transaction)
 - [Receipt Scanning & OCR](#receipt-scanning--ocr)
 - [Email Inbox (Forward Receipts by Email)](#email-inbox-forward-receipts-by-email)
+- [WhatsApp (Text LedgerX)](#whatsapp-text-ledgerx)
 - [Viewing Editing & Searching Transactions](#viewing-editing--searching-transactions)
 - [Uploading Receipts](#uploading-receipts)
 - [Spending Charts](#spending-charts)
@@ -281,6 +282,33 @@ After you save, a brief confirmation slides in at the bottom of the screen telli
 If you don't want to keep something, tap the **×** in the top-right of the inbox card to discard it. The pending count drops by one as soon as you do. If you change your mind later, just forward the same email again — discarded items don't block re-forwards.
 
 > **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
+
+---
+
+## WhatsApp (Text LedgerX)
+<!-- roles: contractor, member, admin -->
+
+LedgerX has a WhatsApp number you can text like a person. Once your phone is linked, you can file receipts, invoices, and estimates, attach photos to existing ones, and pull quick reports — all from a chat.
+
+### One-time setup
+
+1. **An admin links your phone.** Numbers are managed in **Manage Users → WhatsApp** (admins only) and must be entered in international format exactly as WhatsApp reports it (e.g. `+14155551234`, `+5511998765432`). Messages from unlinked numbers are politely declined.
+2. **Pick your notification channel.** In **Settings → WhatsApp**, choose where notifications go: **Email**, **WhatsApp**, or **Both**. (Receipt-related admin emails always go by email — receipts don't generate WhatsApp notices.)
+3. **While we're on the Twilio sandbox:** you'll need to join the sandbox first (text the join code the admin gives you), and business-initiated notifications only arrive within 24 hours of your last message to the bot. Texting it occasionally keeps the channel open. A production number removes both limits.
+
+### What you can text
+
+- **Send a photo of a receipt or invoice** — the bot reads the vendor, amount, and date, asks anything it's missing (like which property), then shows a summary. **Nothing is saved until you reply YES.**
+- **Or just describe it**: "add a $120 plumbing invoice for Oak House", "R$45 de mercado no Extra para Casa Lima", "new estimate for the deck repair at Miami House" (estimates need at least one photo or PDF attached).
+- **Add photos to something that exists**: "add these photos to my last invoice" (attach the photos). If more than one record matches, the bot lists up to three and you reply with a number.
+- **Keyword reports** (same as the email commands): `help`, `estimates`, `invoices`, `pending` (or `todo`), `activity`. Report commands are admin / household-admin only.
+- **`cancel`** (or NO) throws away the current draft — staged photos are deleted, nothing is filed.
+
+The bot answers in your preferred language (English or Portuguese), applies exactly the same permission rules as the app (contractors can only file invoices for their own properties, and so on), and every created item lands in the app instantly — with the usual bell notifications and admin emails.
+
+### WhatsApp notifications
+
+With your channel set to **WhatsApp** or **Both**, the notices that today arrive by email/bell — new estimate or invoice in your property, an estimate decision, an invoice marked paid, chat messages and @mentions — also arrive as WhatsApp messages, each with a link that opens LedgerX straight to the right record.
 
 ---
 

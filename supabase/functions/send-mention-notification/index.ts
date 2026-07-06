@@ -133,7 +133,30 @@ Deno.serve(async (req: Request) => {
       p_body: body,
     });
 
-    const recipients = (recipientsData ?? []) as RecipientRow[];
+    let recipients = (recipientsData ?? []) as RecipientRow[];
+
+    // Channel preference: mentions also land as chat_mention bell entries and
+    // fan out to the WhatsApp outbox, so 'whatsapp'-preference members with a
+    // LINKED PHONE (the outbox no-ops without one) get no email. real_email
+    // is unique, so it doubles as the lookup key.
+    if (recipients.length > 0) {
+      const { data: prefs } = await supabase
+        .from("user_profiles")
+        .select("id, real_email, notify_channel")
+        .in("real_email", recipients.map((r) => r.email).filter(Boolean));
+      const prefRows = (prefs ?? []) as Array<{ id: string; real_email: string | null; notify_channel: string }>;
+      const { data: phones } = prefRows.length > 0
+        ? await supabase.from("user_phone_numbers").select("user_id").in("user_id", prefRows.map((p) => p.id))
+        : { data: [] };
+      const phoneIds = new Set((phones ?? []).map((p) => p.user_id as string));
+      const whatsappOnly = new Set(
+        prefRows
+          .filter((p) => p.notify_channel === "whatsapp" && p.real_email && phoneIds.has(p.id))
+          .map((p) => p.real_email as string),
+      );
+      recipients = recipients.filter((r) => !r.email || !whatsappOnly.has(r.email));
+    }
+
     if (recipients.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0 }),

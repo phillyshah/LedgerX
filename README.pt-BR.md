@@ -12,6 +12,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Adicionar uma Transação](#adicionar-uma-transação)
 - [Leitura de Recibos e OCR](#leitura-de-recibos-e-ocr)
 - [Caixa de Entrada de E-mail (Encaminhar Recibos)](#caixa-de-entrada-de-e-mail-encaminhar-recibos)
+- [WhatsApp (Converse com o LedgerX)](#whatsapp-converse-com-o-ledgerx)
 - [Visualizar, Editar e Pesquisar Transações](#visualizar-editar-e-pesquisar-transações)
 - [Enviar Recibos](#enviar-recibos)
 - [Gráficos de Gastos](#gráficos-de-gastos)
@@ -279,6 +280,33 @@ Após salvar, uma confirmação rápida aparece na parte inferior da tela inform
 Se não quiser manter algo, toque no **×** no canto superior direito do cartão para descartar. A contagem de pendentes diminui em um na hora. Se mudar de ideia depois, basta encaminhar o mesmo e-mail novamente — itens descartados não bloqueiam o reenvio.
 
 > **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
+
+---
+
+## WhatsApp (Converse com o LedgerX)
+<!-- roles: contractor, member, admin -->
+
+O LedgerX tem um número de WhatsApp com o qual você pode conversar como se fosse uma pessoa. Depois que seu telefone for vinculado, dá para registrar recibos, faturas e orçamentos, anexar fotos aos existentes e pedir relatórios rápidos — tudo pelo chat.
+
+### Configuração única
+
+1. **Um administrador vincula seu telefone.** Os números são gerenciados em **Gerenciar Usuários → WhatsApp** (somente administradores) e devem ser informados no formato internacional exatamente como o WhatsApp reporta (ex.: `+5511998765432`, `+14155551234`). Mensagens de números não vinculados são recusadas educadamente.
+2. **Escolha seu canal de notificação.** Em **Configurações → WhatsApp**, escolha para onde vão as notificações: **E-mail**, **WhatsApp** ou **Ambos**. (E-mails administrativos sobre recibos continuam indo por e-mail — recibos não geram avisos no WhatsApp.)
+3. **Enquanto estivermos no sandbox da Twilio:** você precisa entrar no sandbox primeiro (envie o código de adesão que o administrador passar), e notificações iniciadas pelo sistema só chegam dentro de 24 horas após sua última mensagem ao robô. Mandar mensagem de vez em quando mantém o canal aberto. Um número de produção remove essas duas limitações.
+
+### O que você pode enviar
+
+- **Mande a foto de um recibo ou fatura** — o robô lê o fornecedor, o valor e a data, pergunta o que faltar (como qual residência) e mostra um resumo. **Nada é salvo até você responder SIM.**
+- **Ou apenas descreva**: "adicionar fatura de encanador de R$120 para Casa Oak", "US$45 de mercado no Publix para Casa Miami", "novo orçamento do reparo do deck na Casa Miami" (orçamentos precisam de pelo menos uma foto ou PDF anexado).
+- **Anexe fotos a algo que já existe**: "adicionar estas fotos à minha última fatura" (anexe as fotos). Se mais de um registro corresponder, o robô lista até três e você responde com um número.
+- **Comandos de relatório** (os mesmos do e-mail): `help`, `estimates`, `invoices`, `pending` (ou `todo`), `activity`. Os relatórios são restritos a administradores e administradores de residência.
+- **`cancelar`** (ou NÃO) descarta o rascunho atual — as fotos em espera são apagadas e nada é registrado.
+
+O robô responde no seu idioma preferido (português ou inglês), aplica exatamente as mesmas regras de permissão do aplicativo (prestadores só registram faturas nas suas próprias residências, e assim por diante), e cada item criado aparece no aplicativo na hora — com as notificações do sino e os e-mails administrativos de sempre.
+
+### Notificações pelo WhatsApp
+
+Com o canal definido como **WhatsApp** ou **Ambos**, os avisos que hoje chegam por e-mail/sino — novo orçamento ou fatura na sua residência, decisão de orçamento, fatura marcada como paga, mensagens de chat e @menções — também chegam como mensagens de WhatsApp, cada uma com um link que abre o LedgerX direto no registro certo.
 
 ---
 

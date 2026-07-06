@@ -37,6 +37,16 @@ function isRealEmail(email: string | null | undefined): email is string {
   return !!email && !email.endsWith(LEDGERX_DOMAIN) && email.includes("@");
 }
 
+// Constant-time string compare for the service-role key check below.
+function timingSafeEqual(a: string, b: string): boolean {
+  const ab = new TextEncoder().encode(a);
+  const bb = new TextEncoder().encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 function formatCurrency(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
@@ -148,16 +158,31 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !callerUser) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     const payload = await req.json();
+
+    // Two auth paths:
+    //  a) A user JWT — the actor is whoever the token belongs to (frontend).
+    //  b) The service-role key + an explicit actor_id in the body — server-to-
+    //     server callers (the WhatsApp bot) that act on a user's behalf. Only
+    //     holders of the service key can use this, the same trust model as
+    //     inbound-email → email-command. The ownership check below still runs
+    //     against the supplied actor, so a bot bug can't announce someone
+    //     else's rows.
+    const token = authHeader.replace("Bearer ", "");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    let callerId: string;
+    if (serviceKey && timingSafeEqual(token, serviceKey) && typeof payload.actor_id === "string" && payload.actor_id) {
+      callerId = payload.actor_id;
+    } else {
+      const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !callerUser) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      callerId = callerUser.id;
+    }
     const { type } = payload;
     if (!type || !["invoice_submitted", "expense_submitted", "estimate_submitted"].includes(type)) {
       return new Response(
@@ -268,11 +293,11 @@ Deno.serve(async (req: Request) => {
     // insert). Full admins are also allowed for any admin-on-behalf tooling.
     // Without this, any authenticated user could trigger admin emails for
     // arbitrary invoice/expense ids.
-    if (callerUser.id !== submitterId) {
+    if (callerId !== submitterId) {
       const { data: callerRole } = await supabase
         .from("user_roles")
         .select("is_admin")
-        .eq("user_id", callerUser.id)
+        .eq("user_id", callerId)
         .maybeSingle();
       if (!callerRole?.is_admin) {
         return new Response(
@@ -317,17 +342,22 @@ Deno.serve(async (req: Request) => {
       else if (r.is_household_admin) householdAdminIds.add(r.user_id);
     }
 
-    // Filter household admins down to those who actually belong to this
-    // household.
-    let scopedHouseholdAdminIds = new Set<string>();
-    if (householdAdminIds.size > 0) {
+    // One membership query covers two needs: scoping household admins to this
+    // household, AND knowing which full admins are members (only members get
+    // a notifications/WhatsApp fan-out row, which decides email suppression).
+    const allCandidateIds = new Set<string>([...fullAdminIds, ...householdAdminIds]);
+    let householdMemberIds = new Set<string>();
+    if (allCandidateIds.size > 0) {
       const { data: members } = await supabase
         .from("household_members")
         .select("user_id")
         .eq("household_id", householdId)
-        .in("user_id", Array.from(householdAdminIds));
-      scopedHouseholdAdminIds = new Set((members ?? []).map((m) => m.user_id));
+        .in("user_id", Array.from(allCandidateIds));
+      householdMemberIds = new Set((members ?? []).map((m) => m.user_id));
     }
+    const scopedHouseholdAdminIds = new Set(
+      [...householdAdminIds].filter((id) => householdMemberIds.has(id)),
+    );
 
     const recipientIds = new Set<string>([
       ...fullAdminIds,
@@ -343,13 +373,33 @@ Deno.serve(async (req: Request) => {
     }
 
     // Resolve real emails.
-    const { data: recipProfiles } = await supabase
-      .from("user_profiles")
-      .select("id, username, real_email, email")
-      .in("id", Array.from(recipientIds));
+    const [{ data: recipProfiles }, { data: recipPhones }] = await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("id, username, real_email, email, notify_channel")
+        .in("id", Array.from(recipientIds)),
+      supabase
+        .from("user_phone_numbers")
+        .select("user_id")
+        .in("user_id", Array.from(recipientIds)),
+    ]);
+    const phoneIds = new Set((recipPhones ?? []).map((r) => r.user_id as string));
 
     const recipients: RecipientRow[] = [];
     for (const p of recipProfiles ?? []) {
+      // Channel preference: skip the email ONLY when this recipient will
+      // actually get the WhatsApp instead — i.e. the event has a bell/outbox
+      // equivalent (invoice/estimate created fan out to HOUSEHOLD MEMBERS via
+      // the notifications trigger — a non-member full admin gets no bell row),
+      // AND the recipient is such a member, AND they have a linked phone.
+      // Expense submissions have no bell/WhatsApp equivalent at all, so those
+      // emails always ignore the preference.
+      if (
+        p.notify_channel === "whatsapp" &&
+        kind !== "expense" &&
+        householdMemberIds.has(p.id) &&
+        phoneIds.has(p.id)
+      ) continue;
       const realEmail = isRealEmail(p.real_email) ? p.real_email : (isRealEmail(p.email) ? p.email : null);
       if (!realEmail) continue;
       recipients.push({
