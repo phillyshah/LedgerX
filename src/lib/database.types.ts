@@ -190,6 +190,8 @@ export interface Database {
           updated_at: string;
           paid_at: string | null;
           category_id: string | null;
+          payment_method: 'venmo' | 'zelle' | 'ach' | 'check' | 'credit' | 'other' | null;
+          payment_method_note: string | null;
         };
         Insert: {
           id?: string;
@@ -211,6 +213,8 @@ export interface Database {
           updated_at?: string;
           paid_at?: string | null;
           category_id?: string | null;
+          payment_method?: string | null;
+          payment_method_note?: string | null;
         };
         Update: {
           id?: string;
@@ -232,6 +236,8 @@ export interface Database {
           updated_at?: string;
           paid_at?: string | null;
           category_id?: string | null;
+          payment_method?: string | null;
+          payment_method_note?: string | null;
         };
         Relationships: [
           {

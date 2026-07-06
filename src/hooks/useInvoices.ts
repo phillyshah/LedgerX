@@ -24,7 +24,7 @@ export function useInvoices(refreshKey?: number) {
       supabase.from('household_members').select('household_id, households(id, name)').eq('user_id', user.id),
       supabase
         .from('contractor_invoices')
-        .select('id, invoice_number, created_by, household_id, category_id, amount, currency, description, service_date_start, service_date_end, status, admin_notes, image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at')
+        .select('id, invoice_number, created_by, household_id, category_id, amount, currency, description, service_date_start, service_date_end, status, admin_notes, image_path, image_mime, image_width, image_height, created_at, updated_at, paid_at, payment_method, payment_method_note')
         .order('created_at', { ascending: false }),
       supabase.from('categories').select('id, name'),
     ]);

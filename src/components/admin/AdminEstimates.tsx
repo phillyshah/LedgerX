@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList } from 'lucide-react';
-import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant } from '../../types/estimate';
+import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList, Pencil } from 'lucide-react';
+import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant, BillingType } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
 import { AttachmentAdder } from '../AttachmentAdder';
 
@@ -65,6 +65,16 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
   const [inviteUsername, setInviteUsername] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+
+  // Edit-fields modal (full admin can fix title/description/billing/household/notes)
+  const [editModal, setEditModal] = useState<AdminEstimateRow | null>(null);
+  const [eTitle, setETitle] = useState('');
+  const [eDesc, setEDesc] = useState('');
+  const [eBilling, setEBilling] = useState<BillingType>('total');
+  const [eHousehold, setEHousehold] = useState('');
+  const [eNotes, setENotes] = useState('');
+  const [eSaving, setESaving] = useState(false);
+  const [eError, setEError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -197,6 +207,44 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
         body: { kind: 'estimate', event: status, entity_id: est.id, actor_id: user.id },
       }).catch(() => { /* non-critical */ });
     }
+    await loadData();
+  };
+
+  const openEstimateEdit = (est: AdminEstimateRow) => {
+    setEditModal(est);
+    setETitle(est.title);
+    setEDesc(est.description ?? '');
+    setEBilling(est.billing_type);
+    setEHousehold(est.household_id ?? '');
+    setENotes(est.admin_notes ?? '');
+    setEError(null);
+  };
+
+  const confirmEstimateEdit = async () => {
+    if (!editModal) return;
+    if (!eTitle.trim()) { setEError(t('adminEstimates.editTitleRequired')); return; }
+    setESaving(true); setEError(null);
+    const { error } = await supabase.rpc('admin_update_estimate' as never, {
+      p_estimate_id: editModal.id,
+      p_title: eTitle.trim(),
+      p_description: eDesc.trim() || null,
+      p_billing_type: eBilling,
+      p_household_id: eHousehold || null,
+      p_admin_notes: eNotes.trim() || null,
+    } as never);
+    setESaving(false);
+    if (error) { setEError(t('adminEstimates.editError')); return; }
+    const hhName = eHousehold ? (households.find((h) => h.id === eHousehold)?.name ?? '—') : '—';
+    const patch = {
+      title: eTitle.trim(),
+      description: eDesc.trim() || null,
+      billing_type: eBilling,
+      household_id: eHousehold || null,
+      household_name: hhName,
+      admin_notes: eNotes.trim() || null,
+    };
+    setDetail((d) => (d && d.id === editModal.id ? { ...d, ...patch } : d));
+    setEditModal(null);
     await loadData();
   };
 
@@ -454,6 +502,13 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
 
               {/* Admin actions */}
               <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  onClick={() => openEstimateEdit(detail)}
+                  className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all inline-flex items-center gap-1.5"
+                >
+                  <Pencil className="w-4 h-4" />
+                  {t('adminEstimates.actionEdit')}
+                </button>
                 {detail.status !== 'accepted' && (
                   <button
                     onClick={() => setStatus(detail, 'accepted')}
@@ -492,6 +547,99 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                   {deletingId === detail.id ? t('common.deleting') : t('adminEstimates.actionDelete')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Estimate Modal ── */}
+      {editModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-[60] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">{t('adminEstimates.editTitle')}</h3>
+              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Title */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('adminEstimates.editTitleField')}</label>
+              <input
+                type="text"
+                value={eTitle}
+                onChange={(e) => { setETitle(e.target.value); setEError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('adminEstimates.editDescription')}</label>
+              <textarea
+                value={eDesc}
+                onChange={(e) => { setEDesc(e.target.value); setEError(null); }}
+                rows={3}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
+              />
+            </div>
+
+            {/* Billing type */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('estimate.detailBillingType')}</label>
+              <select
+                value={eBilling}
+                onChange={(e) => { setEBilling(e.target.value as BillingType); setEError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="total">{t('estimate.billingTotal')}</option>
+                <option value="labor_only">{t('estimate.billingLaborOnly')}</option>
+              </select>
+            </div>
+
+            {/* Household */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('adminEstimates.editHousehold')}</label>
+              <select
+                value={eHousehold}
+                onChange={(e) => { setEHousehold(e.target.value); setEError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="">{t('adminEstimates.editHouseholdNone')}</option>
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Admin notes */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('adminEstimates.detailAdminNotes')}</label>
+              <textarea
+                value={eNotes}
+                onChange={(e) => { setENotes(e.target.value); setEError(null); }}
+                rows={2}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
+              />
+              {eError && <p className="mt-1 text-sm text-red-600">{eError}</p>}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEditModal(null)}
+                disabled={eSaving}
+                className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={confirmEstimateEdit}
+                disabled={eSaving}
+                className="flex-1 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              >
+                {eSaving ? '...' : t('common.save')}
+              </button>
             </div>
           </div>
         </div>

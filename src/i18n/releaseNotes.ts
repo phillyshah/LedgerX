@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.1',
+    version: 'v12.1',
+    date: '2026-07-06',
+    title: {
+      'en': 'Edit invoices & estimates, record how you paid, tidy your bell',
+      'pt-BR': 'Edite notas e orçamentos, registre a forma de pagamento e organize o sino',
+    },
+    body: {
+      'en':
+        "Three improvements: (1) Admins can now edit the details of any invoice or estimate — handy when a contractor submits an invoice without a number, or a description needs fixing. Open it, tap \"Edit Details\" (invoices) or \"Edit\" (estimates), and correct the fields. (2) When you mark an invoice paid, you can record how it was paid — Venmo, Zelle, ACH, check, credit card, or something else — so your records show the method at a glance. (3) In the notification bell you can now remove individual notifications or clear them all. Removing a notification only clears it from your bell; the underlying invoice, estimate, and chat messages stay exactly as they were.",
+      'pt-BR':
+        "Três melhorias: (1) Os administradores agora podem editar os detalhes de qualquer nota ou orçamento — útil quando um prestador envia uma nota sem número ou uma descrição precisa de correção. Abra o item, toque em \"Editar detalhes\" (notas) ou \"Editar\" (orçamentos) e ajuste os campos. (2) Ao marcar uma nota como paga, você pode registrar a forma de pagamento — Venmo, Zelle, ACH, cheque, cartão de crédito ou outra — para que seus registros mostrem o método rapidamente. (3) No sino de notificações agora dá para remover notificações individuais ou limpar todas. Remover uma notificação só a apaga do seu sino; a nota, o orçamento e as mensagens do chat permanecem exatamente como estavam.",
+    },
+  },
+  {
     id: 'v12.0',
     version: 'v12.0',
     date: '2026-07-04',

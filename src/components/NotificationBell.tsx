@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, MessageCircle, AtSign, ClipboardList, FileText, CheckCheck } from 'lucide-react';
+import { Bell, MessageCircle, AtSign, ClipboardList, FileText, CheckCheck, Trash2 } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { useNotifications } from '../hooks/useNotifications';
 import type { AppNotification, NotificationKind } from '../types/notification';
@@ -46,7 +46,7 @@ function relativeTime(iso: string, locale: string): string {
  */
 export function NotificationBell({ compact = false, dark = false, onOpen }: NotificationBellProps) {
   const { t, locale } = useT();
-  const { notifications, unreadCount, markRead } = useNotifications();
+  const { notifications, unreadCount, markRead, remove } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const iconSize = compact ? 'w-5 h-5' : 'w-4 h-4';
@@ -111,15 +111,26 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
           <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
               <p className="text-sm font-semibold text-slate-900">{t('notifications.title')}</p>
-              {unreadCount > 0 && (
-                <button
-                  onClick={() => markRead()}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  {t('notifications.markAllRead')}
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => markRead()}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    {t('notifications.markAllRead')}
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    onClick={() => remove()}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t('notifications.clearAll')}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
@@ -131,16 +142,19 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
                     const Icon = KIND_ICON[n.kind] ?? Bell;
                     const unread = !n.read_at;
                     return (
-                      <li key={n.id}>
+                      <li
+                        key={n.id}
+                        className={`relative group transition-colors ${
+                          unread ? 'bg-emerald-50/60 hover:bg-emerald-50' : 'hover:bg-slate-50'
+                        }`}
+                      >
                         <button
                           onClick={() => {
                             if (unread) markRead([n.id]);
                             onOpen?.(n);
                             setOpen(false);
                           }}
-                          className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${
-                            unread ? 'bg-emerald-50/60 hover:bg-emerald-50' : 'hover:bg-slate-50'
-                          }`}
+                          className="w-full text-left flex items-start gap-3 pl-4 pr-10 py-3"
                         >
                           <span className={`shrink-0 mt-0.5 ${unread ? 'text-emerald-600' : 'text-slate-400'}`}>
                             <Icon className="w-4 h-4" />
@@ -152,6 +166,14 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
                             </span>
                           </span>
                           {unread && <span className="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-emerald-600" aria-hidden="true" />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); remove([n.id]); }}
+                          className="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 rounded-lg text-slate-300 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-all"
+                          aria-label={t('notifications.delete')}
+                          title={t('notifications.delete')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </li>
                     );

@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { X, ChevronDown, ChevronUp, FileText, Check, Tag, Trash2, Edit2 } from 'lucide-react';
-import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../../types/invoice';
+import type { ContractorInvoice, InvoiceStatus, InvoiceImage, PaymentMethod } from '../../types/invoice';
+import { PAYMENT_METHODS } from '../../types/invoice';
 import { AttachmentAdder } from '../AttachmentAdder';
 
 interface HouseholdOption {
@@ -64,6 +65,13 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
   const [editHouseholdPick, setEditHouseholdPick] = useState<string>('');
   const [editCategoryPick, setEditCategoryPick] = useState<string>('');
   const [editNotes, setEditNotes] = useState<string>('');
+  // Core financial fields — admins can fix a missing invoice number, wrong
+  // amount, description, or service dates.
+  const [editNumber, setEditNumber] = useState<string>('');
+  const [editAmount, setEditAmount] = useState<string>('');
+  const [editDescription, setEditDescription] = useState<string>('');
+  const [editStart, setEditStart] = useState<string>('');
+  const [editEnd, setEditEnd] = useState<string>('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -75,6 +83,8 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
   // Mark-paid modal
   const [actionModal, setActionModal] = useState<{ invoice: AdminInvoiceRow } | null>(null);
   const [actionNotes, setActionNotes] = useState('');
+  const [payMethod, setPayMethod] = useState<PaymentMethod | ''>('');
+  const [payNote, setPayNote] = useState('');
   const [actioning, setActioning] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -152,17 +162,22 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
   const openActionModal = (invoice: AdminInvoiceRow) => {
     setActionModal({ invoice });
     setActionNotes('');
+    setPayMethod('');
+    setPayNote('');
     setActionError(null);
   };
 
   const confirmAction = async () => {
     if (!actionModal) return;
     setActioning(true); setActionError(null);
-    const { error } = await supabase.rpc('admin_update_invoice_status', {
+    // Payment method + (only for "other") a free-text note are optional.
+    const { error } = await supabase.rpc('admin_update_invoice_status' as never, {
       p_invoice_id: actionModal.invoice.id,
       p_status: 'paid',
       p_admin_notes: actionNotes.trim() || undefined,
-    });
+      p_payment_method: payMethod || null,
+      p_payment_method_note: payMethod === 'other' ? (payNote.trim() || null) : null,
+    } as never);
     if (error) setActionError(t('adminInvoices.failedAction'));
     else {
       const paidInvoiceId = actionModal.invoice.id;
@@ -187,11 +202,26 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
     setEditHouseholdPick(invoice.household_id ?? '');
     setEditCategoryPick(invoice.category_id ?? '');
     setEditNotes(invoice.admin_notes ?? '');
+    setEditNumber(invoice.invoice_number ?? '');
+    setEditAmount(String(invoice.amount ?? ''));
+    setEditDescription(invoice.description ?? '');
+    setEditStart(invoice.service_date_start ?? '');
+    setEditEnd(invoice.service_date_end ?? '');
     setEditError(null);
   };
 
   const confirmEdit = async () => {
     if (!editModal) return;
+    // Validate the money + dates client-side before hitting the RPC.
+    const amountNum = Number(editAmount);
+    if (editAmount.trim() === '' || !Number.isFinite(amountNum) || amountNum < 0) {
+      setEditError(t('adminInvoices.editAmountInvalid'));
+      return;
+    }
+    if (!editStart || !editEnd || editEnd < editStart) {
+      setEditError(t('adminInvoices.editDatesInvalid'));
+      return;
+    }
     setEditSaving(true);
     setEditError(null);
     const { error } = await supabase.rpc(
@@ -201,6 +231,12 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
         p_household_id: editHouseholdPick || null,
         p_category_id:  editCategoryPick || null,
         p_admin_notes:  editNotes.trim() ? editNotes.trim() : null,
+        p_invoice_number: editNumber.trim() || null,
+        p_amount: amountNum,
+        p_description: editDescription.trim() || null,
+        p_service_date_start: editStart,
+        p_service_date_end: editEnd,
+        p_set_invoice_number: true,
       } as never,
     );
     if (error) {
@@ -426,6 +462,32 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
               </div>
             </div>
 
+            {/* Payment method (optional) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                {t('adminInvoices.paymentMethodLabel')}
+              </label>
+              <select
+                value={payMethod}
+                onChange={(e) => { setPayMethod(e.target.value as PaymentMethod | ''); setActionError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="">{t('adminInvoices.paymentMethodNone')}</option>
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>{t(`adminInvoices.method_${m}`)}</option>
+                ))}
+              </select>
+              {payMethod === 'other' && (
+                <input
+                  type="text"
+                  value={payNote}
+                  onChange={(e) => setPayNote(e.target.value)}
+                  placeholder={t('adminInvoices.paymentMethodOtherPlaceholder')}
+                  className="mt-2 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                />
+              )}
+            </div>
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 {t('adminInvoices.modalNotesLabel')}
@@ -483,6 +545,12 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
                   { label: t('adminInvoices.detailServicePeriod'), value: `${fmtDate(detailInvoice.service_date_start)} – ${fmtDate(detailInvoice.service_date_end)}` },
                   { label: t('adminInvoices.detailSubmitted'), value: fmtDate(detailInvoice.created_at.split('T')[0]) },
                   ...(detailInvoice.paid_at ? [{ label: t('adminInvoices.detailPaidAt'), value: fmtDate(detailInvoice.paid_at.split('T')[0]) }] : []),
+                  ...(detailInvoice.payment_method ? [{
+                    label: t('adminInvoices.detailPaymentMethod'),
+                    value: detailInvoice.payment_method === 'other' && detailInvoice.payment_method_note
+                      ? detailInvoice.payment_method_note
+                      : t(`adminInvoices.method_${detailInvoice.payment_method}`),
+                  }] : []),
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-xs text-slate-500 mb-0.5">{label}</p>
@@ -649,6 +717,74 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('adminInvoices.detailContractor')}</span>
                 <span>@{editModal.invoice.submitter_username}</span>
+              </div>
+            </div>
+
+            {/* Invoice number */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editInvoiceNumber')}
+              </label>
+              <input
+                type="text"
+                value={editNumber}
+                onChange={(e) => { setEditNumber(e.target.value); setEditError(null); }}
+                placeholder={t('invoice.noNumberPlaceholder')}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              />
+            </div>
+
+            {/* Amount */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editAmount')}
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => { setEditAmount(e.target.value); setEditError(null); }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editDescription')}
+              </label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => { setEditDescription(e.target.value); setEditError(null); }}
+                rows={2}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent resize-none"
+              />
+            </div>
+
+            {/* Service dates */}
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  {t('adminInvoices.editServiceStart')}
+                </label>
+                <input
+                  type="date"
+                  value={editStart}
+                  onChange={(e) => { setEditStart(e.target.value); setEditError(null); }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  {t('adminInvoices.editServiceEnd')}
+                </label>
+                <input
+                  type="date"
+                  value={editEnd}
+                  onChange={(e) => { setEditEnd(e.target.value); setEditError(null); }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                />
               </div>
             </div>
 

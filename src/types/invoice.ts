@@ -1,5 +1,9 @@
 export type InvoiceStatus = 'pending' | 'paid';
 
+/** How an invoice was paid — recorded (optionally) when marking it paid. */
+export const PAYMENT_METHODS = ['venmo', 'zelle', 'ach', 'check', 'credit', 'other'] as const;
+export type PaymentMethod = typeof PAYMENT_METHODS[number];
+
 export const PROPERTY_TYPES = ['Residential', 'Commercial', 'Vacation Rental', 'Other'] as const;
 export type PropertyType = typeof PROPERTY_TYPES[number];
 
@@ -23,6 +27,8 @@ export interface ContractorInvoice {
   created_at: string;
   updated_at: string;
   paid_at: string | null;
+  payment_method: PaymentMethod | null;
+  payment_method_note: string | null;
   // Joined/derived fields (not raw DB columns)
   household_name?: string;
   property_type?: PropertyType | null;
