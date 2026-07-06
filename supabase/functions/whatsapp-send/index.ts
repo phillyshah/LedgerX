@@ -145,18 +145,24 @@ async function twilioSend(
 // GC whatsapp-staging/ files older than 24h that no live session references.
 async function gcStaging(supabase: SupabaseClient): Promise<number> {
   try {
+    // Only NON-expired sessions pin their staged files — an abandoned draft's
+    // files become GC-eligible once the session lapses (whatsapp-inbound also
+    // cleans them on the user's next contact).
     const { data: sessions } = await supabase
       .from("whatsapp_sessions")
-      .select("pending_action");
+      .select("pending_action")
+      .gt("expires_at", new Date().toISOString());
     const live = new Set<string>();
     for (const s of (sessions ?? []) as Array<{ pending_action: { staged_media?: Array<{ path: string }> } | null }>) {
       for (const m of s.pending_action?.staged_media ?? []) live.add(m.path);
     }
 
-    const { data: folders } = await supabase.storage.from("receipts").list("whatsapp-staging");
+    // Walk every phone folder (list() caps at 100 — far above the user count);
+    // a fixed slice would revisit the same name-ordered few forever.
+    const { data: folders } = await supabase.storage.from("receipts").list("whatsapp-staging", { limit: 100 });
     let removed = 0;
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    for (const folder of (folders ?? []).slice(0, 5)) {
+    for (const folder of folders ?? []) {
       if (!folder.name) continue;
       const prefix = `whatsapp-staging/${folder.name}`;
       const { data: files } = await supabase.storage.from("receipts").list(prefix, { limit: 100 });
@@ -219,18 +225,28 @@ Deno.serve(async (req: Request) => {
 
     let sent = 0, skipped = 0, failed = 0;
     for (const row of rows) {
-      const lastInbound = windowByPhone.get(row.phone);
-      const inWindow = !!lastInbound && new Date(lastInbound).getTime() > windowCutoff;
-      const body = renderBody(row, appUrl);
-      const result = await twilioSend(row.phone, body, inWindow);
-      await supabase.rpc("finish_whatsapp_outbox", {
-        p_id: row.id,
-        p_status: result.status,
-        p_error: result.error ?? null,
-      });
-      if (result.status === "sent") sent++;
-      else if (result.status === "skipped") skipped++;
-      else failed++;
+      // Per-row isolation: one malformed payload must not abort the whole
+      // drain (the claim lease would retry the entire batch otherwise).
+      try {
+        const lastInbound = windowByPhone.get(row.phone);
+        const inWindow = !!lastInbound && new Date(lastInbound).getTime() > windowCutoff;
+        const body = renderBody(row, appUrl);
+        const result = await twilioSend(row.phone, body, inWindow);
+        await supabase.rpc("finish_whatsapp_outbox", {
+          p_id: row.id,
+          p_status: result.status,
+          p_error: result.error ?? null,
+        });
+        if (result.status === "sent") sent++;
+        else if (result.status === "skipped") skipped++;
+        else failed++;
+      } catch (err) {
+        console.error(`[whatsapp-send] row ${row.id} failed:`, err);
+        await supabase
+          .rpc("finish_whatsapp_outbox", { p_id: row.id, p_status: "failed", p_error: String(err).slice(0, 300) })
+          .then(({ error }) => { if (error) console.error("[whatsapp-send] finish failed:", error.message); });
+        failed++;
+      }
     }
 
     // Housekeeping — cheap, once per run.

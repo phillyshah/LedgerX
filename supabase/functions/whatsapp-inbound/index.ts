@@ -515,10 +515,13 @@ async function resolveHousehold(
   supabase: SupabaseClient,
   ctx: BotContext,
   hint: string | null | undefined,
+  adminAnyHousehold: boolean,
 ): Promise<{ id: string; name: string } | "ambiguous" | null> {
-  // Admins may file against any household, not just their memberships.
+  // Only estimates let full admins file against any household (mirrors the
+  // app: the estimates INSERT RLS has no household scoping, while expenses
+  // and invoices REQUIRE membership even for admins).
   let pool = ctx.households;
-  if (ctx.is_admin) {
+  if (ctx.is_admin && adminAnyHousehold) {
     const { data } = await supabase.from("households").select("id, name").order("name");
     if (data && data.length > 0) pool = data as Array<{ id: string; name: string }>;
   }
@@ -608,11 +611,19 @@ async function findAttachTargets(
 
   if (targetType !== "estimate") {
     // Invoices: admin → all; else own OR (household admin AND in my households).
+    // Visibility is pushed into the QUERY (not just filtered after) so a
+    // user's own records can't fall out of a globally-recent window; the
+    // in-code check below stays as defense-in-depth.
     let q = supabase
       .from("contractor_invoices")
       .select("id, invoice_number, description, household_id, created_by, created_at")
       .order("created_at", { ascending: false })
       .limit(25);
+    if (!ctx.is_admin) {
+      q = ctx.is_household_admin && myHouseholds.length > 0
+        ? q.or(`created_by.eq.${userId},household_id.in.(${myHouseholds.join(",")})`)
+        : q.eq("created_by", userId);
+    }
     const { data } = await q;
     for (const inv of (data ?? []) as Array<Record<string, unknown>>) {
       const mine = inv.created_by === userId;
@@ -636,11 +647,18 @@ async function findAttachTargets(
     const participantIds = new Set(
       ((parts ?? []) as Array<{ estimate_id: string }>).map((p) => p.estimate_id),
     );
-    const { data } = await supabase
+    let q = supabase
       .from("estimates")
       .select("id, title, household_id, created_by, created_at")
       .order("created_at", { ascending: false })
       .limit(25);
+    if (!ctx.is_admin) {
+      const clauses = [`created_by.eq.${userId}`];
+      if (myHouseholds.length > 0) clauses.push(`household_id.in.(${myHouseholds.join(",")})`);
+      if (participantIds.size > 0) clauses.push(`id.in.(${[...participantIds].join(",")})`);
+      q = q.or(clauses.join(","));
+    }
+    const { data } = await q;
     for (const est of (data ?? []) as Array<Record<string, unknown>>) {
       const mine = est.created_by === userId;
       const member = myHouseholds.includes(est.household_id as string);
@@ -735,9 +753,19 @@ function announceSubmission(
   );
 }
 
+// Only fields the LLM is ALLOWED to propose. Resolved identifiers and display
+// names (household_id/_name, target_id/_label) are code-derived — a prompt
+// injection must not be able to smuggle them past the resolution steps.
+const LLM_FIELD_KEYS = new Set([
+  "household", "vendor", "total", "date", "category", "notes",
+  "amount", "currency", "description", "service_date_start", "service_date_end",
+  "invoice_number", "title", "billing_type", "target_type", "target_hint",
+]);
+
 function mergeFields(prior: DraftFields, incoming: Record<string, unknown>): DraftFields {
   const out: DraftFields = { ...prior };
   for (const [k, v] of Object.entries(incoming)) {
+    if (!LLM_FIELD_KEYS.has(k)) continue;
     if (v !== null && v !== undefined && v !== "") {
       (out as Record<string, unknown>)[k] = v;
     }
@@ -853,9 +881,10 @@ async function executePending(
   const currency = f.currency === "BRL" ? "BRL" : "USD";
 
   if (pending.intent === "create_expense") {
-    // Permission: member of the target household (admins exempt).
+    // Permission: member of the target household — NO admin exemption; the
+    // expenses INSERT RLS requires membership even for full admins.
     if (!f.household_id) throw new Error("expense without household");
-    if (!ctx.is_admin && !ctx.households.some((h) => h.id === f.household_id)) {
+    if (!ctx.households.some((h) => h.id === f.household_id)) {
       throw new Error("expense household not permitted");
     }
     const moved = await moveStagedToHousehold(supabase, pending.staged_media, f.household_id, "");
@@ -893,12 +922,14 @@ async function executePending(
   }
 
   if (pending.intent === "create_invoice") {
-    // Permission: contractor / household admin / admin; household member unless admin.
+    // Permission: contractor / household admin / admin, AND a member of the
+    // household — the contractor_invoices INSERT RLS requires membership
+    // with no full-admin bypass.
     if (!(ctx.is_contractor || ctx.is_household_admin || ctx.is_admin)) {
       return t(lang, "invoiceRoleDenied");
     }
     if (!f.household_id) throw new Error("invoice without household");
-    if (!ctx.is_admin && !ctx.households.some((h) => h.id === f.household_id)) {
+    if (!ctx.households.some((h) => h.id === f.household_id)) {
       throw new Error("invoice household not permitted");
     }
     const start = f.service_date_start!;
@@ -1195,27 +1226,39 @@ async function process(params: URLSearchParams, userId: string, phone: string): 
     // ── Confirmation state: YES executes (atomically claimed) ─────────────────
     if (state === "awaiting_confirmation" && YES_WORDS.includes(word)) {
       // Atomic claim: only the update that actually flips the state gets to
-      // execute — a double-YES or an out-of-order retry loses the race.
+      // execute — a double-YES or an out-of-order retry loses the race. The
+      // claim leaves pending_action untouched so the RETURNED row carries the
+      // AUTHORITATIVE draft (a concurrent correction may have re-saved it
+      // after we loaded the session above); it's cleared after execution.
       const { data: claimed } = await supabase
         .from("whatsapp_sessions")
-        .update({ state: "idle", pending_action: null, updated_at: nowIso })
+        .update({ state: "idle", updated_at: nowIso })
         .eq("phone", phone)
         .eq("state", "awaiting_confirmation")
         .select("pending_action")
         .maybeSingle();
-      // maybeSingle returns the UPDATED row (pending_action already null), so
-      // the license to execute is the row coming back at all; the draft itself
-      // is what we loaded before the claim.
       if (!claimed) {
         await sendWhatsApp(phone, notePrefix + t(lang, "nothingToCancel"));
         return;
       }
+      const draft = (claimed.pending_action as PendingAction | null) ?? pending;
+      if (newMedia.length > 0) {
+        draft.staged_media = [...(draft.staged_media ?? []), ...newMedia];
+      }
       try {
-        const reply = await executePending(supabase, userId, ctx, pending, lang, appUrl);
+        const reply = await executePending(supabase, userId, ctx, draft, lang, appUrl);
+        await supabase
+          .from("whatsapp_sessions")
+          .update({ pending_action: null, updated_at: new Date().toISOString() })
+          .eq("phone", phone);
         await sendWhatsApp(phone, notePrefix + reply);
       } catch (err) {
         console.error("[whatsapp-inbound] execute failed:", err);
-        await removeStagedFiles(supabase, pending.staged_media ?? []);
+        await removeStagedFiles(supabase, draft.staged_media ?? []);
+        await supabase
+          .from("whatsapp_sessions")
+          .update({ pending_action: null, updated_at: new Date().toISOString() })
+          .eq("phone", phone);
         await sendWhatsApp(phone, t(lang, "genericError"));
       }
       return;
@@ -1232,6 +1275,13 @@ async function process(params: URLSearchParams, userId: string, phone: string): 
         pending.candidates = [];
         await saveSession(supabase, phone, userId, "awaiting_confirmation", pending, llm());
         await sendWhatsApp(phone, `${buildSummary(pending, lang)}\n\n${t(lang, "confirmPrompt")}`);
+        return;
+      }
+      // Out-of-range pick: re-show the list instead of burning an LLM call
+      // on a bare digit.
+      if (pending.candidates?.length) {
+        const list = pending.candidates.map((c, i) => `${i + 1}. ${c.label}`).join("\n");
+        await sendWhatsApp(phone, notePrefix + t(lang, "targetChoose", { list }));
         return;
       }
     }
@@ -1331,7 +1381,7 @@ async function process(params: URLSearchParams, userId: string, phone: string): 
 
     // Household resolution.
     if (intent !== "add_photos" && !f.household_id) {
-      const resolved = await resolveHousehold(supabase, ctx, f.household);
+      const resolved = await resolveHousehold(supabase, ctx, f.household, intent === "create_estimate");
       if (resolved === null) {
         await saveSession(supabase, phone, userId, "idle", null, llm());
         await removeStagedFiles(supabase, pending.staged_media ?? []);

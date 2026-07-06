@@ -192,9 +192,19 @@ Deno.serve(async (req: Request) => {
       .single();
 
     const submitterUsername = submitterProfile?.username ?? "Unknown";
-    // Channel preference: invoice created/paid also reach the bell + WhatsApp
-    // outbox via the notifications triggers, so 'whatsapp' means no email here.
-    const submitterEmail = submitterProfile?.notify_channel === "whatsapp"
+    // Channel preference: suppress the email only when the WhatsApp will
+    // actually go out — the submitter always gets an invoice_paid bell row
+    // (notify_invoice_paid targets the creator), but the outbox trigger
+    // no-ops without a linked phone.
+    const { data: submitterPhone } = await supabase
+      .from("user_phone_numbers")
+      .select("id")
+      .eq("user_id", invoice.created_by)
+      .limit(1)
+      .maybeSingle();
+    const suppressSubmitterEmail =
+      submitterProfile?.notify_channel === "whatsapp" && !!submitterPhone;
+    const submitterEmail = suppressSubmitterEmail
       ? null
       : submitterProfile?.real_email
         ? (isRealEmail(submitterProfile.real_email) ? submitterProfile.real_email : null)
@@ -215,20 +225,32 @@ Deno.serve(async (req: Request) => {
 
     if (type === "submitted") {
       // Notify all admins with real emails
-      const { data: adminProfiles } = await supabase
-        .from("user_profiles")
-        .select("username, real_email, email, notify_channel, user_id:id")
-        .in(
-          "id",
-          (await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("is_admin", true)
-            .then((r) => (r.data ?? []).map((x) => x.user_id)))
-        );
+      const adminIds = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("is_admin", true)
+        .then((r) => (r.data ?? []).map((x) => x.user_id));
+
+      const [{ data: adminProfiles }, { data: adminMembers }, { data: adminPhones }] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("username, real_email, email, notify_channel, user_id:id")
+          .in("id", adminIds),
+        supabase
+          .from("household_members")
+          .select("user_id")
+          .eq("household_id", invoice.household_id)
+          .in("user_id", adminIds),
+        supabase.from("user_phone_numbers").select("user_id").in("user_id", adminIds),
+      ]);
+      const memberIds = new Set((adminMembers ?? []).map((m) => m.user_id as string));
+      const phoneIds = new Set((adminPhones ?? []).map((p) => p.user_id as string));
 
       toEmails = (adminProfiles ?? [])
-        .filter((p) => p.notify_channel !== "whatsapp") // WhatsApp-only admins hear via the outbox
+        // Suppress the email only for admins who actually get the WhatsApp:
+        // the invoice_created bell row fans out to HOUSEHOLD MEMBERS only,
+        // and the outbox needs a linked phone.
+        .filter((p) => !(p.notify_channel === "whatsapp" && memberIds.has(p.user_id) && phoneIds.has(p.user_id)))
         .map((p) => p.real_email && isRealEmail(p.real_email) ? p.real_email : (isRealEmail(p.email ?? "") ? p.email : null))
         .filter((e): e is string => !!e);
 

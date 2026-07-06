@@ -148,16 +148,22 @@ Deno.serve(async (req: Request) => {
 
     // Channel preference: estimate/invoice activity also reaches the bell +
     // WhatsApp outbox via the notifications triggers, so recipients whose
-    // notify_channel is 'whatsapp' get no email nudge. The RPC returns
-    // real_email (unique), so it doubles as the lookup key.
+    // notify_channel is 'whatsapp' AND who have a linked phone (the outbox
+    // no-ops without one) get no email nudge. The RPC returns real_email
+    // (unique), so it doubles as the lookup key.
     if (recipients.length > 0) {
       const { data: prefs } = await supabase
         .from("user_profiles")
-        .select("real_email, notify_channel")
+        .select("id, real_email, notify_channel")
         .in("real_email", recipients.map((r) => r.email).filter(Boolean));
+      const prefRows = (prefs ?? []) as Array<{ id: string; real_email: string | null; notify_channel: string }>;
+      const { data: phones } = prefRows.length > 0
+        ? await supabase.from("user_phone_numbers").select("user_id").in("user_id", prefRows.map((p) => p.id))
+        : { data: [] };
+      const phoneIds = new Set((phones ?? []).map((p) => p.user_id as string));
       const whatsappOnly = new Set(
-        ((prefs ?? []) as Array<{ real_email: string | null; notify_channel: string }>)
-          .filter((p) => p.notify_channel === "whatsapp" && p.real_email)
+        prefRows
+          .filter((p) => p.notify_channel === "whatsapp" && p.real_email && phoneIds.has(p.id))
           .map((p) => p.real_email as string),
       );
       recipients = recipients.filter((r) => !r.email || !whatsappOnly.has(r.email));

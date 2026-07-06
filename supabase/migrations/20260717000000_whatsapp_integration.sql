@@ -83,6 +83,32 @@ $$;
 REVOKE ALL ON FUNCTION touch_phone_inbound(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION touch_phone_inbound(text) TO service_role;
 
+-- Self-heal: if the LAST phone of a user whose preference is 'whatsapp' is
+-- removed (admin action), fall their preference back to 'email' — otherwise
+-- every email is suppressed while the WhatsApp outbox no-ops (black hole).
+CREATE OR REPLACE FUNCTION reset_channel_on_phone_removal()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM user_phone_numbers WHERE user_id = OLD.user_id) THEN
+    UPDATE user_profiles
+    SET    notify_channel = 'email'
+    WHERE  id = OLD.user_id AND notify_channel = 'whatsapp';
+  END IF;
+  RETURN OLD;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION reset_channel_on_phone_removal() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS phone_removal_resets_channel ON user_phone_numbers;
+CREATE TRIGGER phone_removal_resets_channel
+  AFTER DELETE ON user_phone_numbers
+  FOR EACH ROW EXECUTE FUNCTION reset_channel_on_phone_removal();
+
 -- ─── 3. Notification channel preference ──────────────────────────────────────
 ALTER TABLE user_profiles
   ADD COLUMN IF NOT EXISTS notify_channel text NOT NULL DEFAULT 'email';
@@ -114,6 +140,15 @@ BEGIN
   END IF;
   IF p_channel NOT IN ('email', 'whatsapp', 'both') THEN
     RAISE EXCEPTION 'Invalid channel: %', p_channel;
+  END IF;
+
+  -- 'whatsapp' (email fully suppressed) requires a linked phone, or every
+  -- notification would silently black-hole. 'both' is fine without one —
+  -- email still flows.
+  IF p_channel = 'whatsapp' AND NOT EXISTS (
+    SELECT 1 FROM user_phone_numbers WHERE user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'No WhatsApp number linked';
   END IF;
 
   UPDATE user_profiles
@@ -237,6 +272,13 @@ BEGIN
   );
 
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Best-effort side channel: this trigger runs inside the user's original
+  -- transaction (notifications rows are themselves written by AFTER INSERT
+  -- triggers on invoices/estimates/chat). A queueing failure must never
+  -- roll back the business write it piggybacks on.
+  RAISE WARNING 'enqueue_whatsapp_notification failed for notification %: %', NEW.id, SQLERRM;
+  RETURN NEW;
 END;
 $$;
 
@@ -266,6 +308,9 @@ AS $$
     SELECT id FROM whatsapp_outbox
     WHERE  status = 'pending'
       AND  next_attempt_at <= now()
+      -- Cap here too, not just in finish_…: a row whose worker crashes before
+      -- calling finish would otherwise be re-claimed every lease forever.
+      AND  attempts < 5
     ORDER BY created_at
     LIMIT  GREATEST(COALESCE(p_limit, 20), 1)
     FOR UPDATE SKIP LOCKED

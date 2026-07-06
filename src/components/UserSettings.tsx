@@ -361,24 +361,32 @@ export function UserSettings({ onClose }: UserSettingsProps) {
 
               <p className="text-sm font-medium text-slate-700 mb-2">{t('whatsapp.channelLabel')}</p>
               <div className="flex gap-2 mb-2">
-                {(['email', 'whatsapp', 'both'] as NotifyChannel[]).map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={async () => {
-                      setChannelError('');
-                      const err = await saveNotifyChannel(c);
-                      if (err) setChannelError(t('whatsapp.channelError'));
-                    }}
-                    className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-xl border transition-all ${
-                      notifyChannel === c
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                    }`}
-                  >
-                    {t(c === 'email' ? 'whatsapp.channelEmail' : c === 'whatsapp' ? 'whatsapp.channelWhatsapp' : 'whatsapp.channelBoth')}
-                  </button>
-                ))}
+                {(['email', 'whatsapp', 'both'] as NotifyChannel[]).map(c => {
+                  // WhatsApp-only suppresses ALL emails, so it needs a linked
+                  // phone or every notification would vanish (the RPC enforces
+                  // this too). 'Both' is safe without one — email still flows.
+                  const disabled = c === 'whatsapp' && myPhones.length === 0;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      disabled={disabled}
+                      title={disabled ? t('whatsapp.noNumberLinked') : undefined}
+                      onClick={async () => {
+                        setChannelError('');
+                        const err = await saveNotifyChannel(c);
+                        if (err) setChannelError(t('whatsapp.channelError'));
+                      }}
+                      className={`flex-1 py-2.5 px-3 text-sm font-medium rounded-xl border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                        notifyChannel === c
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {t(c === 'email' ? 'whatsapp.channelEmail' : c === 'whatsapp' ? 'whatsapp.channelWhatsapp' : 'whatsapp.channelBoth')}
+                    </button>
+                  );
+                })}
               </div>
               {channelError && <p className="text-xs text-red-600 mb-2">{channelError}</p>}
               <p className="text-xs text-slate-500">{t('whatsapp.sandboxHint')}</p>

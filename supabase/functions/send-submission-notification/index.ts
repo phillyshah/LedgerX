@@ -37,6 +37,16 @@ function isRealEmail(email: string | null | undefined): email is string {
   return !!email && !email.endsWith(LEDGERX_DOMAIN) && email.includes("@");
 }
 
+// Constant-time string compare for the service-role key check below.
+function timingSafeEqual(a: string, b: string): boolean {
+  const ab = new TextEncoder().encode(a);
+  const bb = new TextEncoder().encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 function formatCurrency(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
@@ -161,7 +171,7 @@ Deno.serve(async (req: Request) => {
     const token = authHeader.replace("Bearer ", "");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     let callerId: string;
-    if (serviceKey && token === serviceKey && typeof payload.actor_id === "string" && payload.actor_id) {
+    if (serviceKey && timingSafeEqual(token, serviceKey) && typeof payload.actor_id === "string" && payload.actor_id) {
       callerId = payload.actor_id;
     } else {
       const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(token);
@@ -332,17 +342,22 @@ Deno.serve(async (req: Request) => {
       else if (r.is_household_admin) householdAdminIds.add(r.user_id);
     }
 
-    // Filter household admins down to those who actually belong to this
-    // household.
-    let scopedHouseholdAdminIds = new Set<string>();
-    if (householdAdminIds.size > 0) {
+    // One membership query covers two needs: scoping household admins to this
+    // household, AND knowing which full admins are members (only members get
+    // a notifications/WhatsApp fan-out row, which decides email suppression).
+    const allCandidateIds = new Set<string>([...fullAdminIds, ...householdAdminIds]);
+    let householdMemberIds = new Set<string>();
+    if (allCandidateIds.size > 0) {
       const { data: members } = await supabase
         .from("household_members")
         .select("user_id")
         .eq("household_id", householdId)
-        .in("user_id", Array.from(householdAdminIds));
-      scopedHouseholdAdminIds = new Set((members ?? []).map((m) => m.user_id));
+        .in("user_id", Array.from(allCandidateIds));
+      householdMemberIds = new Set((members ?? []).map((m) => m.user_id));
     }
+    const scopedHouseholdAdminIds = new Set(
+      [...householdAdminIds].filter((id) => householdMemberIds.has(id)),
+    );
 
     const recipientIds = new Set<string>([
       ...fullAdminIds,
@@ -358,19 +373,33 @@ Deno.serve(async (req: Request) => {
     }
 
     // Resolve real emails.
-    const { data: recipProfiles } = await supabase
-      .from("user_profiles")
-      .select("id, username, real_email, email, notify_channel")
-      .in("id", Array.from(recipientIds));
+    const [{ data: recipProfiles }, { data: recipPhones }] = await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("id, username, real_email, email, notify_channel")
+        .in("id", Array.from(recipientIds)),
+      supabase
+        .from("user_phone_numbers")
+        .select("user_id")
+        .in("user_id", Array.from(recipientIds)),
+    ]);
+    const phoneIds = new Set((recipPhones ?? []).map((r) => r.user_id as string));
 
     const recipients: RecipientRow[] = [];
     for (const p of recipProfiles ?? []) {
-      // Channel preference: 'whatsapp' means no email for events the WhatsApp
-      // outbox also carries (invoice/estimate created reach household members
-      // via the notifications trigger). Expense submissions have no bell/
-      // WhatsApp equivalent, so those emails ignore the preference — a
-      // whatsapp-only admin must not lose them entirely.
-      if (p.notify_channel === "whatsapp" && kind !== "expense") continue;
+      // Channel preference: skip the email ONLY when this recipient will
+      // actually get the WhatsApp instead — i.e. the event has a bell/outbox
+      // equivalent (invoice/estimate created fan out to HOUSEHOLD MEMBERS via
+      // the notifications trigger — a non-member full admin gets no bell row),
+      // AND the recipient is such a member, AND they have a linked phone.
+      // Expense submissions have no bell/WhatsApp equivalent at all, so those
+      // emails always ignore the preference.
+      if (
+        p.notify_channel === "whatsapp" &&
+        kind !== "expense" &&
+        householdMemberIds.has(p.id) &&
+        phoneIds.has(p.id)
+      ) continue;
       const realEmail = isRealEmail(p.real_email) ? p.real_email : (isRealEmail(p.email) ? p.email : null);
       if (!realEmail) continue;
       recipients.push({
