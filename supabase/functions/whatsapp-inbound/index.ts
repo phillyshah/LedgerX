@@ -705,6 +705,36 @@ async function runReport(
 // ── Draft validation / summary / execution ────────────────────────────────────
 const CREATE_INTENTS = ["create_expense", "create_invoice", "create_estimate", "add_photos"];
 
+// Announce a bot-created record to admins via send-submission-notification's
+// server-to-server path (service-role bearer + explicit actor_id). Best-effort:
+// a failure here must not fail the creation the user already confirmed.
+function announceSubmission(
+  type: "invoice_submitted" | "expense_submitted" | "estimate_submitted",
+  idField: "invoice_id" | "expense_id" | "estimate_id",
+  recordId: string,
+  actorId: string,
+): void {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return;
+  EdgeRuntime.waitUntil(
+    fetch(`${url}/functions/v1/send-submission-notification`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type, [idField]: recordId, actor_id: actorId }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          console.error(`[whatsapp-inbound] submission announce ${res.status}: ${await res.text()}`);
+        }
+      })
+      .catch((err) => console.error("[whatsapp-inbound] submission announce failed:", err)),
+  );
+}
+
 function mergeFields(prior: DraftFields, incoming: Record<string, unknown>): DraftFields {
   const out: DraftFields = { ...prior };
   for (const [k, v] of Object.entries(incoming)) {
@@ -858,6 +888,7 @@ async function executePending(
       );
       if (imgErr) console.error("[whatsapp-inbound] expense_images insert:", imgErr.message);
     }
+    announceSubmission("expense_submitted", "expense_id", row.id, userId);
     return t(lang, "createdExpense", { summary: `${f.vendor ?? "—"}, ${fmtMoney(f.total ?? 0, currency)} (${f.household_name}). ${appUrl}` });
   }
 
@@ -902,6 +933,7 @@ async function executePending(
       );
       if (imgErr) console.error("[whatsapp-inbound] invoice_images insert:", imgErr.message);
     }
+    announceSubmission("invoice_submitted", "invoice_id", row.id, userId);
     return t(lang, "createdInvoice", {
       summary: `${fmtMoney(f.amount ?? 0, currency)} (${f.household_name}). ${t(lang, "view")}: ${appUrl}/?invoice=${row.id}`,
     });
@@ -941,6 +973,7 @@ async function executePending(
       );
       if (attErr) console.error("[whatsapp-inbound] estimate_attachments insert:", attErr.message);
     }
+    announceSubmission("estimate_submitted", "estimate_id", row.id, userId);
     return t(lang, "createdEstimate", {
       summary: `"${f.title}" (${f.household_name}). ${t(lang, "view")}: ${appUrl}/?estimate=${row.id}`,
     });
