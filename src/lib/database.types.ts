@@ -425,6 +425,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_phone_numbers: {
+        Row: {
+          id: string;
+          user_id: string;
+          phone: string;
+          label: string | null;
+          last_inbound_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          phone: string;
+          label?: string | null;
+          last_inbound_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          phone?: string;
+          label?: string | null;
+          last_inbound_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       email_inbox: {
         Row: {
           id: string;
@@ -558,6 +585,7 @@ export interface Database {
           email: string;
           real_email: string | null;
           preferred_language: 'en' | 'pt-BR';
+          notify_channel: 'email' | 'whatsapp' | 'both';
           created_at: string;
         };
         Insert: {
@@ -566,6 +594,7 @@ export interface Database {
           email: string;
           real_email?: string | null;
           preferred_language?: 'en' | 'pt-BR';
+          notify_channel?: 'email' | 'whatsapp' | 'both';
           created_at?: string;
         };
         Update: {
@@ -574,6 +603,7 @@ export interface Database {
           email?: string;
           real_email?: string | null;
           preferred_language?: 'en' | 'pt-BR';
+          notify_channel?: 'email' | 'whatsapp' | 'both';
           created_at?: string;
         };
         Relationships: [];
