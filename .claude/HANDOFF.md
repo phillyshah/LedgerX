@@ -120,6 +120,16 @@ substantial session.
    outbox rows go `skipped` (visible in `whatsapp_outbox` under admin SELECT).
    jsr.io is blocked in the cloud dev container — `deno check` needs an import map
    stubbing `jsr:@supabase/functions-js/edge-runtime.d.ts` (npm registry works).
+9. **`ALTER DATABASE postgres SET app.* = ...` fails on hosted Supabase** — the
+   SQL-editor role isn't the DB owner, so this 403s with `permission denied to
+   set parameter`. This blocked BOTH the v12.2 WhatsApp cron and the older
+   inactivity-reminder cron (neither GUC was ever actually set on this
+   project). **Fix**: use a plain session-level `SET` (no special privileges
+   needed for custom `class.name` GUCs) immediately followed by the
+   `cron.schedule(...)` DO block, **in the same SQL-editor "Run"** — the cron
+   job bakes the literal URL/secret into its stored command text via
+   `format(...,%L,...)`, so the GUC only needs to exist for that one script
+   execution, not persistently. Confirmed working on this project 2026-07-07.
 
 ## Migrations (in `supabase/migrations/`, chronological tail)
 
