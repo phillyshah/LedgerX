@@ -6,6 +6,7 @@ import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { parseExpenseDate } from '../lib/dateUtils';
 import { useLabsAccess } from '../hooks/useLabsAccess';
+import { useMatchedCardLabels } from '../hooks/useMatchedCardLabels';
 
 const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
 const MatchToStatementModal = lazy(() => import('./labs/MatchToStatementModal').then((m) => ({ default: m.MatchToStatementModal })));
@@ -36,6 +37,14 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [matchingExpense, setMatchingExpense] = useState<Expense | null>(null);
   const { hasFlag } = useLabsAccess();
   const labsEnabled = hasFlag('labs_cc_reconciliation');
+
+  // Which of the currently-loaded expenses are matched to a card statement
+  // line item, and which card — see useMatchedCardLabels for why this is
+  // its own hook rather than folded into useExpenses.
+  const matchedCardLabels = useMatchedCardLabels(
+    useMemo(() => expenses.map((e) => e.id), [expenses]),
+    labsEnabled
+  );
 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -432,7 +441,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     <p className="text-base font-bold text-slate-900 tabular-nums">
                       {formatAmount(expense.total, expense.currency)}
                     </p>
-                    {labsEnabled && (
+                    {labsEnabled && !matchedCardLabels.has(expense.id) && (
                       <button
                         onClick={() => setMatchingExpense(expense)}
                         className="p-1.5 hover:bg-violet-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
@@ -489,6 +498,15 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     >
                       <UserIcon className="w-3 h-3" />
                       @{expense.submitter_username}
+                    </span>
+                  )}
+                  {matchedCardLabels.has(expense.id) && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-700 text-xs font-medium rounded-full whitespace-nowrap"
+                      title={t('labs.cc.matchedTooltip', { label: matchedCardLabels.get(expense.id) ?? '' })}
+                    >
+                      <CreditCard className="w-3 h-3" />
+                      {t('labs.cc.matchedBadge')}
                     </span>
                   )}
                   {expense.paid_at && (

@@ -439,9 +439,9 @@ The first Labs experiment: match your expense receipts against the line items on
 1. An admin enables **Labs: Credit Card Reconciliation** for your household (Admin → Manage Households → Features).
 2. An admin uploads a card statement — as a CSV export, or as a PDF/photo that LedgerX reads automatically — under **LedgerX Labs → Credit Card Reconciliation**. A statement isn't tied to one household, since one card often covers more than one property.
 3. Anyone in an enabled household opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Suggested matches are ranked by amount, date, and vendor — a persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone.
-4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly.
+4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly. Once matched, that transaction shows a small violet **Matched** tag in your transaction list.
 
-Only a full admin can upload statements; matching is open to any household member the statement's household admits.
+Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is. Matching is open to any household member the statement's household admits.
 
 ---
 

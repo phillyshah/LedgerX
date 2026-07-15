@@ -64,6 +64,13 @@ export function CreditCardReconciliation({ expenses, onBack }: CreditCardReconci
     await loadStatements();
   };
 
+  const handleRename = async (statementId: string, newLabel: string): Promise<boolean> => {
+    const { error } = await supabase.from('credit_card_statements').update({ card_label: newLabel }).eq('id', statementId);
+    if (error) return false;
+    await loadStatements();
+    return true;
+  };
+
   // Candidate pool for matching: expenses belonging to a household the
   // current user is a member of with the Labs flag on. Full admins bypass
   // the flag everywhere else in this app, so they see every household's
@@ -95,6 +102,7 @@ export function CreditCardReconciliation({ expenses, onBack }: CreditCardReconci
           onUpload={() => setView('upload')}
           onReconcile={(s) => setView({ reconcile: s })}
           onDelete={handleDelete}
+          onRename={handleRename}
         />
       ) : typeof view === 'object' ? (
         <StatementReconcile

@@ -437,9 +437,9 @@ O primeiro experimento do Labs: associe seus recibos de despesa aos lançamentos
 1. Um administrador ativa **Labs: Conciliação de Cartão de Crédito** para sua residência (Administrador → Gerenciar Residências → Recursos).
 2. Um administrador envia uma fatura de cartão — como exportação CSV, ou como PDF/foto que o LedgerX lê automaticamente — em **LedgerX Labs → Conciliação de Cartão de Crédito**. Uma fatura não pertence a uma única residência, já que um mesmo cartão costuma cobrir mais de um imóvel.
 3. Qualquer pessoa em uma residência habilitada abre a fatura e percorre seus lançamentos, associando cada um a um recibo já cadastrado no LedgerX. As sugestões de associação são ordenadas por valor, data e fornecedor — um botão permanente de **Associação automática** resolve os casos óbvios com um toque, e qualquer associação pode ser desfeita.
-4. Você também pode começar por um recibo que já tem: abra-o na sua lista de transações e escolha **Associar a fatura de cartão** para buscar o lançamento correspondente diretamente.
+4. Você também pode começar por um recibo que já tem: abra-o na sua lista de transações e escolha **Associar a fatura de cartão** para buscar o lançamento correspondente diretamente. Depois de associada, essa transação exibe uma pequena etiqueta violeta **Associado** na sua lista de transações.
 
-Somente um administrador completo pode enviar faturas; a associação fica aberta a qualquer membro da residência da fatura.
+Somente um administrador completo pode enviar faturas — e renomear uma depois, tocando no ícone de lápis ao lado dela, útil para corrigir um erro de digitação ou esclarecer qual cartão é. A associação fica aberta a qualquer membro da residência da fatura.
 
 ---
 
