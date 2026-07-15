@@ -19,6 +19,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Exportar Seus Dados](#exportar-seus-dados)
 - [Relatórios](#relatórios)
 - [Consulta de NPI de Cirurgião](#consulta-de-npi-de-cirurgião)
+- [LedgerX Labs](#ledgerx-labs)
 - [Atalhos de teclado](#atalhos-de-teclado)
 - [Configurações da Conta](#configurações-da-conta)
 - [Gerenciar Residências](#gerenciar-residências)
@@ -421,6 +422,24 @@ Para residências de dispositivos médicos e da área da saúde, o LedgerX pode 
 3. Clique nele, pesquise pelo nome (ex.: "Smith" ou "John Smith"), escolha um resultado, e uma linha como `Surgeon: Dr. John Smith, MD, NPI: 1234567890` é adicionada às suas observações.
 
 Os resultados vêm do registro público CMS NPPES. O botão fica oculto em residências que não têm o recurso ativado.
+
+---
+
+## LedgerX Labs
+<!-- roles: member, admin -->
+
+O **LedgerX Labs** é um espaço para ferramentas experimentais que estamos testando antes de decidir se elas passam a fazer parte do app principal. Recursos do Labs podem mudar ou ser removidos — seu feedback é bem-vindo. A seção Labs só aparece para residências em que um administrador ativou algum experimento, e nunca é exibida para prestadores.
+
+### Conciliação de Cartão de Crédito
+
+O primeiro experimento do Labs: associe seus recibos de despesa aos lançamentos de uma fatura de cartão de crédito, para confirmar que toda cobrança do cartão tem um recibo correspondente no LedgerX.
+
+1. Um administrador ativa **Labs: Conciliação de Cartão de Crédito** para sua residência (Administrador → Gerenciar Residências → Recursos).
+2. Um administrador envia uma fatura de cartão — como exportação CSV, ou como PDF/foto que o LedgerX lê automaticamente — em **LedgerX Labs → Conciliação de Cartão de Crédito**. Uma fatura não pertence a uma única residência, já que um mesmo cartão costuma cobrir mais de um imóvel.
+3. Qualquer pessoa em uma residência habilitada abre a fatura e percorre seus lançamentos, associando cada um a um recibo já cadastrado no LedgerX. As sugestões de associação são ordenadas por valor, data e fornecedor — um botão permanente de **Associação automática** resolve os casos óbvios com um toque, e qualquer associação pode ser desfeita.
+4. Você também pode começar por um recibo que já tem: abra-o na sua lista de transações e escolha **Associar a fatura de cartão** para buscar o lançamento correspondente diretamente.
+
+Somente um administrador completo pode enviar faturas; a associação fica aberta a qualquer membro da residência da fatura.
 
 ---
 

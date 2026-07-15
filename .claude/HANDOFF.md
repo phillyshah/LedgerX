@@ -6,12 +6,23 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.2`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.3`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
   `git checkout -B <branch> origin/main` to start fresh on top of merged work.
   **The remote branch auto-deletes when its PR merges** — see deploy gotcha #6.
+- **⚠️ Pending manual steps for v12.3 (LedgerX Labs: Credit Card Reconciliation)**:
+  1. SQL editor: run **`20260722000000_labs_cc_statement_reconciliation.sql`**
+     (idempotent; tested locally on Postgres 16 — see below).
+  2. Dashboard: create the **`extract-statement`** edge function (paste from repo).
+     No config.toml entry — like `extract-receipt`/`extract-invoice`, it keeps
+     **Verify JWT ON** (frontend calls it with the anon key). Uses the existing
+     `OPENAI_API_KEY` secret — nothing new to configure.
+  3. Nothing else — the feature is fully opt-in via `households.features_enabled.
+     labs_cc_reconciliation`, off by default for every household. Turn it on for
+     a household under Admin → Manage Households → Features to test.
+  4. VPS rsync for the frontend (new `papaparse` dependency — `npm ci` picks it up).
 - **⚠️ Pending manual steps for v12.2 (WhatsApp)** — full checklist in the deploy
   instructions message; summary:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
@@ -53,7 +64,7 @@ substantial session.
   `NOTIFICATION_FROM_EMAIL`, `APP_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
   `CRON_SECRET`. **New for v12.2**: the four `TWILIO_*` secrets above.
 
-## Features shipped (recent sessions, v11.5–v12.2)
+## Features shipped (recent sessions, v11.5–v12.3)
 
 | Ver | What | Key files |
 |---|---|---|
@@ -64,6 +75,7 @@ substantial session.
 | v12.0 | **@mention chat → email + `chat_mention` bell**, deep-linked | `…715`, `send-mention-notification`, `EstimateChat.tsx`, `useInitialDeepLink.ts` |
 | v12.1 | **Admin edits invoice/estimate fields**; **payment method on mark-paid**; **delete notifications** | `…716`, `AdminInvoices.tsx`, `AdminEstimates.tsx`, `NotificationBell.tsx` |
 | v12.2 | **WhatsApp**: text the bot to create expense/invoice/estimate (NL via OpenAI, YES-confirm), add photos to existing, keyword reports; **notifications to WhatsApp** per user channel pref (email/whatsapp/both); admin phone mgmt | `…717 whatsapp_integration.sql`, `whatsapp-inbound`, `whatsapp-send`, 4 patched send-*, `useWhatsApp.ts`, `ManageUsers.tsx`, `UserSettings.tsx` |
+| v12.3 | **LedgerX Labs** (new experimental-features area) + first experiment **Credit Card Reconciliation**: admin uploads a statement (CSV, or PDF/photo OCR'd via a new edge fn), household members match line items to their own receipts (client-side scoring, bulk auto-match, reverse "Match to card statement" entry point on the expense list) | `…722 labs_cc_statement_reconciliation.sql`, `extract-statement`, `src/components/labs/*`, `statementMatching.ts`, `statementCsv.ts`, `statementScanner.ts`, `useLabsAccess.ts` |
 
 ## Decisions (don't re-litigate)
 
@@ -94,6 +106,27 @@ substantial session.
 - **i18n**: all UI labels/aria in en+pt-BR; chat *message content* is NOT translated.
 - **Email-command auth** = `resolve_sender_email` over `user_sender_emails`;
   unknown senders silently dropped; RPCs take explicit `p_user_id` (service role).
+- **LedgerX Labs (v12.3)**: first use of `features_enabled` with an actual visual
+  identity (violet accent, `LabsBadge`) instead of a silent `if (!flag) return
+  null`. Per-experiment flags (`labs_*` prefix), no umbrella `labs` column —
+  `hasAnyLabsFlag` in `useLabsAccess.ts` is just "does any key start with
+  `labs_`". **Statements are admin-only and NOT household-scoped** (one card can
+  cover multiple properties) — `credit_card_statements` carries no
+  `household_id`; only `statement_line_items` end up tied to a household,
+  indirectly, once matched to an expense. Matching/unmatching is **RPC-only**
+  (`match_statement_line_item` / `unmatch_statement_line_item` /
+  `bulk_match_statement_line_items`), never a client UPDATE policy, because the
+  authorization check ("can this caller touch the target *expense*") can't be
+  expressed as a clean RLS predicate on `statement_line_items` alone. Matching
+  scoring (`statementMatching.ts`) is deliberately **client-side, no AI call** —
+  amount (dominant) + date decay + vendor text-overlap tiebreaker. OCR
+  (`extract-statement`) uses `detail:"high"` unlike the existing lean
+  receipt/invoice OCR (`"low"`) since statement tables are dense and misreads
+  are costly — capped at 10 pages/request. Per CLAUDE.md tension: shipped with
+  full i18n/version-bump/HANDOFF/README compliance but **intentionally skipped
+  a global "What's New" release-notes entry** — a household-gated experimental
+  feature invisible to most households doesn't belong in a global changelog;
+  revisit this call if Labs features start shipping regularly.
 
 ## Deploy gotchas (learned the hard way)
 
@@ -136,7 +169,8 @@ substantial session.
 `…712 email_pending_activity` · `…714 attachment_inserts` ·
 `…715 chat_mentions` (v12.0, applied) ·
 **`…716 admin_edit_and_payment_method` ← confirm applied (v12.1)** ·
-**`…717 whatsapp_integration` ← RUN THIS (v12.2)**
+**`…717 whatsapp_integration` ← RUN THIS (v12.2)** ·
+**`…722 labs_cc_statement_reconciliation` ← RUN THIS (v12.3)**
 
 ## Open items
 

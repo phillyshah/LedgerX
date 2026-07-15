@@ -402,6 +402,22 @@ export function ManageHouseholds() {
                       className="w-4 h-4 accent-emerald-600 shrink-0"
                     />
                   </label>
+                  <label className="flex items-center justify-between gap-3 cursor-pointer mt-3 pt-3 border-t border-slate-100">
+                    <div>
+                      <p className="text-sm text-slate-700">{t('admin.hh.labsCcReconciliation')}</p>
+                      <p className="text-xs text-slate-500">
+                        {t('admin.hh.labsCcReconciliationHelp')}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={!!household.features_enabled?.labs_cc_reconciliation}
+                      onChange={(e) =>
+                        toggleFeature(household.id, 'labs_cc_reconciliation', e.target.checked)
+                      }
+                      className="w-4 h-4 accent-violet-600 shrink-0"
+                    />
+                  </label>
                 </div>
 
                 {/* Categories — bulk toggle which categories apply to this
