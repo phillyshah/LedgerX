@@ -18,7 +18,11 @@ const corsHeaders = {
 // detail used for receipts/invoices.
 const MAX_PAGES = 10;
 
-function buildPrompt(): string {
+function buildPrompt(periodStart?: string, periodEnd?: string): string {
+  const periodHint = periodStart && periodEnd
+    ? `\n\nThis statement's billing period is ${periodStart} to ${periodEnd} (confirmed by the uploader, not OCR — trust it). Every line item's date should fall within or very close to this period. If a year digit is unclear or ambiguous, use this period to resolve it rather than guessing.`
+    : '';
+
   return `Analyze these credit card statement page images (in order) and extract every individual purchase/charge line item as json:
 { "line_items": [ { "date": "YYYY-MM-DD", "description": "merchant/description text", "amount": 12.34 }, ... ] }
 
@@ -27,10 +31,16 @@ Rules:
 - amount is always a positive number regardless of how the statement prints it (parentheses, minus sign, or a credit/debit column) — this is what the cardholder was charged for that specific line.
 - date must be YYYY-MM-DD. If the statement only prints MM/DD, infer the year from the statement period.
 - If a line item spans a page break, do not duplicate it.
-- If you cannot confidently read a field, use null for that field rather than guessing.`;
+- If you cannot confidently read a field, use null for that field rather than guessing.${periodHint}`;
 }
 
-async function callOpenAI(apiKey: string, model: string, imageDataUrls: string[]): Promise<string> {
+async function callOpenAI(
+  apiKey: string,
+  model: string,
+  imageDataUrls: string[],
+  periodStart?: string,
+  periodEnd?: string
+): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -52,7 +62,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrls: string[]
             })),
             {
               type: "text",
-              text: buildPrompt(),
+              text: buildPrompt(periodStart, periodEnd),
             },
           ],
         },
@@ -111,7 +121,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { images } = await req.json();
+    const { images, periodStart, periodEnd } = await req.json();
     if (!Array.isArray(images) || images.length === 0) {
       return new Response(
         JSON.stringify({ error: "images (array of base64 strings) is required" }),
@@ -133,7 +143,7 @@ Deno.serve(async (req: Request) => {
 
     for (const model of models) {
       try {
-        const content = await callOpenAI(openaiApiKey, model, imageDataUrls);
+        const content = await callOpenAI(openaiApiKey, model, imageDataUrls, periodStart, periodEnd);
         const extracted = parseExtracted(content);
         return new Response(JSON.stringify(extracted), {
           status: 200,

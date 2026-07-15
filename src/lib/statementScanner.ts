@@ -29,8 +29,16 @@ function fileToBase64(file: File): Promise<string> {
  * OCR extraction of every line item. PDFs are rasterized to one JPEG per
  * page (capped at 10) and sent together in one request so the model can
  * correlate line items that straddle a page break.
+ *
+ * periodStart/periodEnd (when known) are passed through as prompt context —
+ * a statement's billing period is trusted, human-entered ground truth the
+ * model can use to resolve an ambiguous or easily-misread year digit.
  */
-export async function scanStatement(file: File): Promise<StatementLineItemOCR[]> {
+export async function scanStatement(
+  file: File,
+  periodStart?: string,
+  periodEnd?: string
+): Promise<StatementLineItemOCR[]> {
   const pages = file.type === 'application/pdf'
     ? await pdfAllPagesToJpeg(file)
     : [file];
@@ -47,7 +55,7 @@ export async function scanStatement(file: File): Promise<StatementLineItemOCR[]>
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ images }),
+      body: JSON.stringify({ images, periodStart, periodEnd }),
       signal: controller.signal,
     });
 

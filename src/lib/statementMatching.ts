@@ -26,9 +26,9 @@ function amountScore(lineAmount: number, expenseTotal: number): number {
   return 1 - diff / AMOUNT_EXCLUDE_CENTS;
 }
 
-// Date decays to excluded past ±5 days — a receipt is usually dated the same
-// day as the charge, occasionally a day or two off for post/settlement lag.
-const DATE_EXCLUDE_DAYS = 5;
+// Date decays to excluded past ±7 days — a receipt is usually dated the same
+// day as the charge, occasionally a few days off for post/settlement lag.
+const DATE_EXCLUDE_DAYS = 7;
 
 function dateScore(lineDate: string, expenseDate: string): number {
   const a = parseExpenseDate(lineDate).getTime();
