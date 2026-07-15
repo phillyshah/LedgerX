@@ -6,23 +6,28 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.3`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.4`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
   `git checkout -B <branch> origin/main` to start fresh on top of merged work.
   **The remote branch auto-deletes when its PR merges** — see deploy gotcha #6.
-- **⚠️ Pending manual steps for v12.3 (LedgerX Labs: Credit Card Reconciliation)**:
-  1. SQL editor: run **`20260722000000_labs_cc_statement_reconciliation.sql`**
-     (idempotent; tested locally on Postgres 16 — see below).
-  2. Dashboard: create the **`extract-statement`** edge function (paste from repo).
-     No config.toml entry — like `extract-receipt`/`extract-invoice`, it keeps
-     **Verify JWT ON** (frontend calls it with the anon key). Uses the existing
-     `OPENAI_API_KEY` secret — nothing new to configure.
-  3. Nothing else — the feature is fully opt-in via `households.features_enabled.
-     labs_cc_reconciliation`, off by default for every household. Turn it on for
-     a household under Admin → Manage Households → Features to test.
-  4. VPS rsync for the frontend (new `papaparse` dependency — `npm ci` picks it up).
+- **v12.3 (LedgerX Labs) is live**: migration ran, `extract-statement` deployed, PR #73
+  merged. User testing surfaced a real bug, fixed in v12.4 below.
+- **⚠️ Pending manual steps for v12.4 (CC Reconciliation OCR year-misread fix)** —
+  PR #74:
+  1. Dashboard: **redeploy `extract-statement`** (code changed — now accepts/uses
+     `periodStart`/`periodEnd` in the prompt). Same settings as before (Verify JWT
+     ON, no config.toml entry, `OPENAI_API_KEY` already set).
+  2. Dashboard: **redeploy `extract-receipt`** (code changed — `repairImplausibleYear`
+     no longer "fixes" old past dates, only future ones). Same settings as before.
+  3. No migration, no new secrets.
+  4. VPS rsync for the frontend.
+  5. **The existing test statement has a corrupted line item baked in** (OCR
+     misread 2026 as 2023 before this fix existed) and won't self-heal — delete
+     it (Labs → Credit Card Reconciliation → trash icon, two-tap) and re-upload
+     with the statement period filled in (now required for PDF/photo uploads).
+     Confirm the Lowe's line item reads the correct year and shows up as a match.
 - **⚠️ Pending manual steps for v12.2 (WhatsApp)** — full checklist in the deploy
   instructions message; summary:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
@@ -127,6 +132,19 @@ substantial session.
   a global "What's New" release-notes entry** — a household-gated experimental
   feature invisible to most households doesn't belong in a global changelog;
   revisit this call if Labs features start shipping regularly.
+- **CC Reconciliation OCR year-misread fix (v12.4)**: real-world testing found
+  `extract-statement` had zero defense against digit misreads (unlike
+  `extract-receipt`), producing a 3-year-off date that the matching algorithm
+  then correctly excluded — the scoring logic was never the bug. Fix leans on
+  the statement's human-entered period as ground truth (`statementDateRepair.ts`
+  cross-checks/corrects OCR'd line-item years against it; period start is now
+  required for PDF/photo uploads). Also **loosened `extract-receipt`'s existing
+  year-repair heuristic** to stop "fixing" any receipt >13 months old — that
+  heuristic actively fought this feature's whole premise (reconciling
+  potentially old statements/receipts). Past dates are never auto-corrected now,
+  only implausible future ones. Verified with concrete cases via `tsx` (no test
+  runner in this repo) rather than a real Supabase round-trip — Supabase can't
+  run locally here.
 
 ## Deploy gotchas (learned the hard way)
 
