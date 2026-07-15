@@ -608,6 +608,98 @@ export interface Database {
         };
         Relationships: [];
       };
+      credit_card_statements: {
+        Row: {
+          id: string;
+          uploaded_by: string;
+          card_label: string;
+          period_start: string | null;
+          period_end: string | null;
+          file_path: string;
+          file_mime: string | null;
+          source_type: 'csv' | 'pdf' | 'image';
+          column_mapping: Record<string, unknown> | null;
+          status: 'processing' | 'ready' | 'error';
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          uploaded_by?: string;
+          card_label: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          file_path: string;
+          file_mime?: string | null;
+          source_type?: 'csv' | 'pdf' | 'image';
+          column_mapping?: Record<string, unknown> | null;
+          status?: 'processing' | 'ready' | 'error';
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          uploaded_by?: string;
+          card_label?: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          file_path?: string;
+          file_mime?: string | null;
+          source_type?: 'csv' | 'pdf' | 'image';
+          column_mapping?: Record<string, unknown> | null;
+          status?: 'processing' | 'ready' | 'error';
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      statement_line_items: {
+        Row: {
+          id: string;
+          statement_id: string;
+          line_date: string;
+          description: string;
+          amount: number;
+          currency: string;
+          matched_expense_id: string | null;
+          matched_at: string | null;
+          matched_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          statement_id: string;
+          line_date: string;
+          description: string;
+          amount: number;
+          currency?: string;
+          matched_expense_id?: string | null;
+          matched_at?: string | null;
+          matched_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          statement_id?: string;
+          line_date?: string;
+          description?: string;
+          amount?: number;
+          currency?: string;
+          matched_expense_id?: string | null;
+          matched_at?: string | null;
+          matched_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'statement_line_items_statement_id_fkey';
+            columns: ['statement_id'];
+            isOneToOne: false;
+            referencedRelation: 'credit_card_statements';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -720,6 +812,23 @@ export interface Database {
         Returns: undefined;
       };
       // Member: memorize vendor → category pair on save (works around the
+      // Labs: credit card statement reconciliation
+      can_act_on_expense: {
+        Args: { p_expense_id: string };
+        Returns: boolean;
+      };
+      match_statement_line_item: {
+        Args: { p_line_item_id: string; p_expense_id: string };
+        Returns: undefined;
+      };
+      unmatch_statement_line_item: {
+        Args: { p_line_item_id: string };
+        Returns: undefined;
+      };
+      bulk_match_statement_line_items: {
+        Args: { p_matches: Array<{ line_item_id: string; expense_id: string }> };
+        Returns: { matched: number; skipped: Array<{ line_item_id: string; reason: string }> };
+      };
     };
   };
 }

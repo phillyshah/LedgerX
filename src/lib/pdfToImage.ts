@@ -59,3 +59,46 @@ export async function pdfFirstPageToJpeg(pdfFile: File, maxDim = 1600): Promise<
   const baseName = pdfFile.name.replace(/\.pdf$/i, '') || 'invoice';
   return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
 }
+
+// Card statements can run several pages, and line items can straddle a page
+// break — unlike receipts/invoices (always rasterized to just page 1), the
+// caller needs every page so the OCR model can see the whole document at
+// once. Capped at maxPages both for cost and because there's a practical
+// limit to how many images a single vision request can usefully reason over.
+export async function pdfAllPagesToJpeg(pdfFile: File, maxPages = 10, maxDim = 1600): Promise<File[]> {
+  const pdfjs = await import('pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc = await getWorkerBlobUrl();
+
+  const buf = await pdfFile.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: buf }).promise;
+  const pageCount = Math.min(pdf.numPages, maxPages);
+  const baseName = pdfFile.name.replace(/\.pdf$/i, '') || 'statement';
+
+  const pages: File[] = [];
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await pdf.getPage(i);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = Math.min(maxDim / baseViewport.width, maxDim / baseViewport.height, 2.5);
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not create 2D canvas context for PDF render');
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const blob: Blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Canvas toBlob returned null'))),
+        'image/jpeg',
+        0.85
+      );
+    });
+
+    pages.push(new File([blob], `${baseName}-p${i}.jpg`, { type: 'image/jpeg' }));
+  }
+
+  return pages;
+}

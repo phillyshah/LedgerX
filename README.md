@@ -19,6 +19,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Exporting Your Data](#exporting-your-data)
 - [Reports](#reports)
 - [Surgeon NPI Lookup](#surgeon-npi-lookup)
+- [LedgerX Labs](#ledgerx-labs)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
@@ -423,6 +424,24 @@ For medical-device and healthcare households, LedgerX can look up a surgeon's **
 3. Click it, search by name (e.g. "Smith" or "John Smith"), pick a result, and a line like `Surgeon: Dr. John Smith, MD, NPI: 1234567890` is appended to your notes.
 
 Results come from the public CMS NPPES registry. The button is hidden for households that don't have the feature enabled.
+
+---
+
+## LedgerX Labs
+<!-- roles: member, admin -->
+
+**LedgerX Labs** is a home for experimental tools we're trying out before deciding whether they graduate into the main app. Labs features may change or be removed — feedback is welcome. The Labs section only appears for households where an admin has turned an experiment on, and it's never shown to contractors.
+
+### Credit Card Reconciliation
+
+The first Labs experiment: match your expense receipts against the line items on a credit card statement, so you can confirm every charge on the card has a matching receipt on file.
+
+1. An admin enables **Labs: Credit Card Reconciliation** for your household (Admin → Manage Households → Features).
+2. An admin uploads a card statement — as a CSV export, or as a PDF/photo that LedgerX reads automatically — under **LedgerX Labs → Credit Card Reconciliation**. A statement isn't tied to one household, since one card often covers more than one property.
+3. Anyone in an enabled household opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Suggested matches are ranked by amount, date, and vendor — a persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone.
+4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly.
+
+Only a full admin can upload statements; matching is open to any household member the statement's household admits.
 
 ---
 

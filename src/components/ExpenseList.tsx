@@ -1,12 +1,14 @@
 import { Suspense, lazy, useState, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown } from 'lucide-react';
+import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown, CreditCard } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { parseExpenseDate } from '../lib/dateUtils';
+import { useLabsAccess } from '../hooks/useLabsAccess';
 
 const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
+const MatchToStatementModal = lazy(() => import('./labs/MatchToStatementModal').then((m) => ({ default: m.MatchToStatementModal })));
 
 type SortKey = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'vendor' | 'category';
 
@@ -31,6 +33,9 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const { t, locale } = useT();
   const { user } = useAuth();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [matchingExpense, setMatchingExpense] = useState<Expense | null>(null);
+  const { hasFlag } = useLabsAccess();
+  const labsEnabled = hasFlag('labs_cc_reconciliation');
 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -427,6 +432,15 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     <p className="text-base font-bold text-slate-900 tabular-nums">
                       {formatAmount(expense.total, expense.currency)}
                     </p>
+                    {labsEnabled && (
+                      <button
+                        onClick={() => setMatchingExpense(expense)}
+                        className="p-1.5 hover:bg-violet-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
+                        title={t('labs.cc.matchToStatement')}
+                      >
+                        <CreditCard className="w-4 h-4 text-violet-500" />
+                      </button>
+                    )}
                     <button
                       onClick={() => setEditingExpense(expense)}
                       className="p-1.5 hover:bg-slate-100 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
@@ -498,6 +512,15 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             expense={editingExpense}
             onClose={() => setEditingExpense(null)}
             onSuccess={handleExpenseUpdated}
+          />
+        </Suspense>
+      )}
+      {matchingExpense && (
+        <Suspense fallback={null}>
+          <MatchToStatementModal
+            expense={matchingExpense}
+            onClose={() => setMatchingExpense(null)}
+            onMatched={onReload}
           />
         </Suspense>
       )}

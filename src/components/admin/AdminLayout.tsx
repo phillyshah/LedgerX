@@ -8,11 +8,12 @@ import { AppFooter } from '../AppFooter';
 import { NotificationBell } from '../NotificationBell';
 import { AdminEmailInbox } from './AdminEmailInbox';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useLabsAccess } from '../../hooks/useLabsAccess';
 import type { AppNotification } from '../../types/notification';
 import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
-  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, FlaskConical,
 } from 'lucide-react';
 // hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
 
@@ -34,6 +35,7 @@ const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ 
 const HelpModal           = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
 const WhatsNewModal       = lazy(() => import('../WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
 const UserSettings        = lazy(() => import('../UserSettings').then((m) => ({ default: m.UserSettings })));
+const LabsHome            = lazy(() => import('../labs/LabsHome').then((m) => ({ default: m.LabsHome })));
 
 function ViewSkeleton() {
   return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
@@ -49,7 +51,8 @@ type AdminView =
   | 'invoices'
   | 'estimates'
   | 'reports'
-  | 'my-transactions';
+  | 'my-transactions'
+  | 'labs';
 
 type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
 
@@ -227,6 +230,7 @@ export function AdminLayout() {
   useInitialDeepLink((target) => openEntity(target.type, target.id));
 
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
+  const { hasAnyLabsFlag } = useLabsAccess();
 
   const username = user?.email?.split('@')[0] ?? 'admin';
 
@@ -411,6 +415,17 @@ export function AdminLayout() {
                 {label}
               </button>
             ))}
+            {hasAnyLabsFlag && (
+              <button
+                onClick={() => handleViewChange('labs')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isItemActive('labs') ? 'bg-violet-700 text-white shadow-sm' : 'text-violet-300 hover:text-white hover:bg-violet-900/40'
+                }`}
+              >
+                <FlaskConical className="w-4 h-4 shrink-0" />
+                {t('labs.badge')}
+              </button>
+            )}
           </nav>
         )}
       </header>
@@ -455,6 +470,17 @@ export function AdminLayout() {
                 {label}
               </button>
             ))}
+            {hasAnyLabsFlag && (
+              <button
+                onClick={() => handleViewChange('labs')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isItemActive('labs') ? 'bg-violet-700 text-white shadow-sm' : 'text-violet-300 hover:text-white hover:bg-violet-900/40'
+                }`}
+              >
+                <FlaskConical className="w-4 h-4 shrink-0" />
+                {t('labs.badge')}
+              </button>
+            )}
           </nav>
         </aside>
 
@@ -531,6 +557,7 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
+              {activeView === 'labs' && hasAnyLabsFlag && <LabsHome expenses={expenses} />}
               {/* Full admins get the in-header Submit button (their quick actions
                   live only on Home). Household admins already have a persistent
                   Submit Invoice in the action row above, so omit it to avoid a
