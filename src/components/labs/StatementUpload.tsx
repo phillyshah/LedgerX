@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { X, Upload, Loader2, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Upload, Loader2, Plus, Trash2, AlertTriangle, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { parseCsvFile, applyColumnMapping, isImportable, type ParsedCsv, type ColumnMapping, type DraftLineItem } from '../../lib/statementCsv';
 import { scanStatement } from '../../lib/statementScanner';
+import { repairLineItemYears } from '../../lib/statementDateRepair';
 
 interface StatementUploadProps {
   priorCardLabels: string[];
@@ -35,6 +36,9 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
 
   // Shared review-table state (populated from either CSV mapping or OCR)
   const [items, setItems] = useState<DraftLineItem[]>([]);
+  // Set when the OCR path auto-corrected a line item's year against the
+  // statement period — surfaced as a notice so the correction is never silent.
+  const [dateRepairCount, setDateRepairCount] = useState(0);
 
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -44,9 +48,20 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
     const picked = e.target.files?.[0];
     if (!picked) return;
     setError('');
+
+    const isCsv = picked.type === 'text/csv' || picked.name.toLowerCase().endsWith('.csv');
+
+    // The statement period is the ground truth that lets us catch an OCR
+    // year misread (e.g. "2026" read as "2023") — require it before running
+    // OCR at all. CSV data isn't OCR'd, so it doesn't need this guard.
+    if (!isCsv && !periodStart) {
+      setError(t('labs.cc.periodRequiredForOcr'));
+      return;
+    }
+
     setFile(picked);
 
-    if (picked.type === 'text/csv' || picked.name.toLowerCase().endsWith('.csv')) {
+    if (isCsv) {
       setSourceType('csv');
       try {
         const parsed = await parseCsvFile(picked);
@@ -61,13 +76,20 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
       setStep('review');
       setScanning(true);
       setError('');
+      setDateRepairCount(0);
       try {
-        const ocrItems = await scanStatement(picked);
-        setItems(ocrItems.map((i) => ({
+        const ocrItems = await scanStatement(picked, periodStart, periodEnd || undefined);
+        const draftItems = ocrItems.map((i) => ({
           line_date: i.date ?? '',
           description: i.description ?? '',
           amount: i.amount,
-        })));
+        }));
+        // periodEnd is optional in the form — fall back to periodStart as a
+        // single-day anchor (the repair function's grace window still gives
+        // reasonable coverage) rather than skipping the safety net entirely.
+        const { items: repaired, repairedCount } = repairLineItemYears(draftItems, periodStart, periodEnd || periodStart);
+        setItems(repaired);
+        setDateRepairCount(repairedCount);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('labs.cc.ocrError'));
         setItems([]);
@@ -219,6 +241,9 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
               />
             </div>
           </div>
+          {step === 'select' && (
+            <p className="text-xs text-slate-400 -mt-3">{t('labs.cc.periodRequiredHint')}</p>
+          )}
 
           {step === 'select' && (
             <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl p-10 cursor-pointer hover:border-violet-400 hover:bg-violet-50/40 transition-all">
@@ -305,6 +330,12 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
               ) : (
                 <>
                   <p className="text-sm text-slate-600">{t('labs.cc.reviewHint')}</p>
+                  {dateRepairCount > 0 && (
+                    <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-xl text-sm text-violet-800">
+                      <Info className="w-4 h-4 shrink-0" />
+                      {t('labs.cc.dateRepairNotice', { count: dateRepairCount })}
+                    </div>
+                  )}
                   <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
                     {items.map((item, idx) => {
                       const valid = isImportable(item);

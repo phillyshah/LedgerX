@@ -82,11 +82,14 @@ function parseExtracted(content: string, todayIso: string) {
     extracted.total_amount = parseFloat(String(extracted.total_amount));
   }
 
-  // Defensive clamp: gpt-4o-mini reading a low-detail receipt image
-  // occasionally misreads a year digit (most commonly 6→3 or 8→3). If
-  // the extracted year falls outside a plausible window around today,
-  // rebuild it with the current year (or previous, if that would be in
-  // the future). Users can always edit the field on the form.
+  // Defensive clamp: a receipt can never legitimately be dated in the
+  // future, so an extracted date past ~1 day from now (timezone slack) gets
+  // pulled back to the most recent plausible year. Past dates, however old,
+  // are left exactly as OCR read them — receipts get submitted well after
+  // the fact (backlogged reimbursements, this app's own credit-card
+  // statement reconciliation feature) and there's no way to tell "really is
+  // old" from "misread digit" from the date value alone. Users can always
+  // edit the field on the form.
   if (typeof extracted.transaction_date === "string") {
     extracted.transaction_date = repairImplausibleYear(
       extracted.transaction_date,
@@ -109,13 +112,12 @@ function repairImplausibleYear(date: string, todayIso: string): string {
   const tDay = parseInt(t[3], 10);
   const ex = new Date(exYear, parseInt(mon, 10) - 1, parseInt(day, 10));
   const today = new Date(tYear, tMon - 1, tDay);
-  const monthsDiff =
-    (today.getFullYear() - ex.getFullYear()) * 12 +
-    (today.getMonth() - ex.getMonth());
-  // Accept: within the last 13 months, or up to ~1 day in the future
-  // (timezone slack for receipts dated "today" on the other side of UTC).
-  if (monthsDiff >= 0 && monthsDiff <= 13) return date;
-  if (monthsDiff < 0 && ex.getTime() - today.getTime() <= 86_400_000) return date;
+
+  // Any past date is accepted as-is, no matter how old. Only a date more
+  // than ~1 day in the future (timezone slack for "today" landing on the
+  // other side of UTC) is implausible for a receipt and gets pulled back.
+  if (ex.getTime() - today.getTime() <= 86_400_000) return date;
+
   const candidate = new Date(tYear, parseInt(mon, 10) - 1, parseInt(day, 10));
   const year = candidate.getTime() > today.getTime() ? tYear - 1 : tYear;
   return `${year}-${mon}-${day}`;
