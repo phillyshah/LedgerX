@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.5',
+    version: 'v12.5',
+    date: '2026-07-15',
+    title: {
+      'en': 'Introducing LedgerX Labs: Credit Card Reconciliation',
+      'pt-BR': 'Apresentando o LedgerX Labs: Conciliação de Cartão de Crédito',
+    },
+    body: {
+      'en':
+        "New: LedgerX Labs, a home for experimental features an admin can turn on per household. The first one is Credit Card Reconciliation — an admin uploads a credit card statement (a CSV export, or just a PDF or photo, which LedgerX reads automatically) and household members match each charge to a receipt already in LedgerX. Suggested matches are ranked for you, a one-tap button clears the obvious ones, and you can also start from a receipt you already have and search for its matching charge. Look for a small violet \"Matched\" tag on transactions that have been reconciled. Admins can rename an uploaded statement any time. Ask an admin to turn it on under Manage Households → Features if you'd like to try it.",
+      'pt-BR':
+        "Novidade: o LedgerX Labs, um espaço para recursos experimentais que um administrador pode ativar por residência. O primeiro é a Conciliação de Cartão de Crédito — um administrador envia uma fatura de cartão de crédito (uma exportação CSV, ou simplesmente um PDF ou foto, que o LedgerX lê automaticamente) e os membros da residência associam cada cobrança a um recibo já cadastrado no LedgerX. As sugestões de associação já vêm ordenadas, um botão resolve os casos óbvios com um toque, e você também pode partir de um recibo que já tem e buscar a cobrança correspondente. Fique de olho na etiqueta violeta \"Associado\" nas transações já conciliadas. Administradores podem renomear uma fatura enviada a qualquer momento. Peça a um administrador para ativar em Gerenciar Residências → Recursos se quiser experimentar.",
+    },
+  },
+  {
     id: 'v12.2',
     version: 'v12.2',
     date: '2026-07-06',

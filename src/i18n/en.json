@@ -909,6 +909,10 @@
   "labs.cc.statusError": "Import error",
   "labs.cc.matchProgress": "{matched} of {total} matched",
   "labs.cc.confirmDelete": "Tap again to delete this statement",
+  "labs.cc.renameStatement": "Rename statement",
+  "labs.cc.renameError": "Couldn't rename this statement. Please try again.",
+  "labs.cc.matchedBadge": "Matched",
+  "labs.cc.matchedTooltip": "Matched to card statement: {label}",
 
   "labs.cc.uploadTitle": "Upload a statement",
   "labs.cc.cardLabel": "Card label",

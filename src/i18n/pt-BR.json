@@ -909,6 +909,10 @@
   "labs.cc.statusError": "Erro na importação",
   "labs.cc.matchProgress": "{matched} de {total} associados",
   "labs.cc.confirmDelete": "Toque novamente para excluir esta fatura",
+  "labs.cc.renameStatement": "Renomear fatura",
+  "labs.cc.renameError": "Não foi possível renomear esta fatura. Tente novamente.",
+  "labs.cc.matchedBadge": "Associado",
+  "labs.cc.matchedTooltip": "Associado à fatura de cartão: {label}",
 
   "labs.cc.uploadTitle": "Enviar uma fatura",
   "labs.cc.cardLabel": "Identificação do cartão",
