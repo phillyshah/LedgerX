@@ -84,7 +84,11 @@ export function Dashboard() {
 
   // Open an estimate/invoice detail: set the deep-link target and bump the
   // matching section's expand signal so its (possibly-collapsed) list mounts.
-  const openEntity = useCallback((type: 'estimate' | 'invoice', id: string) => {
+  // A reconciliation-comment mention (statement_line_item) can only be opened
+  // by an admin in the Labs area, which this (regular-user) shell doesn't have
+  // — the notification stays informational, so this is a no-op here.
+  const openEntity = useCallback((type: 'estimate' | 'invoice' | 'statement_line_item', id: string) => {
+    if (type === 'statement_line_item') return;
     setDeepLink({ type, id });
     if (type === 'estimate') setEstimatesExpand((x) => x + 1);
     else setInvoicesExpand((x) => x + 1);

@@ -700,6 +700,38 @@ export interface Database {
           },
         ];
       };
+      statement_line_item_comments: {
+        Row: {
+          id: string;
+          line_item_id: string;
+          author_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          line_item_id: string;
+          author_id?: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          line_item_id?: string;
+          author_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'statement_line_item_comments_line_item_id_fkey';
+            columns: ['line_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'statement_line_items';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -849,6 +881,39 @@ export interface Database {
           created_by: string | null;
           submitter_username: string | null;
           paid_at: string | null;
+        }>;
+      };
+      reconciliation_mentionable: {
+        Args: Record<string, never>;
+        Returns: Array<{ uid: string; username: string; hint: string }>;
+      };
+      list_line_item_comments: {
+        Args: { p_line_item_id: string };
+        Returns: Array<{
+          id: string;
+          line_item_id: string;
+          author_id: string;
+          author_username: string;
+          body: string;
+          created_at: string;
+        }>;
+      };
+      list_reconciliation_report: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          line_item_id: string;
+          statement_id: string;
+          card_label: string;
+          line_date: string;
+          description: string;
+          amount: number;
+          currency: string;
+          is_matched: boolean;
+          matched_expense_id: string | null;
+          matched_household: string | null;
+          matched_by: string | null;
+          matched_by_username: string | null;
+          matched_at: string | null;
         }>;
       };
     };

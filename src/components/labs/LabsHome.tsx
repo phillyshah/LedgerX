@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 import { LabsBadge } from './LabsBadge';
@@ -6,18 +6,36 @@ import { CreditCardReconciliation } from './CreditCardReconciliation';
 
 type Experiment = 'cc_reconciliation';
 
+interface LabsHomeProps {
+  /** From a comment-notification deep-link: open CC reconciliation at this line item. */
+  openLineItemId?: string | null;
+  onLineItemHandled?: () => void;
+}
+
 /**
  * Landing tile grid for the Labs area — one tile today, built to hold future
  * experiments without restructuring. Each tile navigates into its own
  * self-contained screen; there's no shared "Labs" state beyond the flag
  * check that got the user here in the first place.
  */
-export function LabsHome() {
+export function LabsHome({ openLineItemId, onLineItemHandled }: LabsHomeProps) {
   const { t } = useT();
   const [active, setActive] = useState<Experiment | null>(null);
 
+  // A deep-link into a line item's comments jumps straight into the CC
+  // reconciliation experiment.
+  useEffect(() => {
+    if (openLineItemId) setActive('cc_reconciliation');
+  }, [openLineItemId]);
+
   if (active === 'cc_reconciliation') {
-    return <CreditCardReconciliation onBack={() => setActive(null)} />;
+    return (
+      <CreditCardReconciliation
+        onBack={() => setActive(null)}
+        openLineItemId={openLineItemId}
+        onLineItemHandled={onLineItemHandled}
+      />
+    );
   }
 
   return (

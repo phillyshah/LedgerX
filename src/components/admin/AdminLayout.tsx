@@ -217,8 +217,16 @@ export function AdminLayout() {
   // Notification deep-linking: switch to the estimates/invoices view and hand
   // the target id to that view, which opens its detail once its data loads.
   const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
+  // A reconciliation-comment deep-link opens Labs at a specific line item.
+  const [labsLineItemId, setLabsLineItemId] = useState<string | null>(null);
 
-  const openEntity = useCallback((type: 'estimate' | 'invoice', id: string) => {
+  const openEntity = useCallback((type: 'estimate' | 'invoice' | 'statement_line_item', id: string) => {
+    if (type === 'statement_line_item') {
+      setLabsLineItemId(id);
+      setActiveView('labs');
+      setMobileMenuOpen(false);
+      return;
+    }
     setDeepLink({ type, id });
     setActiveView(type === 'estimate' ? 'estimates' : 'invoices');
     setMobileMenuOpen(false);
@@ -557,7 +565,9 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
-              {activeView === 'labs' && hasAnyLabsFlag && <LabsHome />}
+              {activeView === 'labs' && hasAnyLabsFlag && (
+                <LabsHome openLineItemId={labsLineItemId} onLineItemHandled={() => setLabsLineItemId(null)} />
+              )}
               {/* Full admins get the in-header Submit button (their quick actions
                   live only on Home). Household admins already have a persistent
                   Submit Invoice in the action row above, so omit it to avoid a

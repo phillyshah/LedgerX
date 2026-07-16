@@ -441,6 +441,10 @@ O primeiro experimento do Labs: associe recibos de despesa aos lançamentos de u
 
 Somente um administrador completo pode enviar faturas — e renomear uma depois, tocando no ícone de lápis ao lado dela, útil para corrigir um erro de digitação ou esclarecer qual cartão é.
 
+**Comentários e perguntar a alguém.** Cada lançamento da fatura tem um botão de **comentário**. Abra-o para deixar observações e digite **@** para mencionar alguém — um seletor sugere administradores e as pessoas que enviaram recibos. Quem você mencionar é notificado (no app e por e-mail ou WhatsApp, conforme a preferência) com todos os detalhes da cobrança e a sua pergunta, então sabe exatamente do que se trata. Lançamentos com discussão exibem uma pequena etiqueta violeta de comentário.
+
+**Relatório de conciliação** (administradores completos). O botão **Relatório de conciliação** na lista de faturas abre um relatório de todas as cobranças de todas as faturas: quais estão associadas e quais não, quem conciliou cada uma e quando. Filtre por cartão, status, pessoa ou data e exporte para CSV — incluindo um **Exportar não conciliados** com um clique para gerar uma lista do que ainda está pendente para enviar.
+
 ---
 
 ## Novidades (Link no Rodapé)

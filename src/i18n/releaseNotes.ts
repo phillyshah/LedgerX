@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.1',
+    version: 'v13.1',
+    date: '2026-07-16',
+    title: {
+      'en': 'Credit Card Reconciliation: comments, @mentions, and a report',
+      'pt-BR': 'Conciliação de Cartão: comentários, @menções e um relatório',
+    },
+    body: {
+      'en':
+        "Two upgrades to Credit Card Reconciliation in LedgerX Labs. First, you can now leave comments on any statement line and @mention someone to ask about a charge — they get notified (in-app, and by email or WhatsApp depending on their preference) with the full details of the transaction and your question, so they know exactly what you're asking about. A small comment badge shows on any line that has a discussion. Second, admins get a Reconciliation Report: see at a glance which charges have been matched and which haven't, who reconciled each and when, filter by card/status/person/date, and export to CSV — including a one-click \"export unreconciled\" so you can chase down what's still outstanding.",
+      'pt-BR':
+        "Duas melhorias na Conciliação de Cartão de Crédito no LedgerX Labs. Primeiro, agora você pode deixar comentários em qualquer lançamento da fatura e @mencionar alguém para perguntar sobre uma cobrança — a pessoa é notificada (no app e por e-mail ou WhatsApp, conforme a preferência dela) com todos os detalhes da transação e a sua pergunta, então ela sabe exatamente do que se trata. Uma pequena etiqueta de comentário aparece em qualquer lançamento com discussão. Segundo, os administradores ganham um Relatório de Conciliação: veja rapidamente quais cobranças foram associadas e quais não, quem conciliou cada uma e quando, filtre por cartão/status/pessoa/data e exporte para CSV — incluindo um \"exportar não conciliados\" com um clique para cobrar o que ainda está pendente.",
+    },
+  },
+  {
     id: 'v12.9',
     version: 'v12.9',
     date: '2026-07-16',

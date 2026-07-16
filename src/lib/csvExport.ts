@@ -44,6 +44,13 @@ export function buildExpenseCsv(
   return [header, ...rows].join('\n');
 }
 
+/** Generic CSV builder: a header row + string cells, RFC-4180 quoted. */
+export function buildCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
+  const headerLine = headers.map(csvField).join(',');
+  const bodyLines = rows.map((r) => r.map(csvField).join(','));
+  return [headerLine, ...bodyLines].join('\n');
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');

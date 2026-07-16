@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2, Search, Sparkles, Undo2 } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2, MessageCircle, Search, Sparkles, Undo2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import type { Expense } from '../../types/expense';
 import { rankCandidates, rankAllForBrowse, isHighConfidence, type StatementLineItem, type MatchCandidate } from '../../lib/statementMatching';
 import { parseExpenseDate } from '../../lib/dateUtils';
+
+const LineItemCommentsModal = lazy(() => import('./LineItemCommentsModal').then((m) => ({ default: m.LineItemCommentsModal })));
 
 // How many strict, in-bounds suggestions to surface before the divider.
 const MAX_SUGGESTIONS = 5;
@@ -14,6 +16,8 @@ interface StatementReconcileProps {
   cardLabel: string;
   candidateExpenses: Expense[];
   onBack: () => void;
+  /** When set (from a notification deep-link), preselect this line item and open its comments. */
+  openLineItemId?: string | null;
 }
 
 const REASON_LABEL_KEYS: Record<string, string> = {
@@ -24,10 +28,12 @@ const REASON_LABEL_KEYS: Record<string, string> = {
   vendorMatch: 'labs.cc.reasonVendorMatch',
 };
 
-export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack }: StatementReconcileProps) {
+export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId }: StatementReconcileProps) {
   const { t, locale } = useT();
   const [lineItems, setLineItems] = useState<StatementLineItem[]>([]);
   const [claimedElsewhere, setClaimedElsewhere] = useState<Set<string>>(new Set());
+  const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
+  const [commentsFor, setCommentsFor] = useState<StatementLineItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -39,6 +45,20 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
   const [browseSearch, setBrowseSearch] = useState('');
   const [browseExpanded, setBrowseExpanded] = useState(false);
 
+  const loadCommentCounts = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) { setCommentCounts(new Map()); return; }
+    const { data } = await supabase
+      .from('statement_line_item_comments')
+      .select('line_item_id')
+      .in('line_item_id', ids);
+    const counts = new Map<string, number>();
+    for (const row of data ?? []) {
+      const id = row.line_item_id as string;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    setCommentCounts(counts);
+  }, []);
+
   const loadLineItems = useCallback(async () => {
     setLoading(true);
     const [{ data: items }, { data: allMatched }] = await Promise.all([
@@ -46,7 +66,8 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
       supabase.from('statement_line_items').select('statement_id, matched_expense_id').not('matched_expense_id', 'is', null),
     ]);
 
-    setLineItems((items ?? []) as StatementLineItem[]);
+    const lis = (items ?? []) as StatementLineItem[];
+    setLineItems(lis);
     setClaimedElsewhere(
       new Set(
         (allMatched ?? [])
@@ -54,12 +75,26 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
           .map((r) => r.matched_expense_id as string)
       )
     );
+    void loadCommentCounts(lis.map((li) => li.id));
     setLoading(false);
-  }, [statementId]);
+  }, [statementId, loadCommentCounts]);
 
   useEffect(() => {
     loadLineItems();
   }, [loadLineItems]);
+
+  // Deep-link from a comment notification: once line items load, preselect the
+  // target and open its comments thread.
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  useEffect(() => {
+    if (deepLinkHandled || !openLineItemId || lineItems.length === 0) return;
+    const target = lineItems.find((li) => li.id === openLineItemId);
+    if (target) {
+      setSelectedId(target.id);
+      setCommentsFor(target);
+      setDeepLinkHandled(true);
+    }
+  }, [openLineItemId, lineItems, deepLinkHandled]);
 
   const unmatched = lineItems.filter((li) => !li.matched_expense_id);
   const matched = lineItems.filter((li) => li.matched_expense_id);
@@ -243,11 +278,15 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
             return (
               <button
                 key={item.id}
-                onClick={() => setSelectedId(isSelected ? null : item.id)}
-                disabled={isMatched}
+                type="button"
+                // Not `disabled` when matched: a disabled button can swallow
+                // clicks on its child controls (the comment + undo spans). We
+                // just make the card body itself non-selecting instead.
+                onClick={() => { if (!isMatched) setSelectedId(isSelected ? null : item.id); }}
+                aria-disabled={isMatched}
                 className={`w-full text-left p-3 rounded-xl border transition-all ${
                   isSelected ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'
-                } ${isMatched ? 'opacity-70' : 'hover:border-violet-300'}`}
+                } ${isMatched ? 'opacity-70' : 'hover:border-violet-300 cursor-pointer'}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -280,6 +319,24 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
                     </span>
                   </div>
                 )}
+                {/* Comment / ask — works on matched (disabled) cards too via a
+                    role=button span, same pattern as Undo. */}
+                <div className="mt-2">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); setCommentsFor(item); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setCommentsFor(item); } }}
+                    className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors ${
+                      (commentCounts.get(item.id) ?? 0) > 0
+                        ? 'text-violet-700 bg-violet-100 hover:bg-violet-200'
+                        : 'text-slate-400 hover:text-violet-700 hover:bg-violet-50'
+                    }`}
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    {(commentCounts.get(item.id) ?? 0) > 0 ? commentCounts.get(item.id) : t('labs.cc.comments.add')}
+                  </span>
+                </div>
               </button>
             );
           })}
@@ -349,6 +406,20 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
           )}
         </div>
       </div>
+
+      {commentsFor && (
+        <Suspense fallback={null}>
+          <LineItemCommentsModal
+            lineItemId={commentsFor.id}
+            description={commentsFor.description}
+            amount={commentsFor.amount}
+            lineDate={commentsFor.line_date}
+            cardLabel={cardLabel}
+            onClose={() => setCommentsFor(null)}
+            onPosted={() => loadCommentCounts(lineItems.map((li) => li.id))}
+          />
+        </Suspense>
+      )}
     </div>
   );
 

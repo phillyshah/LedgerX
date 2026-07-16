@@ -24,6 +24,7 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   estimate_status: ClipboardList,
   invoice_created: FileText,
   invoice_paid: FileText,
+  reconcile_mention: AtSign,
 };
 
 function relativeTime(iso: string, locale: string): string {
@@ -79,6 +80,8 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
         return n.title
           ? t('notifications.kindInvoicePaid', { title: n.title })
           : t('notifications.kindInvoicePaidNoTitle');
+      case 'reconcile_mention':
+        return t('notifications.kindReconcileMention', { name, title: n.title || t('labs.cc.report.title') });
       default:
         return n.title || '';
     }
