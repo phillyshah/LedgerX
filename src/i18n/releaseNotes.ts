@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.8',
+    version: 'v12.8',
+    date: '2026-07-16',
+    title: {
+      'en': 'Credit Card Reconciliation: a match now shows whenever the amount lines up',
+      'pt-BR': 'Conciliação de Cartão: agora aparece uma correspondência sempre que o valor coincide',
+    },
+    body: {
+      'en':
+        "Matching in Credit Card Reconciliation is now driven by the amount. A receipt is suggested for a charge whenever the dollar amount matches — even if the receipt's date is off by weeks (a purchase logged well after it posts) or its vendor name was edited. Neither the date nor the vendor will hide a real match anymore; they only affect the ordering of the suggestions.",
+      'pt-BR':
+        "A correspondência na Conciliação de Cartão de Crédito agora é guiada pelo valor. Um recibo é sugerido para uma cobrança sempre que o valor em reais coincide — mesmo que a data do recibo esteja semanas diferente (uma compra registrada bem depois de ser lançada) ou o nome do fornecedor tenha sido alterado. Nem a data nem o fornecedor escondem mais uma correspondência real; eles afetam apenas a ordem das sugestões.",
+    },
+  },
+  {
     id: 'v12.7',
     version: 'v12.7',
     date: '2026-07-16',
