@@ -443,6 +443,10 @@ The first Labs experiment: match expense receipts against the line items on a cr
 
 Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is.
 
+**Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small violet comment badge.
+
+**Reconciliation report** (full admins). The **Reconciliation report** button on the statement list opens a report of every charge across all statements: which are matched and which aren't, who reconciled each and when. Filter by card, status, person, or date, and export to CSV — including a one-click **Export unreconciled** to produce a list of what's still outstanding to send around.
+
 ---
 
 ## What's New (Footer Link)

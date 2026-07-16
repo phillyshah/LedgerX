@@ -6,8 +6,22 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.0`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.1`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.1 (CC reconciliation comments + report)**:
+  1. SQL editor: run **`20260726000000_labs_reconciliation_comments_and_report.sql`**
+     (idempotent; tested locally). Adds `statement_line_item_comments` table +
+     RLS, `list_line_item_comments` / `reconciliation_mentionable` /
+     `reconciliation_mention_recipients` / `list_reconciliation_report` RPCs, a
+     comment→notification trigger, and ALTERs the `notifications` kind +
+     entity_type CHECKs (adds `reconcile_mention` / `statement_line_item`).
+  2. Dashboard: create the **`send-reconcile-mention`** edge function (paste from
+     repo; Verify JWT ON, reuses `RESEND_API_KEY` / `APP_URL` / `NOTIFICATION_FROM_EMAIL`
+     — no new secrets). Bell + WhatsApp are automatic via the DB trigger; this
+     is email only.
+  3. VPS rsync for the frontend.
+  4. Comments/report are super-admin + household-admin (report is full-admin only);
+     no per-household config beyond the existing Labs flag.
 - **⚠️ Pending manual steps for v13.0 (household-admin candidate creator scope)**:
   1. SQL editor: run **`20260725000000_labs_candidate_creator_scope.sql`**
      (idempotent; tested locally). CREATE OR REPLACEs `list_reconciliation_candidates()`

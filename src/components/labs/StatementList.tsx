@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CreditCard, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 
 export interface StatementSummary {
@@ -20,9 +20,11 @@ interface StatementListProps {
   onReconcile: (statement: StatementSummary) => void;
   onDelete: (statementId: string) => void;
   onRename: (statementId: string, newLabel: string) => Promise<boolean>;
+  /** Super-admin only — opens the reconciliation report. Omitted for others. */
+  onOpenReport?: () => void;
 }
 
-export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDelete, onRename }: StatementListProps) {
+export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDelete, onRename, onOpenReport }: StatementListProps) {
   const { t, locale } = useT();
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,15 +84,26 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
           <h2 className="text-xl font-bold text-slate-900">{t('labs.cc.title')}</h2>
           <p className="text-sm text-slate-500 mt-0.5">{t('labs.cc.subtitle')}</p>
         </div>
-        {isAdmin && (
-          <button
-            onClick={onUpload}
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all shadow-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            {t('labs.cc.uploadStatement')}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onOpenReport && (
+            <button
+              onClick={onOpenReport}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl transition-all font-medium"
+            >
+              <FileBarChart className="w-4 h-4" />
+              {t('labs.cc.report.button')}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={onUpload}
+              className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all shadow-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              {t('labs.cc.uploadStatement')}
+            </button>
+          )}
+        </div>
       </div>
 
       {statements.length === 0 ? (

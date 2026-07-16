@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
@@ -9,18 +9,23 @@ import { StatementUpload } from './StatementUpload';
 import { StatementReconcile } from './StatementReconcile';
 import { LabsBadge } from './LabsBadge';
 
+const ReconciliationReport = lazy(() => import('./ReconciliationReport').then((m) => ({ default: m.ReconciliationReport })));
+
 interface CreditCardReconciliationProps {
   onBack: () => void;
+  openLineItemId?: string | null;
+  onLineItemHandled?: () => void;
 }
 
 type View = 'list' | 'upload' | { reconcile: StatementSummary };
 
-export function CreditCardReconciliation({ onBack }: CreditCardReconciliationProps) {
+export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHandled }: CreditCardReconciliationProps) {
   const { t } = useT();
   const { isAdmin } = useAuth();
   const [statements, setStatements] = useState<StatementSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
+  const [showReport, setShowReport] = useState(false);
 
   // Candidate pool spans every participating property (all households for a
   // full admin; every Labs-flagged household for a household admin), loaded
@@ -62,6 +67,25 @@ export function CreditCardReconciliation({ onBack }: CreditCardReconciliationPro
     loadStatements();
   }, [loadStatements]);
 
+  // Deep-link from a comment notification: resolve the line item's statement,
+  // then open its reconcile view (StatementReconcile then preselects the line
+  // item and opens its comments).
+  useEffect(() => {
+    if (!openLineItemId || statements.length === 0) return;
+    let cancelled = false;
+    supabase
+      .from('statement_line_items')
+      .select('statement_id')
+      .eq('id', openLineItemId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const s = statements.find((x) => x.id === data.statement_id);
+        if (s) setView({ reconcile: s });
+      });
+    return () => { cancelled = true; };
+  }, [openLineItemId, statements]);
+
   const handleDelete = async (statementId: string) => {
     await supabase.from('credit_card_statements').delete().eq('id', statementId);
     await loadStatements();
@@ -97,15 +121,23 @@ export function CreditCardReconciliation({ onBack }: CreditCardReconciliationPro
           onReconcile={(s) => setView({ reconcile: s })}
           onDelete={handleDelete}
           onRename={handleRename}
+          onOpenReport={isAdmin ? () => setShowReport(true) : undefined}
         />
       ) : typeof view === 'object' ? (
         <StatementReconcile
           statementId={view.reconcile.id}
           cardLabel={view.reconcile.card_label}
           candidateExpenses={candidateExpenses}
-          onBack={() => { setView('list'); loadStatements(); }}
+          onBack={() => { setView('list'); loadStatements(); onLineItemHandled?.(); }}
+          openLineItemId={openLineItemId}
         />
       ) : null}
+
+      {showReport && (
+        <Suspense fallback={null}>
+          <ReconciliationReport onClose={() => setShowReport(false)} />
+        </Suspense>
+      )}
 
       {view === 'upload' && (
         <StatementUpload

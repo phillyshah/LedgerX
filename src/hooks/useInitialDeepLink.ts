@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 export interface DeepLinkTarget {
-  type: 'estimate' | 'invoice';
+  type: 'estimate' | 'invoice' | 'statement_line_item';
   id: string;
 }
 
@@ -36,18 +36,22 @@ export function useInitialDeepLink(onTarget: (t: DeepLinkTarget) => void): void 
 
     const estimateId = params.get('estimate');
     const invoiceId = params.get('invoice');
+    const lineId = params.get('line');
     const target: DeepLinkTarget | null =
       estimateId && UUID_RE.test(estimateId)
         ? { type: 'estimate', id: estimateId }
         : invoiceId && UUID_RE.test(invoiceId)
           ? { type: 'invoice', id: invoiceId }
-          : null;
+          : lineId && UUID_RE.test(lineId)
+            ? { type: 'statement_line_item', id: lineId }
+            : null;
 
     if (!target) return;
 
     // Strip the deep-link params from the URL, preserving anything else.
     params.delete('estimate');
     params.delete('invoice');
+    params.delete('line');
     const qs = params.toString();
     const newUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
     try { window.history.replaceState(null, '', newUrl); } catch { /* ignore */ }

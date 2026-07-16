@@ -4,12 +4,13 @@ export type NotificationKind =
   | 'estimate_created'
   | 'estimate_status'
   | 'invoice_created'
-  | 'invoice_paid';
+  | 'invoice_paid'
+  | 'reconcile_mention';
 
 export interface AppNotification {
   id: string;
   kind: NotificationKind;
-  entity_type: 'estimate' | 'invoice';
+  entity_type: 'estimate' | 'invoice' | 'statement_line_item';
   entity_id: string;
   household_id: string | null;
   actor_id: string | null;
