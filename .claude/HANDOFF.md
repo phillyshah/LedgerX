@@ -6,8 +6,16 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.9`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.0`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.0 (household-admin candidate creator scope)**:
+  1. SQL editor: run **`20260725000000_labs_candidate_creator_scope.sql`**
+     (idempotent; tested locally). CREATE OR REPLACEs `list_reconciliation_candidates()`
+     + `can_act_on_expense()` to hide receipts submitted by OTHER household admins or
+     full admins from a household admin's candidate list (they still see own + regular
+     users + contractors). Full admins unchanged. **SQL-only — no frontend change**, but
+     rsync the v13.0 build for the version bump.
+  2. No What's New entry (access-scoping refinement, nothing to announce — same call as v12.6).
 - **⚠️ Pending manual steps for v12.9 (cross-household reconciliation candidates)**:
   1. SQL editor: run **`20260724000000_labs_reconciliation_cross_household.sql`**
      (idempotent; tested locally). Adds `list_reconciliation_candidates()` RPC +
