@@ -891,7 +891,7 @@
   "whatsapp.phoneDuplicate": "That number is already linked to a user.",
 
   "admin.hh.labsCcReconciliation": "Labs: Credit Card Reconciliation",
-  "admin.hh.labsCcReconciliationHelp": "Let this household's members match their receipts against admin-uploaded credit card statements in LedgerX Labs.",
+  "admin.hh.labsCcReconciliationHelp": "Let this household's admin match receipts against admin-uploaded credit card statements in LedgerX Labs. Only full admins and household admins can use this — regular members and contractors never see it.",
 
   "labs.badge": "Labs",
   "labs.experimentalNotice": "LABS · EXPERIMENTAL — may change or be removed, feedback welcome.",

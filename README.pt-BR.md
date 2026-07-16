@@ -428,18 +428,18 @@ Os resultados vêm do registro público CMS NPPES. O botão fica oculto em resid
 ## LedgerX Labs
 <!-- roles: member, admin -->
 
-O **LedgerX Labs** é um espaço para ferramentas experimentais que estamos testando antes de decidir se elas passam a fazer parte do app principal. Recursos do Labs podem mudar ou ser removidos — seu feedback é bem-vindo. A seção Labs só aparece para residências em que um administrador ativou algum experimento, e nunca é exibida para prestadores.
+O **LedgerX Labs** é um espaço para ferramentas experimentais que estamos testando antes de decidir se elas passam a fazer parte do app principal. Recursos do Labs podem mudar ou ser removidos — seu feedback é bem-vindo. **O LedgerX Labs está disponível somente para administradores completos e administradores de residência** — membros comuns e prestadores nunca o veem, mesmo em residências onde está ativado.
 
 ### Conciliação de Cartão de Crédito
 
-O primeiro experimento do Labs: associe seus recibos de despesa aos lançamentos de uma fatura de cartão de crédito, para confirmar que toda cobrança do cartão tem um recibo correspondente no LedgerX.
+O primeiro experimento do Labs: associe recibos de despesa aos lançamentos de uma fatura de cartão de crédito, para confirmar que toda cobrança do cartão tem um recibo correspondente no LedgerX.
 
-1. Um administrador ativa **Labs: Conciliação de Cartão de Crédito** para sua residência (Administrador → Gerenciar Residências → Recursos).
+1. Um administrador ativa **Labs: Conciliação de Cartão de Crédito** para uma residência (Administrador → Gerenciar Residências → Recursos).
 2. Um administrador envia uma fatura de cartão — como exportação CSV, ou como PDF/foto que o LedgerX lê automaticamente — em **LedgerX Labs → Conciliação de Cartão de Crédito**. Uma fatura não pertence a uma única residência, já que um mesmo cartão costuma cobrir mais de um imóvel.
-3. Qualquer pessoa em uma residência habilitada abre a fatura e percorre seus lançamentos, associando cada um a um recibo já cadastrado no LedgerX. As sugestões de associação são ordenadas por valor, data e fornecedor — um botão permanente de **Associação automática** resolve os casos óbvios com um toque, e qualquer associação pode ser desfeita.
+3. O administrador dessa residência (ou um administrador completo) abre a fatura e percorre seus lançamentos, associando cada um a um recibo já cadastrado no LedgerX. As sugestões de associação são ordenadas por valor, data e fornecedor — um botão permanente de **Associação automática** resolve os casos óbvios com um toque, e qualquer associação pode ser desfeita.
 4. Você também pode começar por um recibo que já tem: abra-o na sua lista de transações e escolha **Associar a fatura de cartão** para buscar o lançamento correspondente diretamente. Depois de associada, essa transação exibe uma pequena etiqueta violeta **Associado** na sua lista de transações.
 
-Somente um administrador completo pode enviar faturas — e renomear uma depois, tocando no ícone de lápis ao lado dela, útil para corrigir um erro de digitação ou esclarecer qual cartão é. A associação fica aberta a qualquer membro da residência da fatura.
+Somente um administrador completo pode enviar faturas — e renomear uma depois, tocando no ícone de lápis ao lado dela, útil para corrigir um erro de digitação ou esclarecer qual cartão é.
 
 ---
 
