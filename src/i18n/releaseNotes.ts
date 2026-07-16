@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.7',
+    version: 'v12.7',
+    date: '2026-07-16',
+    title: {
+      'en': 'Credit Card Reconciliation: better matching + browse all receipts',
+      'pt-BR': 'Conciliação de Cartão: correspondência melhor + navegar por todos os recibos',
+    },
+    body: {
+      'en':
+        "Two improvements to Credit Card Reconciliation in LedgerX Labs. First, matching now looks across every property's receipts, so a charge on a shared card finds its receipt even when it lives in a different household than the one you usually work in. Second, when the suggested matches don't include the one you want, you can now search and browse the full list of receipts and pick the right one by hand — no more dead-ends. Perfect amount-and-date matches are also recognized more reliably for one-tap auto-matching.",
+      'pt-BR':
+        "Duas melhorias na Conciliação de Cartão de Crédito no LedgerX Labs. Primeiro, a correspondência agora considera os recibos de todas as propriedades, então uma cobrança em um cartão compartilhado encontra seu recibo mesmo quando ele está em uma residência diferente daquela em que você costuma trabalhar. Segundo, quando as sugestões não incluem o recibo que você quer, agora você pode buscar e navegar pela lista completa de recibos e escolher o certo manualmente — sem mais becos sem saída. Correspondências exatas de valor e data também são reconhecidas de forma mais confiável para associação automática com um toque.",
+    },
+  },
+  {
     id: 'v12.5',
     version: 'v12.5',
     date: '2026-07-15',

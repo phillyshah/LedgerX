@@ -557,7 +557,7 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
-              {activeView === 'labs' && hasAnyLabsFlag && <LabsHome expenses={expenses} />}
+              {activeView === 'labs' && hasAnyLabsFlag && <LabsHome />}
               {/* Full admins get the in-header Submit button (their quick actions
                   live only on Home). Household admins already have a persistent
                   Submit Invoice in the action row above, so omit it to avoid a

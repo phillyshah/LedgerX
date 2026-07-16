@@ -59,7 +59,12 @@ export function scoreCandidate(lineItem: StatementLineItem, expense: Expense): M
 
   const tScore = textOverlapScore(lineItem.description, expense.vendor);
   // Amount and date dominate; text is a tiebreaker weighted much lower.
-  const score = aScore * 0.6 + dScore * 0.3 + tScore * 0.1;
+  // Round to kill floating-point dust: without this an exact amount + exact
+  // date (aScore=dScore=1, tScore=0) sums to 0.8999999999999999, landing
+  // *just under* isHighConfidence's 0.9 auto-match threshold — so a perfect
+  // amount/date match with a cryptic vendor string ("LOWES #02417*") would
+  // silently fail to auto-match. Rounding makes it a clean 0.9.
+  const score = Math.round((aScore * 0.6 + dScore * 0.3 + tScore * 0.1) * 1000) / 1000;
 
   const reasons: string[] = [];
   if (aScore === 1) reasons.push('exactAmount');
@@ -77,6 +82,29 @@ export function rankCandidates(lineItem: StatementLineItem, expenses: Expense[])
     .map((e) => scoreCandidate(lineItem, e))
     .filter((c): c is MatchCandidate => c !== null)
     .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * A closeness score for sorting the full "browse all receipts" universe —
+ * unlike scoreCandidate() this NEVER excludes an out-of-bounds expense, so
+ * the manual picker can still surface a receipt the strict suggestion cutoff
+ * dropped. Higher = closer. Not used for the trusted "Suggested" list or
+ * bulk auto-match (those stay strict via rankCandidates/isHighConfidence).
+ */
+export function looseScore(lineItem: StatementLineItem, expense: Expense): number {
+  const amountDiff = Math.abs(lineItem.amount - expense.total);
+  const dateDiff = Math.abs(
+    parseExpenseDate(lineItem.line_date).getTime() - parseExpenseDate(expense.expense_date).getTime()
+  ) / 86_400_000;
+  // Amount dominates (a card charge should match its receipt to the cent),
+  // then date proximity; both are negative contributions so smaller diffs
+  // sort first. Scale keeps amount ahead of date for realistic values.
+  return -(amountDiff * 100 + dateDiff);
+}
+
+/** Every expense scored for the manual browse list, closest first — no exclusion. */
+export function rankAllForBrowse(lineItem: StatementLineItem, expenses: Expense[]): Expense[] {
+  return [...expenses].sort((a, b) => looseScore(lineItem, b) - looseScore(lineItem, a));
 }
 
 /** High-confidence = top score >=0.9 with a clear margin over the runner-up — eligible for bulk auto-match. */
