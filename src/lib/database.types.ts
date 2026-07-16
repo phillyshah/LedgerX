@@ -829,6 +829,28 @@ export interface Database {
         Args: { p_matches: Array<{ line_item_id: string; expense_id: string }> };
         Returns: { matched: number; skipped: Array<{ line_item_id: string; reason: string }> };
       };
+      list_reconciliation_candidates: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          expense_date: string;
+          vendor: string | null;
+          total: number;
+          currency: string;
+          category: string | null;
+          notes: string | null;
+          transcript: string | null;
+          household_id: string | null;
+          household_name: string | null;
+          image_path: string | null;
+          image_mime: string | null;
+          image_width: number | null;
+          image_height: number | null;
+          created_by: string | null;
+          submitter_username: string | null;
+          paid_at: string | null;
+        }>;
+      };
     };
   };
 }
