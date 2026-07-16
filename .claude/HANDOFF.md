@@ -6,8 +6,21 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.7`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.9`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v12.9 (cross-household reconciliation candidates)**:
+  1. SQL editor: run **`20260724000000_labs_reconciliation_cross_household.sql`**
+     (idempotent; tested locally). Adds `list_reconciliation_candidates()` RPC +
+     loosens `can_act_on_expense()` so any Labs-eligible admin can match across
+     all Labs-flagged properties.
+  2. **Turn ON the Labs flag for every property whose receipts should be
+     matchable** (Admin → Manage Households → <house> → Features). A property's
+     expenses only appear as candidates once it's enrolled. This is the actual
+     cause of the "$806.26 HomeAve receipt missing" report — the reconciler was
+     a household admin, and HomeAve wasn't in their flagged set / wasn't flagged.
+  3. VPS rsync for the frontend.
+- **v12.8 (amount-only matching)** and **v12.7 (pool fix + browse)** merged +
+  presumed deployed; footer confirmed v12.8 live during testing.
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
   `git checkout -B <branch> origin/main` to start fresh on top of merged work.

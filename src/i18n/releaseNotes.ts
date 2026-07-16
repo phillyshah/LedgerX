@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v12.9',
+    version: 'v12.9',
+    date: '2026-07-16',
+    title: {
+      'en': 'Credit Card Reconciliation now spans every property',
+      'pt-BR': 'Conciliação de Cartão agora abrange todas as propriedades',
+    },
+    body: {
+      'en':
+        "When you reconcile a credit card statement, the list of receipts to match against now covers every property enrolled in Labs — not just the ones you personally belong to. A shared card that was used at several properties can be reconciled in one place, and any admin (full admins and household admins alike) can match a charge to the right receipt no matter which property it belongs to. To include a property's receipts, an admin just needs to turn on Labs → Credit Card Reconciliation for that household under Manage Households → Features.",
+      'pt-BR':
+        "Ao conciliar uma fatura de cartão de crédito, a lista de recibos para associar agora abrange todas as propriedades inscritas no Labs — não apenas aquelas às quais você pertence. Um cartão compartilhado usado em várias propriedades pode ser conciliado em um só lugar, e qualquer administrador (tanto administradores completos quanto administradores de residência) pode associar uma cobrança ao recibo certo, não importa a qual propriedade ele pertença. Para incluir os recibos de uma propriedade, um administrador só precisa ativar Labs → Conciliação de Cartão de Crédito para aquela residência em Gerenciar Residências → Recursos.",
+    },
+  },
+  {
     id: 'v12.8',
     version: 'v12.8',
     date: '2026-07-16',

@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLabsAccess } from '../../hooks/useLabsAccess';
 import { useReconciliationCandidates } from '../../hooks/useReconciliationCandidates';
 import { StatementList, type StatementSummary } from './StatementList';
 import { StatementUpload } from './StatementUpload';
@@ -19,19 +18,15 @@ type View = 'list' | 'upload' | { reconcile: StatementSummary };
 export function CreditCardReconciliation({ onBack }: CreditCardReconciliationProps) {
   const { t } = useT();
   const { isAdmin } = useAuth();
-  const { labsHouseholds } = useLabsAccess();
   const [statements, setStatements] = useState<StatementSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
 
-  // Candidate pool spans every household the caller is authorized to match
-  // against (all households for a full admin; the caller's Labs-flagged
-  // households for a household admin) — NOT just useExpenses()'s
-  // membership-scoped set, which would hide expenses in households the
-  // reconciling admin doesn't personally belong to (the whole point: a
-  // statement covers multiple properties).
-  const labsHouseholdIds = useMemo(() => labsHouseholds.map((h) => h.id), [labsHouseholds]);
-  const { candidates: candidateExpenses } = useReconciliationCandidates(true, labsHouseholdIds);
+  // Candidate pool spans every participating property (all households for a
+  // full admin; every Labs-flagged household for a household admin), loaded
+  // via a SECURITY DEFINER RPC — a statement covers multiple properties, so
+  // matching can't be scoped to the reconciling admin's own households.
+  const { candidates: candidateExpenses } = useReconciliationCandidates(true);
 
   const loadStatements = useCallback(async () => {
     setLoading(true);
