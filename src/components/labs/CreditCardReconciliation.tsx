@@ -1,29 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Expense } from '../../types/expense';
 import { useLabsAccess } from '../../hooks/useLabsAccess';
+import { useReconciliationCandidates } from '../../hooks/useReconciliationCandidates';
 import { StatementList, type StatementSummary } from './StatementList';
 import { StatementUpload } from './StatementUpload';
 import { StatementReconcile } from './StatementReconcile';
 import { LabsBadge } from './LabsBadge';
 
 interface CreditCardReconciliationProps {
-  expenses: Expense[];
   onBack: () => void;
 }
 
 type View = 'list' | 'upload' | { reconcile: StatementSummary };
 
-export function CreditCardReconciliation({ expenses, onBack }: CreditCardReconciliationProps) {
+export function CreditCardReconciliation({ onBack }: CreditCardReconciliationProps) {
   const { t } = useT();
   const { isAdmin } = useAuth();
   const { labsHouseholds } = useLabsAccess();
   const [statements, setStatements] = useState<StatementSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
+
+  // Candidate pool spans every household the caller is authorized to match
+  // against (all households for a full admin; the caller's Labs-flagged
+  // households for a household admin) — NOT just useExpenses()'s
+  // membership-scoped set, which would hide expenses in households the
+  // reconciling admin doesn't personally belong to (the whole point: a
+  // statement covers multiple properties).
+  const labsHouseholdIds = useMemo(() => labsHouseholds.map((h) => h.id), [labsHouseholds]);
+  const { candidates: candidateExpenses } = useReconciliationCandidates(true, labsHouseholdIds);
 
   const loadStatements = useCallback(async () => {
     setLoading(true);
@@ -70,15 +78,6 @@ export function CreditCardReconciliation({ expenses, onBack }: CreditCardReconci
     await loadStatements();
     return true;
   };
-
-  // Candidate pool for matching: expenses belonging to a household the
-  // current user is a member of with the Labs flag on. Full admins bypass
-  // the flag everywhere else in this app, so they see every household's
-  // expenses that useExpenses() already loaded for them.
-  const labsHouseholdIds = new Set(labsHouseholds.map((h) => h.id));
-  const candidateExpenses = isAdmin
-    ? expenses
-    : expenses.filter((e) => e.household_id && labsHouseholdIds.has(e.household_id));
 
   const priorCardLabels = [...new Set(statements.map((s) => s.card_label))];
 

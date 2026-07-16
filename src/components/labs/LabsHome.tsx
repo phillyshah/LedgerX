@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useT } from '../../hooks/useT';
-import type { Expense } from '../../types/expense';
 import { LabsBadge } from './LabsBadge';
 import { CreditCardReconciliation } from './CreditCardReconciliation';
-
-interface LabsHomeProps {
-  expenses: Expense[];
-}
 
 type Experiment = 'cc_reconciliation';
 
@@ -17,12 +12,12 @@ type Experiment = 'cc_reconciliation';
  * self-contained screen; there's no shared "Labs" state beyond the flag
  * check that got the user here in the first place.
  */
-export function LabsHome({ expenses }: LabsHomeProps) {
+export function LabsHome() {
   const { t } = useT();
   const [active, setActive] = useState<Experiment | null>(null);
 
   if (active === 'cc_reconciliation') {
-    return <CreditCardReconciliation expenses={expenses} onBack={() => setActive(null)} />;
+    return <CreditCardReconciliation onBack={() => setActive(null)} />;
   }
 
   return (

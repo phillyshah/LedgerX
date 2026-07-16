@@ -6,7 +6,7 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.6`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.7`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
@@ -14,12 +14,20 @@ substantial session.
   **The remote branch auto-deletes when its PR merges** — see deploy gotcha #6.
 - **v12.3–v12.5 (LedgerX Labs + OCR year-misread fix + rename/badge)**: fully
   deployed and user-confirmed working (PRs #73/#74/#75 merged).
-- **⚠️ Pending manual steps for v12.6 (Labs access restricted to admins only)**:
-  1. SQL editor: run **`20260723000000_labs_household_admin_only.sql`** (idempotent;
-     tested locally — see below). No new secrets, no edge function changes.
-  2. VPS rsync for the frontend.
-  3. That's it — regular household members lose Labs access (UI + RLS + RPC-level),
-     nothing else about the feature changes.
+- **v12.6 (Labs access restricted to admins/household-admins)**: PR #76 merged;
+  migration `…723` must be run in SQL editor if not yet done.
+- **⚠️ Pending manual steps for v12.7 (CC Reconciliation matching fix + browse-all)**:
+  1. VPS rsync for the frontend. **No migration, no edge function, no secrets** —
+     pure frontend (new `useReconciliationCandidates` hook + reconcile-screen UI).
+  2. Root cause of the reported "obvious match not detected" bug: the candidate
+     pool came from `useExpenses()`, which is scoped to households the RECONCILING
+     user is personally a member of — so a full admin reconciling a statement that
+     covers a household they don't belong to never saw those expenses. Fix loads
+     the pool per-role (full admin → all expenses via RLS's `is_admin()` bypass;
+     household admin → their flagged households). Also added a searchable "browse
+     all receipts" fallback in the right pane, and rounded the match score to fix
+     a float-dust issue where an exact amount+date pair scored 0.8999… and missed
+     the 0.9 auto-match threshold.
 - **⚠️ Pending manual steps for v12.2 (WhatsApp)** — full checklist in the deploy
   instructions message; summary:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
