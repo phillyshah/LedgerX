@@ -891,7 +891,7 @@
   "whatsapp.phoneDuplicate": "Esse número já está vinculado a um usuário.",
 
   "admin.hh.labsCcReconciliation": "Labs: Conciliação de Cartão de Crédito",
-  "admin.hh.labsCcReconciliationHelp": "Permite que os membros deste grupo associem seus recibos às faturas de cartão de crédito enviadas pelo admin no LedgerX Labs.",
+  "admin.hh.labsCcReconciliationHelp": "Permite que o admin deste grupo associe recibos às faturas de cartão de crédito enviadas pelo admin no LedgerX Labs. Somente administradores completos e administradores de residência podem usar isso — membros comuns e prestadores nunca veem essa opção.",
 
   "labs.badge": "Labs",
   "labs.experimentalNotice": "LABS · EXPERIMENTAL — pode mudar ou ser removido, envie seu feedback.",

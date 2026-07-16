@@ -10,17 +10,22 @@ export interface LabsHousehold {
 
 /**
  * Which households the current user belongs to have opted into which
- * `labs_*` experiment flags (households.features_enabled). Contractors are
- * always excluded — Labs experiments are member/admin tools. Full admins
- * bypass per-household flags entirely, same as everywhere else in this app.
+ * `labs_*` experiment flags (households.features_enabled). Labs is
+ * restricted to full admins and household admins only — regular members
+ * and contractors never see or touch it, enforced both here (so the UI
+ * never even queries) and server-side (RLS + can_act_on_expense() require
+ * the same is_admin() OR is_household_admin() check, so this isn't just a
+ * client-side gate). Full admins bypass per-household flags entirely, same
+ * as everywhere else in this app.
  */
 export function useLabsAccess() {
-  const { user, isAdmin, isContractor } = useAuth();
+  const { user, isAdmin, isHouseholdAdmin } = useAuth();
   const [households, setHouseholds] = useState<LabsHousehold[]>([]);
   const [loading, setLoading] = useState(true);
+  const eligibleRole = isAdmin || isHouseholdAdmin;
 
   useEffect(() => {
-    if (!user || isContractor) {
+    if (!user || !eligibleRole) {
       setHouseholds([]);
       setLoading(false);
       return;
@@ -45,7 +50,7 @@ export function useLabsAccess() {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isContractor]);
+  }, [user?.id, eligibleRole]);
 
   const labsHouseholds = households.filter((h) =>
     Object.entries(h.flags).some(([key, on]) => key.startsWith('labs_') && on)

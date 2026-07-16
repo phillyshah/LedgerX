@@ -21,8 +21,7 @@ import { EmailInboxPanel } from './EmailInboxPanel';
 import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
-import { useLabsAccess } from '../hooks/useLabsAccess';
-import { Mail, BarChart3, ListChecks, FileSignature, FlaskConical } from 'lucide-react';
+import { Mail, BarChart3, ListChecks, FileSignature } from 'lucide-react';
 
 // Modals + heavy chart bundles only mount on user action, so lazy-loading
 // keeps them out of the initial Dashboard chunk.
@@ -35,7 +34,6 @@ const UserSettings = lazy(() => import('./UserSettings').then((m) => ({ default:
 const HelpModal = lazy(() => import('./HelpModal').then((m) => ({ default: m.HelpModal })));
 const WhatsNewModal = lazy(() => import('./WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
 const SpendingCharts = lazy(() => import('./SpendingCharts').then((m) => ({ default: m.SpendingCharts })));
-const LabsHome = lazy(() => import('./labs/LabsHome').then((m) => ({ default: m.LabsHome })));
 
 function ChartsSkeleton() {
   return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
@@ -69,7 +67,6 @@ export function Dashboard() {
   // that lingered when two independent hooks ran side by side.
   const { items: inboxItems, loading: inboxLoading, discard: inboxDiscard, accept: inboxAccept } = useEmailInbox(0);
   const inboxCount = inboxItems.length;
-  const { hasAnyLabsFlag } = useLabsAccess();
 
   // Tracks which inbox item (if any) sourced the currently-open form so
   // we can mark it accepted on save and surface a toast confirming the
@@ -472,19 +469,6 @@ export function Dashboard() {
               </Suspense>
             </div>
           </CollapsibleSection>
-
-          {hasAnyLabsFlag && (
-            <CollapsibleSection
-              storageKey="dashboard.labs"
-              title={t('labs.home.title')}
-              icon={<FlaskConical className="w-4 h-4" />}
-              defaultExpanded={false}
-            >
-              <Suspense fallback={<ChartsSkeleton />}>
-                <LabsHome expenses={expenses} />
-              </Suspense>
-            </CollapsibleSection>
-          )}
         </div>
 
         <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />

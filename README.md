@@ -430,18 +430,18 @@ Results come from the public CMS NPPES registry. The button is hidden for househ
 ## LedgerX Labs
 <!-- roles: member, admin -->
 
-**LedgerX Labs** is a home for experimental tools we're trying out before deciding whether they graduate into the main app. Labs features may change or be removed — feedback is welcome. The Labs section only appears for households where an admin has turned an experiment on, and it's never shown to contractors.
+**LedgerX Labs** is a home for experimental tools we're trying out before deciding whether they graduate into the main app. Labs features may change or be removed — feedback is welcome. **LedgerX Labs is only available to full admins and household admins** — regular members and contractors never see it, even in households where it's turned on.
 
 ### Credit Card Reconciliation
 
-The first Labs experiment: match your expense receipts against the line items on a credit card statement, so you can confirm every charge on the card has a matching receipt on file.
+The first Labs experiment: match expense receipts against the line items on a credit card statement, so you can confirm every charge on the card has a matching receipt on file.
 
-1. An admin enables **Labs: Credit Card Reconciliation** for your household (Admin → Manage Households → Features).
+1. An admin enables **Labs: Credit Card Reconciliation** for a household (Admin → Manage Households → Features).
 2. An admin uploads a card statement — as a CSV export, or as a PDF/photo that LedgerX reads automatically — under **LedgerX Labs → Credit Card Reconciliation**. A statement isn't tied to one household, since one card often covers more than one property.
-3. Anyone in an enabled household opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Suggested matches are ranked by amount, date, and vendor — a persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone.
+3. That household's admin (or a full admin) opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Suggested matches are ranked by amount, date, and vendor — a persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone.
 4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly. Once matched, that transaction shows a small violet **Matched** tag in your transaction list.
 
-Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is. Matching is open to any household member the statement's household admits.
+Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is.
 
 ---
 

@@ -6,28 +6,20 @@ substantial session.
 
 ## Current state
 
-- **Version `v12.4`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v12.6`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **Branch**: `claude/add-setup-for-all-users-ZsXaT` (rolling; reused every session).
   Before starting: `git fetch origin main && git log origin/main..HEAD` — if empty,
   `git checkout -B <branch> origin/main` to start fresh on top of merged work.
   **The remote branch auto-deletes when its PR merges** — see deploy gotcha #6.
-- **v12.3 (LedgerX Labs) is live**: migration ran, `extract-statement` deployed, PR #73
-  merged. User testing surfaced a real bug, fixed in v12.4 below.
-- **⚠️ Pending manual steps for v12.4 (CC Reconciliation OCR year-misread fix)** —
-  PR #74:
-  1. Dashboard: **redeploy `extract-statement`** (code changed — now accepts/uses
-     `periodStart`/`periodEnd` in the prompt). Same settings as before (Verify JWT
-     ON, no config.toml entry, `OPENAI_API_KEY` already set).
-  2. Dashboard: **redeploy `extract-receipt`** (code changed — `repairImplausibleYear`
-     no longer "fixes" old past dates, only future ones). Same settings as before.
-  3. No migration, no new secrets.
-  4. VPS rsync for the frontend.
-  5. **The existing test statement has a corrupted line item baked in** (OCR
-     misread 2026 as 2023 before this fix existed) and won't self-heal — delete
-     it (Labs → Credit Card Reconciliation → trash icon, two-tap) and re-upload
-     with the statement period filled in (now required for PDF/photo uploads).
-     Confirm the Lowe's line item reads the correct year and shows up as a match.
+- **v12.3–v12.5 (LedgerX Labs + OCR year-misread fix + rename/badge)**: fully
+  deployed and user-confirmed working (PRs #73/#74/#75 merged).
+- **⚠️ Pending manual steps for v12.6 (Labs access restricted to admins only)**:
+  1. SQL editor: run **`20260723000000_labs_household_admin_only.sql`** (idempotent;
+     tested locally — see below). No new secrets, no edge function changes.
+  2. VPS rsync for the frontend.
+  3. That's it — regular household members lose Labs access (UI + RLS + RPC-level),
+     nothing else about the feature changes.
 - **⚠️ Pending manual steps for v12.2 (WhatsApp)** — full checklist in the deploy
   instructions message; summary:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
@@ -69,7 +61,7 @@ substantial session.
   `NOTIFICATION_FROM_EMAIL`, `APP_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
   `CRON_SECRET`. **New for v12.2**: the four `TWILIO_*` secrets above.
 
-## Features shipped (recent sessions, v11.5–v12.3)
+## Features shipped (recent sessions, v11.5–v12.6)
 
 | Ver | What | Key files |
 |---|---|---|
@@ -80,7 +72,10 @@ substantial session.
 | v12.0 | **@mention chat → email + `chat_mention` bell**, deep-linked | `…715`, `send-mention-notification`, `EstimateChat.tsx`, `useInitialDeepLink.ts` |
 | v12.1 | **Admin edits invoice/estimate fields**; **payment method on mark-paid**; **delete notifications** | `…716`, `AdminInvoices.tsx`, `AdminEstimates.tsx`, `NotificationBell.tsx` |
 | v12.2 | **WhatsApp**: text the bot to create expense/invoice/estimate (NL via OpenAI, YES-confirm), add photos to existing, keyword reports; **notifications to WhatsApp** per user channel pref (email/whatsapp/both); admin phone mgmt | `…717 whatsapp_integration.sql`, `whatsapp-inbound`, `whatsapp-send`, 4 patched send-*, `useWhatsApp.ts`, `ManageUsers.tsx`, `UserSettings.tsx` |
-| v12.3 | **LedgerX Labs** (new experimental-features area) + first experiment **Credit Card Reconciliation**: admin uploads a statement (CSV, or PDF/photo OCR'd via a new edge fn), household members match line items to their own receipts (client-side scoring, bulk auto-match, reverse "Match to card statement" entry point on the expense list) | `…722 labs_cc_statement_reconciliation.sql`, `extract-statement`, `src/components/labs/*`, `statementMatching.ts`, `statementCsv.ts`, `statementScanner.ts`, `useLabsAccess.ts` |
+| v12.3 | **LedgerX Labs** (new experimental-features area) + first experiment **Credit Card Reconciliation**: admin uploads a statement (CSV, or PDF/photo OCR'd via a new edge fn), members match line items to their own receipts (client-side scoring, bulk auto-match, reverse "Match to card statement" entry point on the expense list) | `…722 labs_cc_statement_reconciliation.sql`, `extract-statement`, `src/components/labs/*`, `statementMatching.ts`, `statementCsv.ts`, `statementScanner.ts`, `useLabsAccess.ts` |
+| v12.4 | **Fix**: statement OCR year-misread (no digit-repair, unlike receipt OCR) broke matching; added period-based repair + loosened `extract-receipt`'s over-aggressive year "fix" | `statementDateRepair.ts`, `extract-statement`, `extract-receipt` |
+| v12.5 | Rename an uploaded statement (admin); small "Matched" badge on matched transactions; announced the whole Labs CC feature via What's New (skipped at v12.3 launch) | `StatementList.tsx`, `useMatchedCardLabels.ts`, `releaseNotes.ts` |
+| v12.6 | **Restricted Labs access to full admins + household admins only** (was: any non-contractor member) — RLS + `can_act_on_expense()` + `useLabsAccess.ts` all tightened; dead Labs UI removed from `Dashboard.tsx` | `…723 labs_household_admin_only.sql`, `useLabsAccess.ts`, `Dashboard.tsx` |
 
 ## Decisions (don't re-litigate)
 
@@ -111,40 +106,34 @@ substantial session.
 - **i18n**: all UI labels/aria in en+pt-BR; chat *message content* is NOT translated.
 - **Email-command auth** = `resolve_sender_email` over `user_sender_emails`;
   unknown senders silently dropped; RPCs take explicit `p_user_id` (service role).
-- **LedgerX Labs (v12.3)**: first use of `features_enabled` with an actual visual
-  identity (violet accent, `LabsBadge`) instead of a silent `if (!flag) return
-  null`. Per-experiment flags (`labs_*` prefix), no umbrella `labs` column —
-  `hasAnyLabsFlag` in `useLabsAccess.ts` is just "does any key start with
-  `labs_`". **Statements are admin-only and NOT household-scoped** (one card can
-  cover multiple properties) — `credit_card_statements` carries no
-  `household_id`; only `statement_line_items` end up tied to a household,
-  indirectly, once matched to an expense. Matching/unmatching is **RPC-only**
-  (`match_statement_line_item` / `unmatch_statement_line_item` /
-  `bulk_match_statement_line_items`), never a client UPDATE policy, because the
-  authorization check ("can this caller touch the target *expense*") can't be
-  expressed as a clean RLS predicate on `statement_line_items` alone. Matching
-  scoring (`statementMatching.ts`) is deliberately **client-side, no AI call** —
-  amount (dominant) + date decay + vendor text-overlap tiebreaker. OCR
-  (`extract-statement`) uses `detail:"high"` unlike the existing lean
-  receipt/invoice OCR (`"low"`) since statement tables are dense and misreads
-  are costly — capped at 10 pages/request. Per CLAUDE.md tension: shipped with
-  full i18n/version-bump/HANDOFF/README compliance but **intentionally skipped
-  a global "What's New" release-notes entry** — a household-gated experimental
-  feature invisible to most households doesn't belong in a global changelog;
-  revisit this call if Labs features start shipping regularly.
-- **CC Reconciliation OCR year-misread fix (v12.4)**: real-world testing found
-  `extract-statement` had zero defense against digit misreads (unlike
-  `extract-receipt`), producing a 3-year-off date that the matching algorithm
-  then correctly excluded — the scoring logic was never the bug. Fix leans on
-  the statement's human-entered period as ground truth (`statementDateRepair.ts`
-  cross-checks/corrects OCR'd line-item years against it; period start is now
-  required for PDF/photo uploads). Also **loosened `extract-receipt`'s existing
-  year-repair heuristic** to stop "fixing" any receipt >13 months old — that
-  heuristic actively fought this feature's whole premise (reconciling
-  potentially old statements/receipts). Past dates are never auto-corrected now,
-  only implausible future ones. Verified with concrete cases via `tsx` (no test
-  runner in this repo) rather than a real Supabase round-trip — Supabase can't
-  run locally here.
+- **LedgerX Labs / CC Reconciliation — current state (v12.3–v12.6), condensed:**
+  first use of `features_enabled` with an actual visual identity (violet accent,
+  `LabsBadge`) instead of a silent `if (!flag) return null`. Per-experiment flags
+  (`labs_*` prefix, e.g. `labs_cc_reconciliation`), no umbrella `labs` column.
+  **Access is full-admin + household-admin only** (v12.6 correction — originally
+  shipped as "any non-contractor member," tightened on request); enforced at
+  *both* layers: `useLabsAccess.ts` gates the UI on `isAdmin || isHouseholdAdmin`,
+  and — the layer that actually matters — RLS SELECT policies + the
+  `can_act_on_expense()` SECURITY DEFINER function (the sole gate behind all 3
+  matching RPCs) independently require the same role, so a direct RPC call
+  can't bypass a hidden button. **Statements are admin-only and NOT
+  household-scoped** (one card can cover multiple properties) —
+  `credit_card_statements` carries no `household_id`. Matching/unmatching is
+  **RPC-only** (`match_statement_line_item` / `unmatch_statement_line_item` /
+  `bulk_match_statement_line_items`), never a client UPDATE, since "can this
+  caller touch the target *expense*" isn't a clean RLS predicate on
+  `statement_line_items` alone. Matching scoring (`statementMatching.ts`) is
+  **client-side, no AI call** (amount dominant + date decay + vendor
+  text-overlap tiebreaker). OCR (`extract-statement`) uses `detail:"high"`
+  (unlike the "low" on receipt/invoice OCR — statements are dense, misreads
+  costly) capped at 10 pages, and cross-checks extracted line-item years
+  against the uploader-entered statement period (`statementDateRepair.ts`) to
+  catch digit misreads — `extract-receipt`'s separate year-repair heuristic was
+  also loosened to never "fix" a merely-old past date, only an impossible
+  future one. No global "What's New" entry at v12.3 launch (household-gated,
+  felt out of place in a global changelog); added retroactively at v12.5 once
+  that felt wrong. v12.6 (this restriction) intentionally has **no** What's New
+  entry — pure access-control correction, nothing new to announce.
 
 ## Deploy gotchas (learned the hard way)
 
@@ -188,7 +177,8 @@ substantial session.
 `…715 chat_mentions` (v12.0, applied) ·
 **`…716 admin_edit_and_payment_method` ← confirm applied (v12.1)** ·
 **`…717 whatsapp_integration` ← RUN THIS (v12.2)** ·
-**`…722 labs_cc_statement_reconciliation` ← RUN THIS (v12.3)**
+`…722 labs_cc_statement_reconciliation` (v12.3, applied) ·
+**`…723 labs_household_admin_only` ← RUN THIS (v12.6)**
 
 ## Open items
 
