@@ -127,3 +127,47 @@ export function isHighConfidence(candidates: MatchCandidate[]): boolean {
   if (candidates.length === 1) return true;
   return candidates[0].score - candidates[1].score >= 0.15;
 }
+
+// A pending email-inbox receipt, shaped by list_reconciliation_inbox_candidates()
+// for matching purposes — it isn't an `expenses` row yet (full admins only,
+// see the migration comment for why this doesn't extend to household admins).
+export interface InboxCandidate {
+  id: string;
+  from_email: string;
+  subject: string | null;
+  received_at: string;
+  attachment_paths: string[];
+  vendor: string | null;
+  total: number;
+  expense_date: string;
+  notes: string | null;
+  submitter_user_id: string;
+  submitter_username: string | null;
+}
+
+// Duck-typed adapter: scoreCandidate/rankCandidates/rankAllForBrowse only ever
+// read total/expense_date/vendor (+ id for identity), so mapping an inbox row
+// into the same shape lets it score through the existing algorithm unmodified
+// — no separate scoring path to keep in sync. `id` here is the INBOX row's
+// id, not a real expense id; callers must track that a candidate came from
+// this adapter before deciding which RPC (match vs match-from-inbox) to call.
+export function inboxCandidateToExpense(row: InboxCandidate): Expense {
+  return {
+    id: row.id,
+    expense_date: row.expense_date,
+    vendor: row.vendor,
+    total: row.total,
+    currency: 'USD',
+    category: null,
+    notes: row.notes,
+    transcript: null,
+    household_id: null,
+    image_path: null,
+    image_mime: null,
+    image_width: null,
+    image_height: null,
+    created_by: row.submitter_user_id,
+    submitter_username: row.submitter_username ?? undefined,
+    paid_at: null,
+  };
+}

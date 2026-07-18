@@ -447,6 +447,10 @@ Somente um administrador completo pode enviar faturas — e renomear uma depois,
 
 **Corrigindo um lançamento lido errado** (administradores completos). A leitura automática da fatura é boa, mas não é perfeita — às vezes ela pode ler a data errada, confundir o nome do estabelecimento ou errar um dígito no valor. Toque em **Editar** em qualquer lançamento (associado ou não) para corrigir a data, a descrição ou o valor direto na tela de conciliação, sem precisar reenviar a fatura.
 
+**Associando com sua caixa de entrada de e-mail** (administradores completos). A associação automática e as listas manuais de candidatos também verificam os recibos pendentes na sua **caixa de entrada de e-mail** — recibos encaminhados por e-mail que ainda não foram salvos como despesa — marcados com uma etiqueta **Caixa de entrada** para diferenciá-los facilmente. Confirmar uma dessas associações pergunta a qual residência ela pertence (obrigatório) e, opcionalmente, uma categoria, e então cria a despesa automaticamente como parte da associação. A confirmação em lote com um clique da associação automática continua cobrindo apenas recibos já salvos; as associações vindas da caixa de entrada têm seu próprio seletor rápido de residência, já que isso não pode ser adivinhado.
+
+**Categorizando durante o processo** (administradores completos e de residência). Qualquer recibo mostrado como candidato a associação que ainda não tem categoria — vindo da caixa de entrada ou já cadastrado — ganha um pequeno seletor inline para você atribuir uma categoria ali mesmo, enquanto concilia, sem precisar ir até Editar Despesa.
+
 ---
 
 ## Novidades (Link no Rodapé)

@@ -865,6 +865,36 @@ export interface Database {
         Args: { p_line_item_id: string; p_line_date: string; p_description: string; p_amount: number };
         Returns: undefined;
       };
+      list_reconciliation_inbox_candidates: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          id: string;
+          from_email: string;
+          subject: string | null;
+          received_at: string;
+          attachment_paths: string[];
+          vendor: string | null;
+          total: number;
+          expense_date: string;
+          notes: string | null;
+          submitter_user_id: string;
+          submitter_username: string | null;
+        }>;
+      };
+      match_inbox_item_to_line_item: {
+        Args: {
+          p_line_item_id: string;
+          p_inbox_id: string;
+          p_household_id: string;
+          p_category: string | null;
+          p_images: Array<{ path: string; mime: string; width: number | null; height: number | null }>;
+        };
+        Returns: string;
+      };
+      set_expense_category: {
+        Args: { p_expense_id: string; p_category: string | null };
+        Returns: undefined;
+      };
       list_reconciliation_candidates: {
         Args: Record<string, never>;
         Returns: Array<{
