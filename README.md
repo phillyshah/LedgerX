@@ -447,6 +447,8 @@ Only a full admin can upload statements — and rename one later by tapping the 
 
 **Reconciliation report** (full admins). The **Reconciliation report** button on the statement list opens a report of every charge across all statements: which are matched and which aren't, who reconciled each and when. Filter by card, status, person, or date, and export to CSV — including a one-click **Export unreconciled** to produce a list of what's still outstanding to send around.
 
+**Fixing a misread line item** (full admins). Statement scanning is good but not perfect — it can occasionally misread a date, garble a merchant name, or get a digit wrong on the amount. Tap **Edit** on any line item (matched or unmatched) to correct its date, description, or amount right on the reconciliation screen, no re-upload needed.
+
 ---
 
 ## What's New (Footer Link)

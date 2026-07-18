@@ -130,6 +130,7 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
           candidateExpenses={candidateExpenses}
           onBack={() => { setView('list'); loadStatements(); onLineItemHandled?.(); }}
           openLineItemId={openLineItemId}
+          isAdmin={isAdmin}
         />
       ) : null}
 

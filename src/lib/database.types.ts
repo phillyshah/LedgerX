@@ -861,6 +861,10 @@ export interface Database {
         Args: { p_matches: Array<{ line_item_id: string; expense_id: string }> };
         Returns: { matched: number; skipped: Array<{ line_item_id: string; reason: string }> };
       };
+      admin_update_statement_line_item: {
+        Args: { p_line_item_id: string; p_line_date: string; p_description: string; p_amount: number };
+        Returns: undefined;
+      };
       list_reconciliation_candidates: {
         Args: Record<string, never>;
         Returns: Array<{

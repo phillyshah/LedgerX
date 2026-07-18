@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.2',
+    version: 'v13.2',
+    date: '2026-07-18',
+    title: {
+      'en': 'Credit Card Reconciliation: fix a misread line item by hand',
+      'pt-BR': 'Conciliação de Cartão: corrija um lançamento lido errado manualmente',
+    },
+    body: {
+      'en':
+        "Statement scanning is good but not perfect — sometimes it misreads a date, garbles a merchant name, or gets a digit wrong on the amount. Admins can now fix any of that directly: tap \"Edit\" on a statement line item (matched or not) to correct its date, description, or amount, right from the reconciliation screen — no need to delete the statement and start over.",
+      'pt-BR':
+        "A leitura da fatura é boa, mas não é perfeita — às vezes ela lê a data errada, confunde o nome do estabelecimento ou erra um dígito no valor. Agora os administradores podem corrigir isso diretamente: toque em \"Editar\" em qualquer lançamento da fatura (associado ou não) para corrigir a data, a descrição ou o valor, direto na tela de conciliação — sem precisar apagar a fatura e recomeçar.",
+    },
+  },
+  {
     id: 'v13.1',
     version: 'v13.1',
     date: '2026-07-16',

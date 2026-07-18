@@ -966,6 +966,13 @@
   "labs.cc.comments.send": "Send",
   "labs.cc.comments.add": "Comment",
 
+  "labs.cc.edit.tooltip": "Edit",
+  "labs.cc.edit.descriptionPlaceholder": "Description",
+  "labs.cc.edit.amountPlaceholder": "Amount",
+  "labs.cc.edit.descriptionRequired": "Description can't be blank.",
+  "labs.cc.edit.invalidAmount": "Enter a valid date and amount.",
+  "labs.cc.edit.error": "Couldn't save this line item. Please try again.",
+
   "labs.cc.report.button": "Reconciliation report",
   "labs.cc.report.title": "Reconciliation report",
   "labs.cc.report.total": "Entries",

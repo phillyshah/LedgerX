@@ -445,6 +445,8 @@ Somente um administrador completo pode enviar faturas — e renomear uma depois,
 
 **Relatório de conciliação** (administradores completos). O botão **Relatório de conciliação** na lista de faturas abre um relatório de todas as cobranças de todas as faturas: quais estão associadas e quais não, quem conciliou cada uma e quando. Filtre por cartão, status, pessoa ou data e exporte para CSV — incluindo um **Exportar não conciliados** com um clique para gerar uma lista do que ainda está pendente para enviar.
 
+**Corrigindo um lançamento lido errado** (administradores completos). A leitura automática da fatura é boa, mas não é perfeita — às vezes ela pode ler a data errada, confundir o nome do estabelecimento ou errar um dígito no valor. Toque em **Editar** em qualquer lançamento (associado ou não) para corrigir a data, a descrição ou o valor direto na tela de conciliação, sem precisar reenviar a fatura.
+
 ---
 
 ## Novidades (Link no Rodapé)

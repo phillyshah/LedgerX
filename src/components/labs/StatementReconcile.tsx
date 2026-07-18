@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2, MessageCircle, Search, Sparkles, Undo2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Edit2, Loader2, MessageCircle, Search, Sparkles, Undo2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import type { Expense } from '../../types/expense';
@@ -18,6 +18,8 @@ interface StatementReconcileProps {
   onBack: () => void;
   /** When set (from a notification deep-link), preselect this line item and open its comments. */
   openLineItemId?: string | null;
+  /** Full admins only — lets fixing OCR mistakes on a line item's date/description/amount. */
+  isAdmin: boolean;
 }
 
 const REASON_LABEL_KEYS: Record<string, string> = {
@@ -28,7 +30,7 @@ const REASON_LABEL_KEYS: Record<string, string> = {
   vendorMatch: 'labs.cc.reasonVendorMatch',
 };
 
-export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId }: StatementReconcileProps) {
+export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId, isAdmin }: StatementReconcileProps) {
   const { t, locale } = useT();
   const [lineItems, setLineItems] = useState<StatementLineItem[]>([]);
   const [claimedElsewhere, setClaimedElsewhere] = useState<Set<string>>(new Set());
@@ -44,6 +46,12 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
   // line item changes (see effect below).
   const [browseSearch, setBrowseSearch] = useState('');
   const [browseExpanded, setBrowseExpanded] = useState(false);
+  // Admin-only inline edit of a line item's raw OCR'd fields (date/description/
+  // amount) — fixes misreads without needing to delete and re-upload.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ line_date: '', description: '', amount: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const loadCommentCounts = useCallback(async (ids: string[]) => {
     if (ids.length === 0) { setCommentCounts(new Map()); return; }
@@ -174,6 +182,46 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
     await loadLineItems();
   };
 
+  const startEditItem = (item: StatementLineItem) => {
+    setEditError('');
+    setEditingId(item.id);
+    setEditDraft({ line_date: item.line_date, description: item.description, amount: String(item.amount) });
+  };
+
+  const cancelEditItem = () => {
+    setEditingId(null);
+    setEditError('');
+  };
+
+  const saveEditItem = async () => {
+    if (!editingId) return;
+    const description = editDraft.description.trim();
+    const amount = parseFloat(editDraft.amount);
+    if (!description) {
+      setEditError(t('labs.cc.edit.descriptionRequired'));
+      return;
+    }
+    if (!editDraft.line_date || Number.isNaN(amount) || amount < 0) {
+      setEditError(t('labs.cc.edit.invalidAmount'));
+      return;
+    }
+    setSavingEdit(true);
+    setEditError('');
+    const { error: rpcError } = await supabase.rpc('admin_update_statement_line_item', {
+      p_line_item_id: editingId,
+      p_line_date: editDraft.line_date,
+      p_description: description,
+      p_amount: amount,
+    });
+    setSavingEdit(false);
+    if (rpcError) {
+      setEditError(t('labs.cc.edit.error'));
+      return;
+    }
+    setEditingId(null);
+    await loadLineItems();
+  };
+
   const highConfidenceMatches = useMemo(() => {
     return unmatched
       .map((item) => {
@@ -275,6 +323,61 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
             const isSelected = selectedId === item.id;
             const isMatched = !!item.matched_expense_id;
             const matchedExpense = isMatched ? candidateExpenses.find((e) => e.id === item.matched_expense_id) : null;
+            const isEditing = editingId === item.id;
+
+            if (isEditing) {
+              return (
+                <div key={item.id} className="w-full text-left p-3 rounded-xl border border-violet-400 bg-violet-50">
+                  <div className="space-y-2">
+                    <input
+                      type="date"
+                      value={editDraft.line_date}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, line_date: e.target.value }))}
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={editDraft.description}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))}
+                      placeholder={t('labs.cc.edit.descriptionPlaceholder')}
+                      autoFocus
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editDraft.amount}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, amount: e.target.value }))}
+                      placeholder={t('labs.cc.edit.amountPlaceholder')}
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                  </div>
+                  {editError && <p className="text-xs text-red-600 mt-2">{editError}</p>}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={saveEditItem}
+                      disabled={savingEdit}
+                      className="flex-1 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {t('common.save')}
+                    </button>
+                    <button
+                      onClick={cancelEditItem}
+                      disabled={savingEdit}
+                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <button
                 key={item.id}
@@ -319,9 +422,9 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
                     </span>
                   </div>
                 )}
-                {/* Comment / ask — works on matched (disabled) cards too via a
-                    role=button span, same pattern as Undo. */}
-                <div className="mt-2">
+                {/* Comment / ask + edit — work on matched (disabled) cards too
+                    via role=button spans, same pattern as Undo. */}
+                <div className="mt-2 flex items-center justify-between">
                   <span
                     role="button"
                     tabIndex={0}
@@ -336,6 +439,19 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
                     <MessageCircle className="w-3 h-3" />
                     {(commentCounts.get(item.id) ?? 0) > 0 ? commentCounts.get(item.id) : t('labs.cc.comments.add')}
                   </span>
+                  {isAdmin && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); startEditItem(item); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startEditItem(item); } }}
+                      title={t('labs.cc.edit.tooltip')}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-violet-700 hover:bg-violet-50 rounded-full px-2 py-0.5 transition-colors"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      {t('labs.cc.edit.tooltip')}
+                    </span>
+                  )}
                 </div>
               </button>
             );
