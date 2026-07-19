@@ -653,6 +653,24 @@ export interface Database {
         };
         Relationships: [];
       };
+      statement_households: {
+        Row: {
+          statement_id: string;
+          household_id: string;
+          created_at: string;
+        };
+        Insert: {
+          statement_id: string;
+          household_id: string;
+          created_at?: string;
+        };
+        Update: {
+          statement_id?: string;
+          household_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       statement_line_items: {
         Row: {
           id: string;
@@ -896,7 +914,7 @@ export interface Database {
         Returns: undefined;
       };
       list_reconciliation_candidates: {
-        Args: Record<string, never>;
+        Args: { p_statement_id?: string | null };
         Returns: Array<{
           id: string;
           expense_date: string;

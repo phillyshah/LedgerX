@@ -6,8 +6,49 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.3`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.4`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.4 (scope a statement to specific households)**:
+  1. SQL editor: run **`20260729000000_statement_household_scoping.sql`**
+     (idempotent; replayed against local Postgres 16 — scaffold + full
+     `…722`→`…729` chain — 5 assertions: scoped statement includes its
+     household's expenses + any category-NULL expense regardless of
+     household, excludes another household's categorized expense; unscoped
+     legacy statement and `NULL`/zero-arg calls all fall back to the full
+     broad pool unchanged; household admin sees the same scoping within
+     their own visibility). Adds `statement_households` junction table
+     (admin-write, Labs-eligible-read) and **replaces**
+     `list_reconciliation_candidates()` with a 1-arg version
+     (`p_statement_id uuid DEFAULT NULL`) — old zero-arg calls still resolve
+     (tested explicitly) since the old signature is dropped first, not left
+     ambiguously overloaded.
+  2. **No edge function, no new secrets.** VPS rsync for the frontend.
+  3. Why: the prior broad "every Labs-flagged household at once" pool was
+     genuinely suppressing automatic matching — two properties' charges at
+     an identical amount are indistinguishable to the matcher, which quietly
+     kills the high-confidence auto-match bar for both. Tagging a statement
+     with its actual household(s) at upload (optional — `StatementUpload.tsx`
+     gained a multi-select of Labs-flagged households) narrows the pool and
+     makes auto-match meaningfully more decisive, without changing anything
+     for a statement left untagged (today's exact behavior, unchanged).
+  4. Deliberate exception: ANY expense with no category yet (`category IS
+     NULL`) always appears as a candidate regardless of household or
+     scoping — it's likely misfiled/unresolved data that could belong to
+     this statement even if it landed in the wrong household or none.
+     `can_act_on_expense()` was deliberately left untouched (still the
+     broader, unscoped authorization check) — the narrowing only affects
+     what's *suggested*, not what a Labs-eligible admin is *authorized* to
+     act on, so there's no risk of the narrower suggestion list silently
+     blocking a legitimate manual match found via search.
+  5. `candidateExpenses` loading moved from "once at the `CreditCardReconciliation`
+     parent, regardless of which statement is open" to "per open statement" —
+     `useReconciliationCandidates` gained a `statementId` param threaded from
+     `view.reconcile.id`. A statement's assigned households (if any) now
+     surface as a small "Scoped to: ..." label in both `StatementList` and
+     `StatementReconcile`'s header, loaded via a `statement_households` join
+     in `CreditCardReconciliation.loadStatements()` — this is deliberately
+     visible so a scoped statement never silently hides receipts without
+     explanation.
 - **⚠️ Pending manual steps for v13.3 (auto-match against email inbox + in-flow categorize)**:
   1. SQL editor: run **`20260728000000_labs_inbox_matching.sql`** (idempotent;
      replayed against local Postgres 16 — scaffold + `expense_images` +

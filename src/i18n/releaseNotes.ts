@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.4',
+    version: 'v13.4',
+    date: '2026-07-19',
+    title: {
+      'en': 'Credit Card Reconciliation: scope a statement to specific properties',
+      'pt-BR': 'Conciliação de Cartão: restrinja uma fatura a residências específicas',
+    },
+    body: {
+      'en':
+        "When uploading a card statement, you can now optionally pick which property (or properties) it actually covers. Doing so narrows matching to just that property's receipts — plus any receipt that hasn't been categorized yet (wherever it lives) and anything still in the email inbox — which makes automatic matching far more decisive, since it's no longer comparing against every enrolled property's receipts at once. Leave none selected and a statement behaves exactly as before, matching across every enrolled property.",
+      'pt-BR':
+        "Ao enviar uma fatura de cartão, agora você pode escolher opcionalmente qual residência (ou residências) ela realmente cobre. Isso restringe a associação apenas aos recibos daquela residência — além de qualquer recibo ainda sem categoria (onde quer que esteja) e do que estiver na caixa de entrada de e-mail — o que torna a associação automática muito mais decisiva, já que ela deixa de comparar com os recibos de todas as residências participantes ao mesmo tempo. Se nenhuma for selecionada, a fatura se comporta exatamente como antes, associando com todas as residências participantes.",
+    },
+  },
+  {
     id: 'v13.3',
     version: 'v13.3',
     date: '2026-07-18',

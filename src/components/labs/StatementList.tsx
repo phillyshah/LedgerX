@@ -11,6 +11,8 @@ export interface StatementSummary {
   created_at: string;
   totalItems: number;
   matchedItems: number;
+  /** Households this statement was tagged with at upload (empty = matches every enrolled property, as before). */
+  householdNames: string[];
 }
 
 interface StatementListProps {
@@ -163,6 +165,11 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                           ? t('labs.cc.statusError')
                           : t('labs.cc.matchProgress', { matched: String(s.matchedItems), total: String(s.totalItems) })}
                       </p>
+                      {s.householdNames.length > 0 && (
+                        <p className="text-[11px] text-violet-600 font-medium truncate mt-0.5">
+                          {t('labs.cc.scopedTo', { households: s.householdNames.join(', ') })}
+                        </p>
+                      )}
                     </div>
                   </button>
                 )}
