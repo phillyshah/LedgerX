@@ -22,7 +22,7 @@ import type { Expense } from '../types/expense';
  * resolves them server-side, so cross-household tags stay accurate even for
  * properties the caller couldn't read directly).
  */
-export function useReconciliationCandidates(enabled: boolean) {
+export function useReconciliationCandidates(enabled: boolean, refreshKey = 0) {
   const [candidates, setCandidates] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +71,7 @@ export function useReconciliationCandidates(enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, refreshKey]);
 
   return { candidates, loading };
 }

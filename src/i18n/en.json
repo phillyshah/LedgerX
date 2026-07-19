@@ -966,6 +966,22 @@
   "labs.cc.comments.send": "Send",
   "labs.cc.comments.add": "Comment",
 
+  "labs.cc.edit.tooltip": "Edit",
+  "labs.cc.edit.descriptionPlaceholder": "Description",
+  "labs.cc.edit.amountPlaceholder": "Amount",
+  "labs.cc.edit.descriptionRequired": "Description can't be blank.",
+  "labs.cc.edit.invalidAmount": "Enter a valid date and amount.",
+  "labs.cc.edit.error": "Couldn't save this line item. Please try again.",
+
+  "labs.cc.categorize.placeholder": "No category — pick one",
+
+  "labs.cc.inbox.badge": "Inbox",
+  "labs.cc.inbox.pickHousehold": "Which property is this for?",
+  "labs.cc.inbox.noCategory": "No category (optional)",
+  "labs.cc.inbox.confirmMatch": "Confirm match",
+  "labs.cc.inbox.previewHeading": "{count} inbox receipts look like matches too",
+  "labs.cc.inbox.matchError": "Couldn't confirm this match. Please try again.",
+
   "labs.cc.report.button": "Reconciliation report",
   "labs.cc.report.title": "Reconciliation report",
   "labs.cc.report.total": "Entries",

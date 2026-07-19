@@ -1,10 +1,22 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Loader2, MessageCircle, Search, Sparkles, Undo2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Edit2, Loader2, MessageCircle, Search, Sparkles, Undo2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import type { Expense } from '../../types/expense';
-import { rankCandidates, rankAllForBrowse, isHighConfidence, type StatementLineItem, type MatchCandidate } from '../../lib/statementMatching';
+import {
+  rankCandidates,
+  rankAllForBrowse,
+  isHighConfidence,
+  inboxCandidateToExpense,
+  type StatementLineItem,
+  type MatchCandidate,
+  type InboxCandidate,
+} from '../../lib/statementMatching';
 import { parseExpenseDate } from '../../lib/dateUtils';
+import { readImageDimensions } from '../../lib/imagePicker';
+import { useReconciliationInboxCandidates } from '../../hooks/useReconciliationInboxCandidates';
+import { InboxCandidateMatchForm } from './InboxCandidateMatchForm';
+import { CategoryQuickPicker } from './CategoryQuickPicker';
 
 const LineItemCommentsModal = lazy(() => import('./LineItemCommentsModal').then((m) => ({ default: m.LineItemCommentsModal })));
 
@@ -18,6 +30,10 @@ interface StatementReconcileProps {
   onBack: () => void;
   /** When set (from a notification deep-link), preselect this line item and open its comments. */
   openLineItemId?: string | null;
+  /** Full admins only — lets fixing OCR mistakes on a line item's date/description/amount. */
+  isAdmin: boolean;
+  /** Called after an inbox-sourced match creates a brand new expense, so the parent's candidate pool refreshes. */
+  onCandidateCreated?: () => void;
 }
 
 const REASON_LABEL_KEYS: Record<string, string> = {
@@ -28,7 +44,7 @@ const REASON_LABEL_KEYS: Record<string, string> = {
   vendorMatch: 'labs.cc.reasonVendorMatch',
 };
 
-export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId }: StatementReconcileProps) {
+export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId, isAdmin, onCandidateCreated }: StatementReconcileProps) {
   const { t, locale } = useT();
   const [lineItems, setLineItems] = useState<StatementLineItem[]>([]);
   const [claimedElsewhere, setClaimedElsewhere] = useState<Set<string>>(new Set());
@@ -44,6 +60,23 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
   // line item changes (see effect below).
   const [browseSearch, setBrowseSearch] = useState('');
   const [browseExpanded, setBrowseExpanded] = useState(false);
+  // Admin-only inline edit of a line item's raw OCR'd fields (date/description/
+  // amount) — fixes misreads without needing to delete and re-upload.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ line_date: '', description: '', amount: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+  // Pending email-inbox receipts as extra match candidates (full-admin only —
+  // see the migration comment for why this doesn't extend to household admins).
+  const [inboxRefreshKey, setInboxRefreshKey] = useState(0);
+  const { candidates: inboxCandidates } = useReconciliationInboxCandidates(isAdmin, inboxRefreshKey);
+  const inboxById = useMemo(() => new Map(inboxCandidates.map((r) => [r.id, r])), [inboxCandidates]);
+  const [busyInboxId, setBusyInboxId] = useState<string | null>(null);
+  const [inboxErrors, setInboxErrors] = useState<Map<string, string>>(new Map());
+  // Newly-set categories, applied on top of the (parent-owned) candidateExpenses
+  // prop so a categorization shows immediately without waiting on a full reload.
+  const [categoryOverrides, setCategoryOverrides] = useState<Map<string, string>>(new Map());
+  const [categorizingId, setCategorizingId] = useState<string | null>(null);
 
   const loadCommentCounts = useCallback(async (ids: string[]) => {
     if (ids.length === 0) { setCommentCounts(new Map()); return; }
@@ -99,15 +132,23 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
   const unmatched = lineItems.filter((li) => !li.matched_expense_id);
   const matched = lineItems.filter((li) => li.matched_expense_id);
 
-  // Candidates for a given line item, excluding expenses already claimed by
-  // a *different* statement's line item (the DB's partial unique index is
-  // global, not per-statement).
+  // Combined candidate pool: real expenses (excluding ones already claimed by
+  // a *different* statement's line item — the DB's partial unique index is
+  // global, not per-statement) plus, for full admins, pending email-inbox
+  // receipts duck-typed into the same shape (inboxCandidateToExpense) so they
+  // score through the exact same algorithm with no fork. Newly-picked
+  // categories are applied on top so a categorization shows immediately.
+  const combinedPool = useMemo(() => {
+    const expensePool = candidateExpenses
+      .filter((e) => !claimedElsewhere.has(e.id))
+      .map((e) => (categoryOverrides.has(e.id) ? { ...e, category: categoryOverrides.get(e.id)! } : e));
+    const inboxPool = isAdmin ? inboxCandidates.map(inboxCandidateToExpense) : [];
+    return [...expensePool, ...inboxPool];
+  }, [candidateExpenses, claimedElsewhere, categoryOverrides, isAdmin, inboxCandidates]);
+
   const candidatesFor = useCallback(
-    (item: StatementLineItem): MatchCandidate[] => {
-      const pool = candidateExpenses.filter((e) => !claimedElsewhere.has(e.id));
-      return rankCandidates(item, pool);
-    },
-    [candidateExpenses, claimedElsewhere]
+    (item: StatementLineItem): MatchCandidate[] => rankCandidates(item, combinedPool),
+    [combinedPool]
   );
 
   const selectedItem = lineItems.find((li) => li.id === selectedId) ?? null;
@@ -125,7 +166,7 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
   const browseList = useMemo(() => {
     if (!selectedItem) return [];
     const suggestedIds = new Set(suggestions.map((c) => c.expense.id));
-    const pool = candidateExpenses.filter((e) => !claimedElsewhere.has(e.id) && !suggestedIds.has(e.id));
+    const pool = combinedPool.filter((e) => !suggestedIds.has(e.id));
     const q = browseSearch.trim().toLowerCase();
     const filtered = q
       ? pool.filter((e) =>
@@ -133,7 +174,7 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
         )
       : pool;
     return rankAllForBrowse(selectedItem, filtered);
-  }, [selectedItem, suggestions, candidateExpenses, claimedElsewhere, browseSearch]);
+  }, [selectedItem, suggestions, combinedPool, browseSearch]);
 
   // Reset the picker each time a different line item is selected.
   useEffect(() => {
@@ -174,6 +215,132 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
     await loadLineItems();
   };
 
+  // Saves immediately, independent of matching — see set_expense_category's
+  // migration comment for why this isn't bundled into the match confirm.
+  const handleSetCategory = async (expenseId: string, category: string) => {
+    setCategorizingId(expenseId);
+    setError('');
+    const { error: rpcError } = await supabase.rpc('set_expense_category', {
+      p_expense_id: expenseId,
+      p_category: category,
+    });
+    setCategorizingId(null);
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    setCategoryOverrides((prev) => new Map(prev).set(expenseId, category));
+  };
+
+  // Postgres can't move bytes between storage prefixes — download from the
+  // email-inbox path and re-upload under the chosen household, exactly like
+  // AddExpense.tsx's own email-inbox-to-expense path. The RPC only writes the
+  // resulting DB rows.
+  const downloadAndReuploadInboxImages = async (paths: string[], householdId: string) => {
+    const usable = paths.filter((p) => !/\.html?$/i.test(p));
+    const images: Array<{ path: string; mime: string; width: number | null; height: number | null }> = [];
+    for (const p of usable) {
+      const { data, error: downloadError } = await supabase.storage.from('receipts').download(p);
+      if (downloadError || !data) continue;
+      const filename = p.split('/').pop() || 'attachment';
+      const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+      const mime =
+        data.type ||
+        (ext === 'pdf' ? 'application/pdf'
+          : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+          : ext === 'png' ? 'image/png'
+          : ext === 'webp' ? 'image/webp'
+          : 'application/octet-stream');
+      const file = new File([data], filename, { type: mime });
+      const fileName = `${householdId}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('receipts').upload(fileName, file);
+      if (uploadError) continue;
+      const preview = URL.createObjectURL(file);
+      const { width, height } = await readImageDimensions({ file, preview });
+      images.push({ path: fileName, mime, width, height });
+    }
+    return images;
+  };
+
+  // Confirms a match against a pending inbox item: creates the real expense,
+  // dual-writes images, accepts the inbox row, and matches the line item, all
+  // atomically server-side. Used both from the auto-match preview and the
+  // manual per-item candidate list.
+  const handleConfirmInboxMatch = async (
+    lineItemId: string,
+    inboxRow: InboxCandidate,
+    householdId: string,
+    category: string,
+    advance: boolean
+  ) => {
+    setBusyInboxId(inboxRow.id);
+    setInboxErrors((prev) => { const m = new Map(prev); m.delete(inboxRow.id); return m; });
+    try {
+      const images = await downloadAndReuploadInboxImages(inboxRow.attachment_paths, householdId);
+      const { error: rpcError } = await supabase.rpc('match_inbox_item_to_line_item', {
+        p_line_item_id: lineItemId,
+        p_inbox_id: inboxRow.id,
+        p_household_id: householdId,
+        p_category: category || null,
+        p_images: images,
+      });
+      if (rpcError) throw rpcError;
+      setAutoMatchPreview((prev) => {
+        if (!prev) return prev;
+        const remaining = prev.filter((p) => p.candidate.expense.id !== inboxRow.id);
+        return remaining.length > 0 ? remaining : null;
+      });
+      setInboxRefreshKey((k) => k + 1);
+      onCandidateCreated?.();
+      await loadLineItems();
+      if (advance) advanceToNextUnmatched(lineItemId);
+    } catch (e) {
+      setInboxErrors((prev) => new Map(prev).set(inboxRow.id, (e as Error).message || t('labs.cc.inbox.matchError')));
+    } finally {
+      setBusyInboxId(null);
+    }
+  };
+
+  const startEditItem = (item: StatementLineItem) => {
+    setEditError('');
+    setEditingId(item.id);
+    setEditDraft({ line_date: item.line_date, description: item.description, amount: String(item.amount) });
+  };
+
+  const cancelEditItem = () => {
+    setEditingId(null);
+    setEditError('');
+  };
+
+  const saveEditItem = async () => {
+    if (!editingId) return;
+    const description = editDraft.description.trim();
+    const amount = parseFloat(editDraft.amount);
+    if (!description) {
+      setEditError(t('labs.cc.edit.descriptionRequired'));
+      return;
+    }
+    if (!editDraft.line_date || Number.isNaN(amount) || amount < 0) {
+      setEditError(t('labs.cc.edit.invalidAmount'));
+      return;
+    }
+    setSavingEdit(true);
+    setEditError('');
+    const { error: rpcError } = await supabase.rpc('admin_update_statement_line_item', {
+      p_line_item_id: editingId,
+      p_line_date: editDraft.line_date,
+      p_description: description,
+      p_amount: amount,
+    });
+    setSavingEdit(false);
+    if (rpcError) {
+      setEditError(t('labs.cc.edit.error'));
+      return;
+    }
+    setEditingId(null);
+    await loadLineItems();
+  };
+
   const highConfidenceMatches = useMemo(() => {
     return unmatched
       .map((item) => {
@@ -183,19 +350,26 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
       .filter((v): v is { item: StatementLineItem; candidate: MatchCandidate } => v !== null);
   }, [unmatched, candidatesFor]);
 
+  // Split the preview: real-expense pairs stay a true one-click bulk confirm;
+  // inbox-sourced pairs each need a household picked first (can't be inferred),
+  // so they get their own inline form instead of joining the bulk RPC call.
+  const expenseSourcedPreview = (autoMatchPreview ?? []).filter((p) => !inboxById.has(p.candidate.expense.id));
+  const inboxSourcedPreview = (autoMatchPreview ?? []).filter((p) => inboxById.has(p.candidate.expense.id));
+
   const runAutoMatch = async () => {
-    if (!autoMatchPreview || autoMatchPreview.length === 0) return;
+    if (expenseSourcedPreview.length === 0) return;
     setAutoMatching(true);
     setError('');
     const { error: rpcError } = await supabase.rpc('bulk_match_statement_line_items', {
-      p_matches: autoMatchPreview.map((p) => ({ line_item_id: p.item.id, expense_id: p.candidate.expense.id })),
+      p_matches: expenseSourcedPreview.map((p) => ({ line_item_id: p.item.id, expense_id: p.candidate.expense.id })),
     });
     setAutoMatching(false);
-    setAutoMatchPreview(null);
     if (rpcError) {
       setError(rpcError.message);
       return;
     }
+    // Keep the preview open if inbox-sourced rows still need a household picked.
+    setAutoMatchPreview(inboxSourcedPreview.length > 0 ? inboxSourcedPreview : null);
     await loadLineItems();
   };
 
@@ -236,31 +410,62 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
 
       {autoMatchPreview && (
         <div className="mb-4 p-4 bg-violet-50 border border-violet-200 rounded-xl space-y-3">
-          <p className="text-sm font-medium text-violet-900">{t('labs.cc.autoMatchConfirm', { count: String(autoMatchPreview.length) })}</p>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {autoMatchPreview.map(({ item, candidate }) => (
-              <div key={item.id} className="text-xs text-violet-800 flex justify-between">
-                <span className="truncate">{item.description}</span>
-                <span className="shrink-0 ml-2">{candidate.expense.vendor || t('labs.cc.unknownVendor')}</span>
+          {expenseSourcedPreview.length > 0 && (
+            <>
+              <p className="text-sm font-medium text-violet-900">{t('labs.cc.autoMatchConfirm', { count: String(expenseSourcedPreview.length) })}</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {expenseSourcedPreview.map(({ item, candidate }) => (
+                  <div key={item.id} className="text-xs text-violet-800 flex justify-between">
+                    <span className="truncate">{item.description}</span>
+                    <span className="shrink-0 ml-2">{candidate.expense.vendor || t('labs.cc.unknownVendor')}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={runAutoMatch}
-              disabled={autoMatching}
-              className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {autoMatching && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {t('labs.cc.confirmAutoMatch')}
-            </button>
-            <button
-              onClick={() => setAutoMatchPreview(null)}
-              className="px-4 py-2 bg-white border border-violet-200 text-violet-700 text-sm font-medium rounded-lg transition-all"
-            >
-              {t('common.cancel')}
-            </button>
-          </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={runAutoMatch}
+                  disabled={autoMatching}
+                  className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {autoMatching && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {t('labs.cc.confirmAutoMatch')}
+                </button>
+                <button
+                  onClick={() => setAutoMatchPreview(inboxSourcedPreview.length > 0 ? inboxSourcedPreview : null)}
+                  className="px-4 py-2 bg-white border border-violet-200 text-violet-700 text-sm font-medium rounded-lg transition-all"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </>
+          )}
+
+          {inboxSourcedPreview.length > 0 && (
+            <div className={expenseSourcedPreview.length > 0 ? 'pt-3 border-t border-violet-200 space-y-2' : 'space-y-2'}>
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">{t('labs.cc.inbox.previewHeading', { count: String(inboxSourcedPreview.length) })}</p>
+              {inboxSourcedPreview.map(({ item, candidate }) => {
+                const inboxRow = inboxById.get(candidate.expense.id)!;
+                return (
+                  <div key={item.id} className="p-2.5 bg-white rounded-lg border border-amber-200">
+                    <div className="text-xs text-amber-900 flex justify-between">
+                      <span className="truncate">{item.description}</span>
+                      <span className="shrink-0 ml-2">{inboxRow.vendor || t('labs.cc.unknownVendor')}</span>
+                    </div>
+                    <InboxCandidateMatchForm
+                      busy={busyInboxId === inboxRow.id}
+                      error={inboxErrors.get(inboxRow.id)}
+                      onConfirm={(householdId, category) => handleConfirmInboxMatch(item.id, inboxRow, householdId, category, false)}
+                      onCancel={() => setAutoMatchPreview((prev) => {
+                        if (!prev) return prev;
+                        const remaining = prev.filter((p) => p.candidate.expense.id !== inboxRow.id);
+                        return remaining.length > 0 ? remaining : null;
+                      })}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -275,6 +480,61 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
             const isSelected = selectedId === item.id;
             const isMatched = !!item.matched_expense_id;
             const matchedExpense = isMatched ? candidateExpenses.find((e) => e.id === item.matched_expense_id) : null;
+            const isEditing = editingId === item.id;
+
+            if (isEditing) {
+              return (
+                <div key={item.id} className="w-full text-left p-3 rounded-xl border border-violet-400 bg-violet-50">
+                  <div className="space-y-2">
+                    <input
+                      type="date"
+                      value={editDraft.line_date}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, line_date: e.target.value }))}
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={editDraft.description}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, description: e.target.value }))}
+                      placeholder={t('labs.cc.edit.descriptionPlaceholder')}
+                      autoFocus
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editDraft.amount}
+                      onChange={(e) => setEditDraft((d) => ({ ...d, amount: e.target.value }))}
+                      placeholder={t('labs.cc.edit.amountPlaceholder')}
+                      disabled={savingEdit}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                    />
+                  </div>
+                  {editError && <p className="text-xs text-red-600 mt-2">{editError}</p>}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={saveEditItem}
+                      disabled={savingEdit}
+                      className="flex-1 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {t('common.save')}
+                    </button>
+                    <button
+                      onClick={cancelEditItem}
+                      disabled={savingEdit}
+                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <button
                 key={item.id}
@@ -319,9 +579,9 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
                     </span>
                   </div>
                 )}
-                {/* Comment / ask — works on matched (disabled) cards too via a
-                    role=button span, same pattern as Undo. */}
-                <div className="mt-2">
+                {/* Comment / ask + edit — work on matched (disabled) cards too
+                    via role=button spans, same pattern as Undo. */}
+                <div className="mt-2 flex items-center justify-between">
                   <span
                     role="button"
                     tabIndex={0}
@@ -336,6 +596,19 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
                     <MessageCircle className="w-3 h-3" />
                     {(commentCounts.get(item.id) ?? 0) > 0 ? commentCounts.get(item.id) : t('labs.cc.comments.add')}
                   </span>
+                  {isAdmin && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); startEditItem(item); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startEditItem(item); } }}
+                      title={t('labs.cc.edit.tooltip')}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-violet-700 hover:bg-violet-50 rounded-full px-2 py-0.5 transition-colors"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      {t('labs.cc.edit.tooltip')}
+                    </span>
+                  )}
                 </div>
               </button>
             );
@@ -425,18 +698,27 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
 
   // Renders one selectable receipt row. `reasons` present → Suggested section
   // (shows the violet reason chips); absent → the plain browse universe.
+  // `expense.id` doubling as an inbox row's id (via inboxById) is what marks
+  // a row as inbox-sourced — see combinedPool's construction above.
   function renderCandidateRow(expense: Expense, reasons?: string[]) {
     if (!selectedItem) return null;
+    const inboxRow = inboxById.get(expense.id);
     return (
-      <div key={expense.id} className="p-3 rounded-xl border border-slate-200 bg-white">
+      <div key={expense.id} className={`p-3 rounded-xl border ${inboxRow ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'}`}>
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-900 truncate">{expense.vendor || t('labs.cc.unknownVendor')}</p>
             <p className="text-xs text-slate-500">{formatDate(expense.expense_date)} · {formatAmount(expense.total)}</p>
           </div>
-          <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-            {expense.household_name}
-          </span>
+          {inboxRow ? (
+            <span className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+              {t('labs.cc.inbox.badge')}
+            </span>
+          ) : (
+            <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              {expense.household_name}
+            </span>
+          )}
         </div>
         {reasons && reasons.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
@@ -447,14 +729,29 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
             ))}
           </div>
         )}
-        <button
-          onClick={() => confirmMatch(selectedItem.id, expense.id)}
-          disabled={busyId === selectedItem.id}
-          className="mt-2 w-full py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-        >
-          {busyId === selectedItem.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-          {t('labs.cc.confirmMatch')}
-        </button>
+        {!inboxRow && !expense.category && expense.household_id && (
+          <CategoryQuickPicker
+            householdId={expense.household_id}
+            busy={categorizingId === expense.id}
+            onSave={(category) => handleSetCategory(expense.id, category)}
+          />
+        )}
+        {inboxRow ? (
+          <InboxCandidateMatchForm
+            busy={busyInboxId === inboxRow.id}
+            error={inboxErrors.get(inboxRow.id)}
+            onConfirm={(householdId, category) => handleConfirmInboxMatch(selectedItem.id, inboxRow, householdId, category, true)}
+          />
+        ) : (
+          <button
+            onClick={() => confirmMatch(selectedItem.id, expense.id)}
+            disabled={busyId === selectedItem.id}
+            className="mt-2 w-full py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {busyId === selectedItem.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            {t('labs.cc.confirmMatch')}
+          </button>
+        )}
       </div>
     );
   }

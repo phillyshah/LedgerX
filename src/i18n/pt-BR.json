@@ -966,6 +966,22 @@
   "labs.cc.comments.send": "Enviar",
   "labs.cc.comments.add": "Comentar",
 
+  "labs.cc.edit.tooltip": "Editar",
+  "labs.cc.edit.descriptionPlaceholder": "Descrição",
+  "labs.cc.edit.amountPlaceholder": "Valor",
+  "labs.cc.edit.descriptionRequired": "A descrição não pode ficar em branco.",
+  "labs.cc.edit.invalidAmount": "Informe uma data e um valor válidos.",
+  "labs.cc.edit.error": "Não foi possível salvar este item. Tente novamente.",
+
+  "labs.cc.categorize.placeholder": "Sem categoria — escolha uma",
+
+  "labs.cc.inbox.badge": "Caixa de entrada",
+  "labs.cc.inbox.pickHousehold": "Para qual residência é isso?",
+  "labs.cc.inbox.noCategory": "Sem categoria (opcional)",
+  "labs.cc.inbox.confirmMatch": "Confirmar associação",
+  "labs.cc.inbox.previewHeading": "{count} recibos da caixa de entrada também parecem corresponder",
+  "labs.cc.inbox.matchError": "Não foi possível confirmar esta associação. Tente novamente.",
+
   "labs.cc.report.button": "Relatório de conciliação",
   "labs.cc.report.title": "Relatório de conciliação",
   "labs.cc.report.total": "Lançamentos",

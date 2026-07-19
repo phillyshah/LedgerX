@@ -33,6 +33,36 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.3',
+    version: 'v13.3',
+    date: '2026-07-18',
+    title: {
+      'en': 'Credit Card Reconciliation: auto-match against your inbox, and categorize as you go',
+      'pt-BR': 'Conciliação de Cartão: associação automática com a caixa de entrada e categorização durante o processo',
+    },
+    body: {
+      'en':
+        "Auto-match on Credit Card Reconciliation now also checks pending receipts sitting in the email inbox, not just ones you've already saved — so a forwarded receipt you haven't gotten around to filing yet can still resolve a card charge. Confirming one of those creates the expense for you (just pick which property it belongs to). And while you're matching, any receipt without a category — inbox-sourced or already on file — gets a quick inline picker so you can categorize it on the spot instead of a separate trip to Edit Expense.",
+      'pt-BR':
+        "A associação automática na Conciliação de Cartão de Crédito agora também verifica os recibos pendentes na caixa de entrada de e-mail, não apenas os que você já salvou — assim, um recibo encaminhado que você ainda não arquivou pode resolver uma cobrança do cartão. Confirmar uma dessas associações cria a despesa automaticamente (basta escolher a qual residência ela pertence). E, durante a associação, qualquer recibo sem categoria — vindo da caixa de entrada ou já cadastrado — ganha um seletor rápido para categorizar na hora, sem precisar ir até Editar Despesa.",
+    },
+  },
+  {
+    id: 'v13.2',
+    version: 'v13.2',
+    date: '2026-07-18',
+    title: {
+      'en': 'Credit Card Reconciliation: fix a misread line item by hand',
+      'pt-BR': 'Conciliação de Cartão: corrija um lançamento lido errado manualmente',
+    },
+    body: {
+      'en':
+        "Statement scanning is good but not perfect — sometimes it misreads a date, garbles a merchant name, or gets a digit wrong on the amount. Admins can now fix any of that directly: tap \"Edit\" on a statement line item (matched or not) to correct its date, description, or amount, right from the reconciliation screen — no need to delete the statement and start over.",
+      'pt-BR':
+        "A leitura da fatura é boa, mas não é perfeita — às vezes ela lê a data errada, confunde o nome do estabelecimento ou erra um dígito no valor. Agora os administradores podem corrigir isso diretamente: toque em \"Editar\" em qualquer lançamento da fatura (associado ou não) para corrigir a data, a descrição ou o valor, direto na tela de conciliação — sem precisar apagar a fatura e recomeçar.",
+    },
+  },
+  {
     id: 'v13.1',
     version: 'v13.1',
     date: '2026-07-16',

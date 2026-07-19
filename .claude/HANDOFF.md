@@ -6,8 +6,65 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.1`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.3`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.3 (auto-match against email inbox + in-flow categorize)**:
+  1. SQL editor: run **`20260728000000_labs_inbox_matching.sql`** (idempotent;
+     replayed against local Postgres 16 — scaffold + `expense_images` +
+     `email_inbox` + the full `…722`→`…728` CC-reconciliation chain — 12
+     assertions across all 3 new RPCs, including an atomic-rollback case).
+     Adds `list_reconciliation_inbox_candidates()`, `match_inbox_item_to_line_item()`,
+     `set_expense_category()`.
+  2. **No edge function, no new secrets.** VPS rsync for the frontend.
+  3. **Scope decision**: inbox-sourced matching is **full-admin only** — `email_inbox`
+     has no household_id and no existing RLS precedent for household-admin
+     visibility, so this deliberately doesn't extend the way plain expense
+     matching does. Categorizing a candidate (`set_expense_category`) IS open to
+     household admins too, gated by the same `can_act_on_expense()` already
+     backing match/unmatch.
+  4. UX: inbox candidates merge into the existing Suggested/browse lists (amber
+     "Inbox" badge) and into the auto-match preview (expense-sourced pairs stay
+     a true one-click bulk confirm via `bulk_match_statement_line_items`;
+     inbox-sourced ones each get their own inline household+category mini-form
+     since a brand-new expense can't have its household guessed). Confirming an
+     inbox match downloads the attachment from the email-inbox storage path and
+     re-uploads it under the chosen household (mirrors `AddExpense.tsx`'s own
+     inbox-to-expense path — Postgres can't move storage bytes itself), then
+     the RPC atomically creates the expense + `expense_images` rows, flips the
+     inbox row to `accepted`, and matches the line item. Any candidate (inbox-
+     or expense-sourced) missing a category gets an inline picker that saves
+     immediately via `set_expense_category`, independent of match timing.
+  5. New files: `src/hooks/useReconciliationInboxCandidates.ts`,
+     `src/components/labs/InboxCandidateMatchForm.tsx`,
+     `src/components/labs/CategoryQuickPicker.tsx`. `useReconciliationCandidates`
+     and the new inbox hook both gained a `refreshKey` param — bumped after an
+     inbox match so the parent's candidate pool (and Undo/vendor UI on the
+     freshly-matched line item) picks up the brand-new expense without a remount.
+- **⚠️ Pending manual steps for v13.2 (manual edit of statement line items)**:
+  1. SQL editor: run **`20260727000000_admin_edit_statement_line_item.sql`**
+     (idempotent; tested against a full migration replay on local Postgres 16 —
+     scaffold + all `…722` through `…727` migrations, covering non-admin reject,
+     household-admin reject, full-admin edit, blank-description no-op, negative-
+     amount reject, missing-row reject, and editing a matched item without
+     disturbing the match). Adds `admin_update_statement_line_item(p_line_item_id,
+     p_line_date, p_description, p_amount)` RPC.
+  2. **No edge function, no new secrets.** VPS rsync for the frontend.
+  3. Full-admin only (matches the existing statement-management convention —
+     upload/rename/delete are all full-admin-only; household admins can view/
+     match but not edit the raw OCR'd fields). Reason for the feature: OCR on
+     card statements is sometimes wrong (misread digits, garbled names) — this
+     was the exact fix for the Lowe's `2023` vs `2026` year-misread the user hit
+     testing v12.3. Tap **Edit** on any line item (matched or unmatched) in
+     `StatementReconcile.tsx` to fix date/description/amount inline.
+  4. **Separately unstarted**: a plan exists (from an earlier plan-mode session,
+     not yet approved) to fix the *root cause* of that same year-misread bug —
+     widen `statementMatching.ts`'s date-exclusion window 5→7 days, add a
+     deterministic `statementDateRepair.ts` pass keyed off the statement's
+     billing period, thread period hints into `extract-statement`'s OCR prompt,
+     and stop `extract-receipt`'s `repairImplausibleYear` from "fixing" *past*
+     dates (only future dates should ever be auto-corrected). This session's
+     manual-edit feature is the stopgap the user asked for instead; the
+     deeper fix is still worth doing but needs the user's go-ahead first.
 - **⚠️ Pending manual steps for v13.1 (CC reconciliation comments + report)**:
   1. SQL editor: run **`20260726000000_labs_reconciliation_comments_and_report.sql`**
      (idempotent; tested locally). Adds `statement_line_item_comments` table +

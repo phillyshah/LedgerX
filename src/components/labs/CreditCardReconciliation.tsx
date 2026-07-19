@@ -31,7 +31,10 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
   // full admin; every Labs-flagged household for a household admin), loaded
   // via a SECURITY DEFINER RPC — a statement covers multiple properties, so
   // matching can't be scoped to the reconciling admin's own households.
-  const { candidates: candidateExpenses } = useReconciliationCandidates(true);
+  // candidatesRefreshKey bumps after an inbox-sourced match creates a brand
+  // new expense, so it shows up here (vendor/undo UI) without a full remount.
+  const [candidatesRefreshKey, setCandidatesRefreshKey] = useState(0);
+  const { candidates: candidateExpenses } = useReconciliationCandidates(true, candidatesRefreshKey);
 
   const loadStatements = useCallback(async () => {
     setLoading(true);
@@ -130,6 +133,8 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
           candidateExpenses={candidateExpenses}
           onBack={() => { setView('list'); loadStatements(); onLineItemHandled?.(); }}
           openLineItemId={openLineItemId}
+          isAdmin={isAdmin}
+          onCandidateCreated={() => setCandidatesRefreshKey((k) => k + 1)}
         />
       ) : null}
 
