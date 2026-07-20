@@ -34,9 +34,12 @@ export function useExpenses(refreshKey?: number, options: UseExpensesOptions = {
       .select('household_id, households(id, name)')
       .eq('user_id', user.id);
 
-    const hh = (memberData || [])
+    // households.id is a random uuid with no natural ordering — sort
+    // alphabetically so the household filter dropdown lists sensibly.
+    const hh = ((memberData || [])
       .map((item) => item.households)
-      .filter(Boolean) as unknown as Household[];
+      .filter(Boolean) as unknown as Household[])
+      .sort((a, b) => a.name.localeCompare(b.name));
     setHouseholds(hh);
 
     const householdMap = new Map(hh.map((h) => [h.id, h.name]));

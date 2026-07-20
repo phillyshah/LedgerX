@@ -29,9 +29,12 @@ export function useInvoices(refreshKey?: number) {
       supabase.from('categories').select('id, name'),
     ]);
 
-    const hh = (memberRes.data || [])
+    // households.id is a random uuid with no natural ordering — sort
+    // alphabetically so any household dropdown fed by this hook lists sensibly.
+    const hh = ((memberRes.data || [])
       .map((item) => item.households)
-      .filter(Boolean) as unknown as Household[];
+      .filter(Boolean) as unknown as Household[])
+      .sort((a, b) => a.name.localeCompare(b.name));
     setHouseholds(hh);
     const hhMap = new Map(hh.map((h) => [h.id, h]));
     const catNameMap = new Map(

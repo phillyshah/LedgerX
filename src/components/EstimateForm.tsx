@@ -67,9 +67,12 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
           .from('household_members')
           .select('household_id, households(id, name)')
           .eq('user_id', user.id);
-        hh = (data || [])
+        // households.id is a random uuid with no natural ordering — sort
+        // alphabetically so the household dropdown lists sensibly.
+        hh = ((data || [])
           .map((item) => item.households)
-          .filter(Boolean) as unknown as Household[];
+          .filter(Boolean) as unknown as Household[])
+          .sort((a, b) => a.name.localeCompare(b.name));
       }
       setHouseholds(hh);
       if (hh.length === 1) setHouseholdId(hh[0].id);

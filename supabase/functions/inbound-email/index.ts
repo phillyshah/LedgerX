@@ -42,9 +42,12 @@ const corsHeaders = {
 
 // ── Year repair for OCR'd receipt dates ───────────────────────────────────────
 // gpt-4o-mini reading low-detail images occasionally misreads year digits
-// (most commonly 6→3, 8→3). If the extracted year sits outside a plausible
-// window around today, rebuild it using the current year — falling back to
-// the previous calendar year if that lands in the future. Receipt-only;
+// (most commonly 6→3, 8→3) as a date in the future — never legitimate for a
+// receipt. Any past date, however old, is accepted as-is: this reconciliation
+// feature exists specifically to process old statements/receipts, so "old"
+// must never be treated as "wrong." Only a date more than ~1 day in the
+// future (timezone slack) gets pulled back a year. Mirrors extract-receipt's
+// repairImplausibleYear exactly — keep the two in sync. Receipt-only;
 // invoices intentionally untouched (their dates can legitimately span wider
 // ranges and are reviewed before being marked paid).
 function repairImplausibleYear(date: unknown, todayIso: string): unknown {
@@ -60,11 +63,12 @@ function repairImplausibleYear(date: unknown, todayIso: string): unknown {
   const tDay = parseInt(t[3], 10);
   const ex = new Date(exYear, parseInt(mon, 10) - 1, parseInt(day, 10));
   const today = new Date(tYear, tMon - 1, tDay);
-  const monthsDiff =
-    (today.getFullYear() - ex.getFullYear()) * 12 +
-    (today.getMonth() - ex.getMonth());
-  if (monthsDiff >= 0 && monthsDiff <= 13) return date;
-  if (monthsDiff < 0 && ex.getTime() - today.getTime() <= 86_400_000) return date;
+
+  // Any past date is accepted as-is, no matter how old. Only a date more
+  // than ~1 day in the future (timezone slack for "today" landing on the
+  // other side of UTC) is implausible for a receipt and gets pulled back.
+  if (ex.getTime() - today.getTime() <= 86_400_000) return date;
+
   const candidate = new Date(tYear, parseInt(mon, 10) - 1, parseInt(day, 10));
   const year = candidate.getTime() > today.getTime() ? tYear - 1 : tYear;
   return `${year}-${mon}-${day}`;

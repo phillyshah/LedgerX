@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.6',
+    version: 'v13.6',
+    date: '2026-07-20',
+    title: {
+      'en': 'Bug fixes: household lists now sort logically, receipt dates no longer reset',
+      'pt-BR': 'Correções: listas de residências agora em ordem lógica, datas de recibos não são mais zeradas',
+    },
+    body: {
+      'en':
+        "Two fixes today. First, every household dropdown across the app (adding a transaction, invoices, estimates, exports, and more) now lists properties alphabetically — some of these were showing in an arbitrary order. Second, and more importantly: reviewing a receipt or invoice forwarded to your email inbox could sometimes silently reset its date to today instead of keeping the date on the actual receipt, if our OCR found the vendor and amount but missed the date. It now retries reading the date instead of giving up — the date on the receipt is what you'll see.",
+      'pt-BR':
+        "Duas correções hoje. Primeiro, todo seletor de residência no app (ao adicionar uma transação, notas fiscais, orçamentos, exportações e outros) agora lista as propriedades em ordem alfabética — algumas apareciam em uma ordem arbitrária. Segundo, e mais importante: revisar um recibo ou nota fiscal encaminhado para sua caixa de entrada de e-mail podia, às vezes, zerar silenciosamente a data para a data de hoje em vez de manter a data do recibo, quando nosso OCR encontrava o fornecedor e o valor mas não a data. Agora ele tenta novamente ler a data em vez de desistir — a data do recibo é o que você verá.",
+    },
+  },
+  {
     id: 'v13.5',
     version: 'v13.5',
     date: '2026-07-20',

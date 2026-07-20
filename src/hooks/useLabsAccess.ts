@@ -43,7 +43,11 @@ export function useLabsAccess() {
         const hh = (data || [])
           .map((row) => row.households)
           .filter(Boolean) as unknown as { id: string; name: string; features_enabled: Record<string, boolean> | null }[];
-        setHouseholds(hh.map((h) => ({ id: h.id, name: h.name, flags: h.features_enabled ?? {} })));
+        setHouseholds(
+          hh
+            .map((h) => ({ id: h.id, name: h.name, flags: h.features_enabled ?? {} }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
         setLoading(false);
       });
 

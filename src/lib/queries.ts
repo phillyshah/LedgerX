@@ -1,16 +1,19 @@
 import { supabase } from './supabase';
 import type { Household, Category } from '../types/expense';
 
-// Households the user is a member of, via household_members.
+// Households the user is a member of, via household_members. households.id is
+// a random uuid with no natural ordering, so sort alphabetically by name here
+// rather than relying on whatever order the join happens to return.
 export async function loadUserHouseholds(userId: string): Promise<Household[]> {
   const { data } = await supabase
     .from('household_members')
     .select('household_id, households(id, name, features_enabled)')
     .eq('user_id', userId);
 
-  return (data || [])
+  return ((data || [])
     .map((row) => row.households)
-    .filter(Boolean) as unknown as Household[];
+    .filter(Boolean) as unknown as Household[])
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // All households (admin view).

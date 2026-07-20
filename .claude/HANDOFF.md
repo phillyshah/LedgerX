@@ -6,8 +6,55 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.5`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.6`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.6 (bug fixes: household sort order + receipt-date reset)**:
+  1. **One edge function redeploy** (`inbound-email`), **plus VPS rsync for the frontend**.
+     No SQL migration, no new secrets.
+  2. **Root incident that surfaced these**: a user reported a forwarded receipt
+     wasn't showing up. Investigation found the inbound-email pipeline itself
+     was healthy (VPS cron running every 5 min, IMAP connecting fine) — the
+     mailbox (`receipts@90ten.life`) had simply stopped receiving new mail
+     entirely since Jul 17 (confirmed: last message in the mailbox, `\Seen`
+     and all, was Jul 17). That's a Hostinger/DNS-side issue outside the
+     app — MX records were confirmed correct; user was checking mailbox
+     quota/hPanel status separately. Not something this repo can fix.
+  3. **Real bug #1 — household dropdowns in arbitrary order**: `households.id`
+     is a random uuid, so any query without an explicit `ORDER BY` returns
+     rows in undefined order. `loadAllHouseholds()` (admin path) already had
+     `.order('name')`; **7 other call sites didn't**: `loadUserHouseholds()`
+     in `src/lib/queries.ts`, plus independent duplicate `household_members`
+     queries in `useExpenses.ts`, `useLabsAccess.ts`, `useInvoices.ts`,
+     `InvoiceForm.tsx`, `EstimateForm.tsx` (non-admin branch), `ExportData.tsx`.
+     Fixed by sorting client-side (`.sort((a,b) => a.name.localeCompare(b.name))`)
+     after each fetch rather than relying on PostgREST nested-order syntax.
+  4. **Real bug #2 — receipt/invoice date silently reset to today on inbox review**:
+     `AddExpense.tsx`/`InvoiceForm.tsx` only re-ran client-side OCR on mount
+     when *no* field at all had a server-side prefill (`hasPrefill = vendor ||
+     total || date`). If the inbound-email edge function's OCR pass found
+     vendor/total but missed the date (common — dates are the hardest field),
+     the retry was skipped entirely and the form fell back to today's date
+     with no visual cue anything was wrong. Fixed: the gate now checks
+     specifically for the date (`hasDate = !!initialData?.expense_date`),
+     so a retry fires whenever the date is the field that's missing,
+     regardless of what else came through. Verified safe: `applyReceiptDataToForm`
+     / `applyOCRData` merge field-by-field and never clobber an already-good
+     value, so retrying when vendor/total are already set is harmless.
+  5. **Related fixes caught during the same investigation**: (a)
+     `src/lib/receiptScanner.ts` was sending the client's "today" to
+     `extract-receipt` as UTC (`new Date().toISOString().slice(0,10)`)
+     instead of local time (`todayDateString()`), skewing the server-side
+     year-plausibility check by up to a day depending on the user's UTC
+     offset. (b) `supabase/functions/inbound-email/index.ts`'s
+     `repairImplausibleYear()` had drifted from `extract-receipt`'s — it was
+     still "fixing" (rewriting the year of) any receipt dated **more than 13
+     months in the past**, contradicting this feature's whole purpose
+     (reconciling old statements/receipts) and the explicit past decision to
+     only ever correct *future*-dated OCR misreads. Now matches
+     `extract-receipt` exactly (day-diff check, future-only) — verified with
+     a standalone script: a 10-year-old date passes through untouched, a
+     1-year-future misread gets pulled back a year. **This is the edge
+     function that needs redeploying.**
 - **⚠️ Pending manual steps for v13.5 (Reconciliation promoted out of Labs + UI/IA cleanup)**:
   1. **No SQL migration, no edge function, no secrets.** Frontend-only — just VPS rsync.
   2. **Credit Card Reconciliation graduated out of "Labs"** into a first-class

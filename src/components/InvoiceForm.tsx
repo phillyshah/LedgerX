@@ -134,11 +134,13 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
       }
       if (cancelled || loaded.length === 0) return;
       setImages(loaded);
-      const hasPrefill =
-        !!initialData?.vendor_name ||
-        !!initialData?.amount ||
-        !!initialData?.invoice_date;
-      if (!hasPrefill) handleScanInvoice(loaded[0].file);
+      // applyOCRData merges field-by-field and never overwrites a field
+      // already filled in (see above), so it's safe to retry OCR even when
+      // vendor/amount already arrived from the server-side OCR pass — this
+      // specifically catches the case where that pass found vendor/amount
+      // but missed the date, which must never silently fall back to today.
+      const hasDate = !!initialData?.invoice_date;
+      if (!hasDate) handleScanInvoice(loaded[0].file);
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -153,7 +155,10 @@ export function InvoiceForm({ onClose, onSaved, initialData }: InvoiceFormProps)
     ]);
 
     if (memberRes.data) {
-      const hh = memberRes.data.map((item) => item.households).filter(Boolean) as unknown as Household[];
+      // households.id is a random uuid with no natural ordering — sort
+      // alphabetically so the household dropdown lists sensibly.
+      const hh = (memberRes.data.map((item) => item.households).filter(Boolean) as unknown as Household[])
+        .sort((a, b) => a.name.localeCompare(b.name));
       setHouseholds(hh);
       if (hh.length === 1) {
         setFormData((prev) => ({ ...prev, household_id: hh[0].id }));
