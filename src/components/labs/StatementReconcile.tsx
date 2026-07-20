@@ -394,7 +394,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
           <h2 className="text-xl font-bold text-slate-900">{cardLabel}</h2>
           <p className="text-sm text-slate-500">{t('labs.cc.reconcileSubtitle', { matched: String(matched.length), total: String(lineItems.length) })}</p>
           {scopedHouseholdNames && scopedHouseholdNames.length > 0 && (
-            <p className="text-xs text-violet-600 font-medium mt-0.5">{t('labs.cc.scopedTo', { households: scopedHouseholdNames.join(', ') })}</p>
+            <p className="text-xs text-emerald-600 font-medium mt-0.5">{t('labs.cc.scopedTo', { households: scopedHouseholdNames.join(', ') })}</p>
           )}
         </div>
       </div>
@@ -406,7 +406,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
       {highConfidenceMatches.length > 0 && !autoMatchPreview && (
         <button
           onClick={() => setAutoMatchPreview(highConfidenceMatches)}
-          className="mb-4 w-full flex items-center justify-center gap-2 py-3 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl transition-all"
+          className="mb-4 w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all"
         >
           <Sparkles className="w-4 h-4" />
           {t('labs.cc.autoMatchButton', { count: String(highConfidenceMatches.length) })}
@@ -414,13 +414,13 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
       )}
 
       {autoMatchPreview && (
-        <div className="mb-4 p-4 bg-violet-50 border border-violet-200 rounded-xl space-y-3">
+        <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
           {expenseSourcedPreview.length > 0 && (
             <>
-              <p className="text-sm font-medium text-violet-900">{t('labs.cc.autoMatchConfirm', { count: String(expenseSourcedPreview.length) })}</p>
+              <p className="text-sm font-medium text-emerald-900">{t('labs.cc.autoMatchConfirm', { count: String(expenseSourcedPreview.length) })}</p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {expenseSourcedPreview.map(({ item, candidate }) => (
-                  <div key={item.id} className="text-xs text-violet-800 flex justify-between">
+                  <div key={item.id} className="text-xs text-emerald-800 flex justify-between">
                     <span className="truncate">{item.description}</span>
                     <span className="shrink-0 ml-2">{candidate.expense.vendor || t('labs.cc.unknownVendor')}</span>
                   </div>
@@ -430,14 +430,14 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                 <button
                   onClick={runAutoMatch}
                   disabled={autoMatching}
-                  className="flex-1 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {autoMatching && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {t('labs.cc.confirmAutoMatch')}
                 </button>
                 <button
                   onClick={() => setAutoMatchPreview(inboxSourcedPreview.length > 0 ? inboxSourcedPreview : null)}
-                  className="px-4 py-2 bg-white border border-violet-200 text-violet-700 text-sm font-medium rounded-lg transition-all"
+                  className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 text-sm font-medium rounded-lg transition-all"
                 >
                   {t('common.cancel')}
                 </button>
@@ -446,7 +446,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
           )}
 
           {inboxSourcedPreview.length > 0 && (
-            <div className={expenseSourcedPreview.length > 0 ? 'pt-3 border-t border-violet-200 space-y-2' : 'space-y-2'}>
+            <div className={expenseSourcedPreview.length > 0 ? 'pt-3 border-t border-emerald-200 space-y-2' : 'space-y-2'}>
               <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">{t('labs.cc.inbox.previewHeading', { count: String(inboxSourcedPreview.length) })}</p>
               {inboxSourcedPreview.map(({ item, candidate }) => {
                 const inboxRow = inboxById.get(candidate.expense.id)!;
@@ -489,14 +489,14 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
 
             if (isEditing) {
               return (
-                <div key={item.id} className="w-full text-left p-3 rounded-xl border border-violet-400 bg-violet-50">
+                <div key={item.id} className="w-full text-left p-3 rounded-xl border border-emerald-400 bg-emerald-50">
                   <div className="space-y-2">
                     <input
                       type="date"
                       value={editDraft.line_date}
                       onChange={(e) => setEditDraft((d) => ({ ...d, line_date: e.target.value }))}
                       disabled={savingEdit}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                     />
                     <input
                       type="text"
@@ -505,7 +505,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                       placeholder={t('labs.cc.edit.descriptionPlaceholder')}
                       autoFocus
                       disabled={savingEdit}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                     />
                     <input
                       type="number"
@@ -515,7 +515,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                       onChange={(e) => setEditDraft((d) => ({ ...d, amount: e.target.value }))}
                       placeholder={t('labs.cc.edit.amountPlaceholder')}
                       disabled={savingEdit}
-                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                     />
                   </div>
                   {editError && <p className="text-xs text-red-600 mt-2">{editError}</p>}
@@ -523,7 +523,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                     <button
                       onClick={saveEditItem}
                       disabled={savingEdit}
-                      className="flex-1 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                       {savingEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       {t('common.save')}
@@ -550,8 +550,8 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                 onClick={() => { if (!isMatched) setSelectedId(isSelected ? null : item.id); }}
                 aria-disabled={isMatched}
                 className={`w-full text-left p-3 rounded-xl border transition-all ${
-                  isSelected ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'
-                } ${isMatched ? 'opacity-70' : 'hover:border-violet-300 cursor-pointer'}`}
+                  isSelected ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white'
+                } ${isMatched ? 'opacity-70' : 'hover:border-emerald-300 cursor-pointer'}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -594,8 +594,8 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setCommentsFor(item); } }}
                     className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors ${
                       (commentCounts.get(item.id) ?? 0) > 0
-                        ? 'text-violet-700 bg-violet-100 hover:bg-violet-200'
-                        : 'text-slate-400 hover:text-violet-700 hover:bg-violet-50'
+                        ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200'
+                        : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
                     }`}
                   >
                     <MessageCircle className="w-3 h-3" />
@@ -608,7 +608,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                       onClick={(e) => { e.stopPropagation(); startEditItem(item); }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); startEditItem(item); } }}
                       title={t('labs.cc.edit.tooltip')}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-violet-700 hover:bg-violet-50 rounded-full px-2 py-0.5 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-full px-2 py-0.5 transition-colors"
                     >
                       <Edit2 className="w-3 h-3" />
                       {t('labs.cc.edit.tooltip')}
@@ -635,7 +635,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                   value={browseSearch}
                   onChange={(e) => setBrowseSearch(e.target.value)}
                   placeholder={t('labs.cc.searchReceipts')}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
 
@@ -659,7 +659,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                     {suggestions.length > 0 && (
                       <button
                         onClick={() => setBrowseExpanded((v) => !v)}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-slate-500 hover:text-violet-700 font-medium transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-slate-500 hover:text-emerald-700 font-medium transition-colors"
                       >
                         {showBrowse ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         {t('labs.cc.browseAllReceipts', { count: String(browseList.length) })}
@@ -702,7 +702,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
   );
 
   // Renders one selectable receipt row. `reasons` present → Suggested section
-  // (shows the violet reason chips); absent → the plain browse universe.
+  // (shows the emerald reason chips); absent → the plain browse universe.
   // `expense.id` doubling as an inbox row's id (via inboxById) is what marks
   // a row as inbox-sourced — see combinedPool's construction above.
   function renderCandidateRow(expense: Expense, reasons?: string[]) {
@@ -728,7 +728,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
         {reasons && reasons.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {reasons.map((r) => (
-              <span key={r} className="text-[10px] font-medium text-violet-700 bg-violet-100 px-1.5 py-0.5 rounded">
+              <span key={r} className="text-[10px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                 {t(REASON_LABEL_KEYS[r] ?? r)}
               </span>
             ))}
@@ -751,7 +751,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
           <button
             onClick={() => confirmMatch(selectedItem.id, expense.id)}
             disabled={busyId === selectedItem.id}
-            className="mt-2 w-full py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="mt-2 w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {busyId === selectedItem.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             {t('labs.cc.confirmMatch')}

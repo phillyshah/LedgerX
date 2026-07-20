@@ -444,10 +444,10 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     {labsEnabled && !matchedCardLabels.has(expense.id) && (
                       <button
                         onClick={() => setMatchingExpense(expense)}
-                        className="p-1.5 hover:bg-violet-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
+                        className="p-1.5 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100"
                         title={t('labs.cc.matchToStatement')}
                       >
-                        <CreditCard className="w-4 h-4 text-violet-500" />
+                        <CreditCard className="w-4 h-4 text-emerald-500" />
                       </button>
                     )}
                     <button
@@ -502,7 +502,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                   )}
                   {matchedCardLabels.has(expense.id) && (
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 text-violet-700 text-xs font-medium rounded-full whitespace-nowrap"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full whitespace-nowrap"
                       title={t('labs.cc.matchedTooltip', { label: matchedCardLabels.get(expense.id) ?? '' })}
                     >
                       <CreditCard className="w-3 h-3" />

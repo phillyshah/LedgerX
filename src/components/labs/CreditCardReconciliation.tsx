@@ -1,31 +1,39 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
 import { useReconciliationCandidates } from '../../hooks/useReconciliationCandidates';
+import { loadAllHouseholds } from '../../lib/queries';
+import type { Household } from '../../types/expense';
 import { StatementList, type StatementSummary } from './StatementList';
 import { StatementUpload } from './StatementUpload';
 import { StatementReconcile } from './StatementReconcile';
-import { LabsBadge } from './LabsBadge';
 
 const ReconciliationReport = lazy(() => import('./ReconciliationReport').then((m) => ({ default: m.ReconciliationReport })));
 
 interface CreditCardReconciliationProps {
-  onBack: () => void;
   openLineItemId?: string | null;
   onLineItemHandled?: () => void;
 }
 
 type View = 'list' | 'upload' | { reconcile: StatementSummary };
 
-export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHandled }: CreditCardReconciliationProps) {
+export function CreditCardReconciliation({ openLineItemId, onLineItemHandled }: CreditCardReconciliationProps) {
   const { t } = useT();
   const { isAdmin } = useAuth();
   const [statements, setStatements] = useState<StatementSummary[]>([]);
+  const [allHouseholds, setAllHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('list');
   const [showReport, setShowReport] = useState(false);
+
+  // Labs-enrolled households an admin can tag a statement with (same source
+  // + filter StatementUpload uses for its upload-time picker).
+  useEffect(() => {
+    loadAllHouseholds().then((hh) =>
+      setAllHouseholds(hh.filter((h) => h.features_enabled?.labs_cc_reconciliation))
+    );
+  }, []);
 
   // Candidate pool spans every participating property (all households for a
   // full admin; every Labs-flagged household for a household admin) UNLESS
@@ -44,7 +52,7 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
     const [{ data: rows }, { data: itemCounts }, { data: householdLinks }] = await Promise.all([
       supabase.from('credit_card_statements').select('*').order('created_at', { ascending: false }),
       supabase.from('statement_line_items').select('statement_id, matched_expense_id'),
-      supabase.from('statement_households').select('statement_id, households(name)'),
+      supabase.from('statement_households').select('statement_id, household_id, households(name)'),
     ]);
 
     const counts = new Map<string, { total: number; matched: number }>();
@@ -55,13 +63,20 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
       counts.set(item.statement_id, entry);
     }
 
+    // Two parallel maps off the same join: names for the "Scoped to" label,
+    // ids to seed the edit-households modal.
     const householdNames = new Map<string, string[]>();
+    const householdIds = new Map<string, string[]>();
     for (const link of householdLinks ?? []) {
       const name = (link.households as unknown as { name: string } | null)?.name;
-      if (!name) continue;
-      const list = householdNames.get(link.statement_id) ?? [];
-      list.push(name);
-      householdNames.set(link.statement_id, list);
+      if (name) {
+        const list = householdNames.get(link.statement_id) ?? [];
+        list.push(name);
+        householdNames.set(link.statement_id, list);
+      }
+      const idList = householdIds.get(link.statement_id) ?? [];
+      idList.push(link.household_id);
+      householdIds.set(link.statement_id, idList);
     }
 
     setStatements(
@@ -75,6 +90,7 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
         totalItems: counts.get(r.id)?.total ?? 0,
         matchedItems: counts.get(r.id)?.matched ?? 0,
         householdNames: householdNames.get(r.id) ?? [],
+        householdIds: householdIds.get(r.id) ?? [],
       }))
     );
     setLoading(false);
@@ -115,29 +131,38 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
     return true;
   };
 
+  // Retag which properties a statement covers. statement_households has a
+  // composite PK (statement_id, household_id) and admin-write RLS, so the
+  // clean pattern is delete-all-for-statement then insert the new set.
+  const handleEditHouseholds = async (statementId: string, householdIds: string[]): Promise<boolean> => {
+    const { error: delErr } = await supabase.from('statement_households').delete().eq('statement_id', statementId);
+    if (delErr) return false;
+    if (householdIds.length > 0) {
+      const { error: insErr } = await supabase.from('statement_households').insert(
+        householdIds.map((household_id) => ({ statement_id: statementId, household_id }))
+      );
+      if (insErr) return false;
+    }
+    await loadStatements();
+    return true;
+  };
+
   const priorCardLabels = [...new Set(statements.map((s) => s.card_label))];
 
   return (
     <div>
-      {view === 'list' && (
-        <div className="mb-4 flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg transition-all">
-            <ArrowLeft className="w-5 h-5 text-slate-500" />
-          </button>
-          <LabsBadge />
-        </div>
-      )}
-
       {loading ? (
         <div className="h-48 bg-white rounded-2xl border border-slate-200 animate-pulse" />
       ) : view === 'list' ? (
         <StatementList
           statements={statements}
           isAdmin={isAdmin}
+          allHouseholds={allHouseholds}
           onUpload={() => setView('upload')}
           onReconcile={(s) => setView({ reconcile: s })}
           onDelete={handleDelete}
           onRename={handleRename}
+          onEditHouseholds={handleEditHouseholds}
           onOpenReport={isAdmin ? () => setShowReport(true) : undefined}
         />
       ) : typeof view === 'object' ? (

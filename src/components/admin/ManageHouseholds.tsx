@@ -415,7 +415,7 @@ export function ManageHouseholds() {
                       onChange={(e) =>
                         toggleFeature(household.id, 'labs_cc_reconciliation', e.target.checked)
                       }
-                      className="w-4 h-4 accent-violet-600 shrink-0"
+                      className="w-4 h-4 accent-emerald-600 shrink-0"
                     />
                   </label>
                 </div>

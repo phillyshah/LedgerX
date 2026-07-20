@@ -6,8 +6,37 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.4`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.5`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.5 (Reconciliation promoted out of Labs + UI/IA cleanup)**:
+  1. **No SQL migration, no edge function, no secrets.** Frontend-only — just VPS rsync.
+  2. **Credit Card Reconciliation graduated out of "Labs"** into a first-class
+     feature. It's now a normal nav item + admin-home "Review" tile, gated on
+     `hasFlag('labs_cc_reconciliation')` (NOT `hasAnyLabsFlag`). **The DB access
+     model is untouched** — the per-household `labs_cc_reconciliation` flag,
+     `statement_households`, and every `is_labs_eligible(...)`/`can_act_on_expense`
+     policy/function stay exactly as-is. This was purely nav/branding: deleted
+     `LabsHome.tsx` + `LabsBadge.tsx`, `AdminLayout` renders
+     `CreditCardReconciliation` directly under `activeView==='reconciliation'`
+     (was `'labs'`), the `statement_line_item` notification deep-link now targets
+     that view, violet "Labs" accent recolored → emerald across the CC screens.
+     The `labs.cc.*` i18n key NAMES were deliberately left as-is (internal ids);
+     only user-visible values changed. Dead keys `labs.badge`/`labs.home.*`/
+     `labs.experimentalNotice` remain (harmless). `useLabsAccess().hasAnyLabsFlag`
+     is now unused but left in place.
+  3. **Existing statements can be re-tagged to households** (was upload-only):
+     new `StatementHouseholdsModal` + a `Building2` button per row in
+     `StatementList`; `CreditCardReconciliation.handleEditHouseholds` does
+     delete-all-then-insert on `statement_households` (direct client writes,
+     admin RLS allows it).
+  4. **UI/IA cleanup**: admin home split into Quick Actions / Review / Insights /
+     Configuration; mobile menus consolidated (account actions moved into the
+     hamburger drawer, avatar `UserMenu` is now `hidden lg:block` so there's one
+     menu button on mobile); label fixes via shared i18n values — "Submit
+     Estimate" (was "Submit an estimate"), "Inbox" (was "Email Inbox"), "Estimate
+     Report", and the Manage-Households feature checkbox is now just "Credit Card
+     Reconciliation" (flag key unchanged). These shared-key edits also flow to the
+     non-admin Dashboard automatically.
 - **⚠️ Pending manual steps for v13.4 (scope a statement to specific households)**:
   1. SQL editor: run **`20260729000000_statement_household_scoping.sql`**
      (idempotent; replayed against local Postgres 16 — scaffold + full

@@ -13,8 +13,9 @@ import type { AppNotification } from '../../types/notification';
 import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
-  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, FlaskConical,
+  HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, CreditCard, HelpCircle, LogOut,
 } from 'lucide-react';
+import { APP_VERSION } from '../../version';
 // hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
 
 const ManageHouseholds    = lazy(() => import('./ManageHouseholds').then((m) => ({ default: m.ManageHouseholds })));
@@ -35,7 +36,7 @@ const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ 
 const HelpModal           = lazy(() => import('../HelpModal').then((m) => ({ default: m.HelpModal })));
 const WhatsNewModal       = lazy(() => import('../WhatsNewModal').then((m) => ({ default: m.WhatsNewModal })));
 const UserSettings        = lazy(() => import('../UserSettings').then((m) => ({ default: m.UserSettings })));
-const LabsHome            = lazy(() => import('../labs/LabsHome').then((m) => ({ default: m.LabsHome })));
+const CreditCardReconciliation = lazy(() => import('../labs/CreditCardReconciliation').then((m) => ({ default: m.CreditCardReconciliation })));
 
 function ViewSkeleton() {
   return <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-64 animate-pulse" />;
@@ -52,7 +53,7 @@ type AdminView =
   | 'estimates'
   | 'reports'
   | 'my-transactions'
-  | 'labs';
+  | 'reconciliation';
 
 type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
 
@@ -60,14 +61,33 @@ type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
 
 interface AdminHomeViewProps {
   username: string;
+  canReconcile: boolean;
   onNavigate: (view: AdminNavKey) => void;
   onAddExpense: () => void;
   onSubmitInvoice: () => void;
   onSubmitEstimate: () => void;
 }
 
-function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice, onSubmitEstimate }: AdminHomeViewProps) {
+function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSubmitInvoice, onSubmitEstimate }: AdminHomeViewProps) {
   const { t } = useT();
+
+  // "Review" = operational queues you act on; Reconciliation joins them as a
+  // normal peer tile (only when enrolled) rather than a special/experimental
+  // callout, which is the whole point of graduating it out of Labs.
+  const reviewTiles: { key: AdminNavKey; icon: typeof AlertCircle; label: string; warn?: boolean }[] = [
+    { key: 'uncategorized', icon: AlertCircle, label: t('admin.uncategorized'), warn: true },
+    { key: 'invoices', icon: HardHat, label: t('admin.contractorInvoices') },
+    { key: 'estimates', icon: ClipboardList, label: t('adminEstimates.navLabel') },
+    { key: 'my-transactions', icon: Receipt, label: t('admin.myTransactions') },
+    ...(canReconcile ? [{ key: 'reconciliation' as AdminNavKey, icon: CreditCard, label: t('reconciliation.navLabel') }] : []),
+  ];
+
+  const insightTiles: { key: AdminNavKey; icon: typeof AlertCircle; label: string }[] = [
+    { key: 'analytics', icon: BarChart3, label: t('admin.analytics') },
+    { key: 'reports', icon: FileText, label: t('reports.title') },
+    { key: 'activity', icon: Activity, label: t('activityReport.title') },
+    { key: 'estimate-report', icon: PieChart, label: t('estimateReport.navLabel') },
+  ];
 
   return (
     <div className="space-y-8">
@@ -130,21 +150,10 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice, on
 
       <section>
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
-          {t('admin.navigateTo')}
+          {t('admin.reviewSection')}
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {(
-            [
-              { key: 'uncategorized' as AdminNavKey, icon: AlertCircle, label: t('admin.uncategorized'), warn: true },
-              { key: 'invoices'        as AdminNavKey, icon: HardHat,   label: t('admin.contractorInvoices') },
-              { key: 'estimates'       as AdminNavKey, icon: ClipboardList, label: t('adminEstimates.navLabel') },
-              { key: 'my-transactions' as AdminNavKey, icon: Receipt,   label: t('admin.myTransactions') },
-              { key: 'analytics'       as AdminNavKey, icon: BarChart3, label: t('admin.analytics') },
-              { key: 'reports'         as AdminNavKey, icon: FileText,  label: t('reports.title') },
-              { key: 'activity'        as AdminNavKey, icon: Activity,  label: t('activityReport.title') },
-              { key: 'estimate-report' as AdminNavKey, icon: PieChart,  label: t('estimateReport.navLabel') },
-            ] as { key: AdminNavKey; icon: typeof AlertCircle; label: string; warn?: boolean }[]
-          ).map(({ key, icon: Icon, label, warn }) => (
+          {reviewTiles.map(({ key, icon: Icon, label, warn }) => (
             <button
               key={key}
               onClick={() => onNavigate(key)}
@@ -156,6 +165,26 @@ function AdminHomeView({ username, onNavigate, onAddExpense, onSubmitInvoice, on
             >
               <Icon className={`w-6 h-6 ${warn ? 'text-amber-600' : 'text-emerald-700'}`} />
               <span className={`text-xs font-semibold text-center leading-tight ${warn ? 'text-amber-800' : 'text-slate-700'}`}>
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
+          {t('admin.insightsSection')}
+        </p>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          {insightTiles.map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => onNavigate(key)}
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl border bg-white border-slate-200 hover:border-emerald-200 transition-all hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.98]"
+            >
+              <Icon className="w-6 h-6 text-emerald-700" />
+              <span className="text-xs font-semibold text-center leading-tight text-slate-700">
                 {label}
               </span>
             </button>
@@ -217,13 +246,13 @@ export function AdminLayout() {
   // Notification deep-linking: switch to the estimates/invoices view and hand
   // the target id to that view, which opens its detail once its data loads.
   const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
-  // A reconciliation-comment deep-link opens Labs at a specific line item.
-  const [labsLineItemId, setLabsLineItemId] = useState<string | null>(null);
+  // A reconciliation-comment deep-link opens the reconcile screen at a line item.
+  const [reconcileLineItemId, setReconcileLineItemId] = useState<string | null>(null);
 
   const openEntity = useCallback((type: 'estimate' | 'invoice' | 'statement_line_item', id: string) => {
     if (type === 'statement_line_item') {
-      setLabsLineItemId(id);
-      setActiveView('labs');
+      setReconcileLineItemId(id);
+      setActiveView('reconciliation');
       setMobileMenuOpen(false);
       return;
     }
@@ -238,7 +267,8 @@ export function AdminLayout() {
   useInitialDeepLink((target) => openEntity(target.type, target.id));
 
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
-  const { hasAnyLabsFlag } = useLabsAccess();
+  const { hasFlag } = useLabsAccess();
+  const canReconcile = hasFlag('labs_cc_reconciliation');
 
   const username = user?.email?.split('@')[0] ?? 'admin';
 
@@ -309,11 +339,17 @@ export function AdminLayout() {
         : 'text-emerald-300 hover:text-white hover:bg-emerald-800/60'
     }`;
 
+  // Reconciliation is a normal daily-use nav item now (promoted out of Labs),
+  // inserted right after My Transactions so it sits with the operational
+  // queues. Only shown to admins/household-admins enrolled in the feature.
+  const reconItem = { key: 'reconciliation' as AdminNavKey, label: t('reconciliation.navLabel'), icon: CreditCard };
+
   // Household-admin nav (unchanged from original haItems list)
   const haNavItems: { key: AdminNavKey; label: string; icon: typeof BarChart3 }[] = [
     { key: 'invoices',        label: t('admin.contractorInvoices'), icon: HardHat },
     { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
+    ...(canReconcile ? [reconItem] : []),
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
@@ -326,6 +362,7 @@ export function AdminLayout() {
     { key: 'invoices',        label: t('admin.contractorInvoices'), icon: HardHat },
     { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
+    ...(canReconcile ? [reconItem] : []),
     { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
@@ -369,13 +406,18 @@ export function AdminLayout() {
 
           <div className="flex items-center gap-1">
             <NotificationBell dark compact onOpen={handleNotificationOpen} />
-            <UserMenu
-              variant="dark"
-              username={username}
-              onShowSettings={() => setShowSettings(true)}
-              onShowHelp={() => setShowHelp(true)}
-              onSignOut={handleSignOut}
-            />
+            {/* Desktop: account menu lives here (nav is the sidebar). Mobile:
+                account actions move into the hamburger drawer, so this avatar
+                is hidden to avoid two adjacent menu triggers. */}
+            <div className="hidden lg:block">
+              <UserMenu
+                variant="dark"
+                username={username}
+                onShowSettings={() => setShowSettings(true)}
+                onShowHelp={() => setShowHelp(true)}
+                onSignOut={handleSignOut}
+              />
+            </div>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg transition-all"
@@ -423,17 +465,23 @@ export function AdminLayout() {
                 {label}
               </button>
             ))}
-            {hasAnyLabsFlag && (
-              <button
-                onClick={() => handleViewChange('labs')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isItemActive('labs') ? 'bg-violet-700 text-white shadow-sm' : 'text-violet-300 hover:text-white hover:bg-violet-900/40'
-                }`}
-              >
-                <FlaskConical className="w-4 h-4 shrink-0" />
-                {t('labs.badge')}
-              </button>
-            )}
+
+            {/* Account actions — on mobile these live in the drawer (the avatar
+                menu is desktop-only), so there's a single menu button. */}
+            <div className="h-px bg-emerald-800 mx-2 my-1.5" />
+            <button onClick={() => { setShowSettings(true); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all">
+              <Settings className="w-4 h-4 shrink-0" />
+              {t('common.settings')}
+            </button>
+            <button onClick={() => { setShowHelp(true); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all">
+              <HelpCircle className="w-4 h-4 shrink-0" />
+              {t('common.help')}
+            </button>
+            <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all">
+              <LogOut className="w-4 h-4 shrink-0" />
+              {t('common.signOut')}
+            </button>
+            <p className="px-3 pt-2 text-[10px] text-emerald-400/70">{APP_VERSION}</p>
           </nav>
         )}
       </header>
@@ -478,17 +526,6 @@ export function AdminLayout() {
                 {label}
               </button>
             ))}
-            {hasAnyLabsFlag && (
-              <button
-                onClick={() => handleViewChange('labs')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isItemActive('labs') ? 'bg-violet-700 text-white shadow-sm' : 'text-violet-300 hover:text-white hover:bg-violet-900/40'
-                }`}
-              >
-                <FlaskConical className="w-4 h-4 shrink-0" />
-                {t('labs.badge')}
-              </button>
-            )}
           </nav>
         </aside>
 
@@ -552,6 +589,7 @@ export function AdminLayout() {
             {activeView === 'home' && isAdmin && (
               <AdminHomeView
                 username={username}
+                canReconcile={canReconcile}
                 onNavigate={handleViewChange}
                 onAddExpense={() => setShowAddExpense(true)}
                 onSubmitInvoice={() => setShowInvoiceForm(true)}
@@ -565,8 +603,8 @@ export function AdminLayout() {
               {activeView === 'vendors'       && <ManageVendors />}
               {activeView === 'uncategorized' && <UncategorizedTransactions />}
               {activeView === 'users'         && <ManageUsers />}
-              {activeView === 'labs' && hasAnyLabsFlag && (
-                <LabsHome openLineItemId={labsLineItemId} onLineItemHandled={() => setLabsLineItemId(null)} />
+              {activeView === 'reconciliation' && canReconcile && (
+                <CreditCardReconciliation openLineItemId={reconcileLineItemId} onLineItemHandled={() => setReconcileLineItemId(null)} />
               )}
               {/* Full admins get the in-header Submit button (their quick actions
                   live only on Home). Household admins already have a persistent
