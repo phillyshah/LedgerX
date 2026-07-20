@@ -1,4 +1,5 @@
 import { pdfFirstPageToJpeg } from './pdfToImage';
+import { todayDateString } from './dateUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -71,7 +72,10 @@ export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ image: base64, today: new Date().toISOString().slice(0, 10) }),
+      // Local date, not UTC — per CLAUDE.md's date rule, this must match the
+      // convention used everywhere else or the server-side plausibility check
+      // is skewed by up to a day depending on the caller's UTC offset.
+      body: JSON.stringify({ image: base64, today: todayDateString() }),
       signal: controller.signal,
     });
 

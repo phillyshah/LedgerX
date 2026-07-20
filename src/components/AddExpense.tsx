@@ -139,12 +139,14 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
       setImages(loaded);
       // Auto-OCR the first attachment exactly the way handleImageChange
       // does for a direct upload. scanReceipt rasterizes PDFs internally,
-      // so we don't need a separate path. Only fire when the form fields
-      // arrived empty — if the user already had server-side OCR data from
-      // the inbound function, don't clobber it.
-      const hasPrefill =
-        !!initialData?.vendor || !!initialData?.total || !!initialData?.expense_date;
-      if (!hasPrefill) handleScanReceipt(loaded[0].file);
+      // so we don't need a separate path. applyReceiptDataToForm merges
+      // field-by-field and never overwrites a field OCR already filled in
+      // (see useReceiptScanner.ts), so it's safe to retry even when vendor/
+      // total already arrived from the server-side OCR — this specifically
+      // catches the case where that OCR pass found vendor/total but missed
+      // the date, which must never silently fall back to today's date.
+      const hasDate = !!initialData?.expense_date;
+      if (!hasDate) handleScanReceipt(loaded[0].file);
     })();
     return () => { cancelled = true; };
     // Only run on mount with the initial paths.

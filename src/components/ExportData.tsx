@@ -57,9 +57,12 @@ export function ExportData({ onClose }: ExportDataProps) {
       .eq('user_id', user.id)
       .then(({ data }) => {
         if (data) {
-          const hh = data
+          // households.id is a random uuid with no natural ordering — sort
+          // alphabetically so the household dropdown lists sensibly.
+          const hh = (data
             .map((item) => item.households)
-            .filter(Boolean) as unknown as Household[];
+            .filter(Boolean) as unknown as Household[])
+            .sort((a, b) => a.name.localeCompare(b.name));
           setHouseholds(hh);
         }
       });
