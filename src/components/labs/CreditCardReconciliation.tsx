@@ -28,19 +28,23 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
   const [showReport, setShowReport] = useState(false);
 
   // Candidate pool spans every participating property (all households for a
-  // full admin; every Labs-flagged household for a household admin), loaded
-  // via a SECURITY DEFINER RPC — a statement covers multiple properties, so
-  // matching can't be scoped to the reconciling admin's own households.
-  // candidatesRefreshKey bumps after an inbox-sourced match creates a brand
-  // new expense, so it shows up here (vendor/undo UI) without a full remount.
+  // full admin; every Labs-flagged household for a household admin) UNLESS
+  // the open statement has one or more assigned households (statement_households,
+  // set at upload time), in which case the RPC narrows to just those — loaded
+  // via a SECURITY DEFINER RPC since matching generally can't be scoped to the
+  // reconciling admin's own households alone. candidatesRefreshKey bumps after
+  // an inbox-sourced match creates a brand new expense, so it shows up here
+  // (vendor/undo UI) without a full remount.
   const [candidatesRefreshKey, setCandidatesRefreshKey] = useState(0);
-  const { candidates: candidateExpenses } = useReconciliationCandidates(true, candidatesRefreshKey);
+  const currentStatementId = typeof view === 'object' ? view.reconcile.id : null;
+  const { candidates: candidateExpenses } = useReconciliationCandidates(true, currentStatementId, candidatesRefreshKey);
 
   const loadStatements = useCallback(async () => {
     setLoading(true);
-    const [{ data: rows }, { data: itemCounts }] = await Promise.all([
+    const [{ data: rows }, { data: itemCounts }, { data: householdLinks }] = await Promise.all([
       supabase.from('credit_card_statements').select('*').order('created_at', { ascending: false }),
       supabase.from('statement_line_items').select('statement_id, matched_expense_id'),
+      supabase.from('statement_households').select('statement_id, households(name)'),
     ]);
 
     const counts = new Map<string, { total: number; matched: number }>();
@@ -49,6 +53,15 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
       entry.total += 1;
       if (item.matched_expense_id) entry.matched += 1;
       counts.set(item.statement_id, entry);
+    }
+
+    const householdNames = new Map<string, string[]>();
+    for (const link of householdLinks ?? []) {
+      const name = (link.households as unknown as { name: string } | null)?.name;
+      if (!name) continue;
+      const list = householdNames.get(link.statement_id) ?? [];
+      list.push(name);
+      householdNames.set(link.statement_id, list);
     }
 
     setStatements(
@@ -61,6 +74,7 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
         created_at: r.created_at,
         totalItems: counts.get(r.id)?.total ?? 0,
         matchedItems: counts.get(r.id)?.matched ?? 0,
+        householdNames: householdNames.get(r.id) ?? [],
       }))
     );
     setLoading(false);
@@ -130,6 +144,7 @@ export function CreditCardReconciliation({ onBack, openLineItemId, onLineItemHan
         <StatementReconcile
           statementId={view.reconcile.id}
           cardLabel={view.reconcile.card_label}
+          scopedHouseholdNames={view.reconcile.householdNames}
           candidateExpenses={candidateExpenses}
           onBack={() => { setView('list'); loadStatements(); onLineItemHandled?.(); }}
           openLineItemId={openLineItemId}

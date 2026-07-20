@@ -26,6 +26,8 @@ const MAX_SUGGESTIONS = 5;
 interface StatementReconcileProps {
   statementId: string;
   cardLabel: string;
+  /** Households this statement was tagged with at upload (empty = matches every enrolled property, as before). */
+  scopedHouseholdNames?: string[];
   candidateExpenses: Expense[];
   onBack: () => void;
   /** When set (from a notification deep-link), preselect this line item and open its comments. */
@@ -44,7 +46,7 @@ const REASON_LABEL_KEYS: Record<string, string> = {
   vendorMatch: 'labs.cc.reasonVendorMatch',
 };
 
-export function StatementReconcile({ statementId, cardLabel, candidateExpenses, onBack, openLineItemId, isAdmin, onCandidateCreated }: StatementReconcileProps) {
+export function StatementReconcile({ statementId, cardLabel, scopedHouseholdNames, candidateExpenses, onBack, openLineItemId, isAdmin, onCandidateCreated }: StatementReconcileProps) {
   const { t, locale } = useT();
   const [lineItems, setLineItems] = useState<StatementLineItem[]>([]);
   const [claimedElsewhere, setClaimedElsewhere] = useState<Set<string>>(new Set());
@@ -391,6 +393,9 @@ export function StatementReconcile({ statementId, cardLabel, candidateExpenses, 
         <div>
           <h2 className="text-xl font-bold text-slate-900">{cardLabel}</h2>
           <p className="text-sm text-slate-500">{t('labs.cc.reconcileSubtitle', { matched: String(matched.length), total: String(lineItems.length) })}</p>
+          {scopedHouseholdNames && scopedHouseholdNames.length > 0 && (
+            <p className="text-xs text-violet-600 font-medium mt-0.5">{t('labs.cc.scopedTo', { households: scopedHouseholdNames.join(', ') })}</p>
+          )}
         </div>
       </div>
 

@@ -21,8 +21,15 @@ import type { Expense } from '../types/expense';
  * Household name + submitter username come back from the RPC directly (it
  * resolves them server-side, so cross-household tags stay accurate even for
  * properties the caller couldn't read directly).
+ *
+ * `statementId`, when the statement has one or more rows in
+ * statement_households (assigned at upload time), narrows the pool to just
+ * those households' expenses — plus any expense with no category yet at all
+ * regardless of household, since that's likely misfiled data that could
+ * belong here. A statement with no assigned households (or `statementId`
+ * null/undefined) keeps the full broad pool, unchanged.
  */
-export function useReconciliationCandidates(enabled: boolean, refreshKey = 0) {
+export function useReconciliationCandidates(enabled: boolean, statementId?: string | null, refreshKey = 0) {
   const [candidates, setCandidates] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +43,7 @@ export function useReconciliationCandidates(enabled: boolean, refreshKey = 0) {
     let cancelled = false;
     setLoading(true);
 
-    supabase.rpc('list_reconciliation_candidates').then(({ data, error }) => {
+    supabase.rpc('list_reconciliation_candidates', { p_statement_id: statementId ?? null }).then(({ data, error }) => {
       if (cancelled) return;
       if (error) {
         console.error('useReconciliationCandidates: failed to load candidates', error);
@@ -71,7 +78,7 @@ export function useReconciliationCandidates(enabled: boolean, refreshKey = 0) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, refreshKey]);
+  }, [enabled, statementId, refreshKey]);
 
   return { candidates, loading };
 }

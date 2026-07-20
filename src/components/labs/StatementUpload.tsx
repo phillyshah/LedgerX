@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Upload, Loader2, Plus, Trash2, AlertTriangle, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
@@ -6,6 +6,8 @@ import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { parseCsvFile, applyColumnMapping, isImportable, type ParsedCsv, type ColumnMapping, type DraftLineItem } from '../../lib/statementCsv';
 import { scanStatement } from '../../lib/statementScanner';
 import { repairLineItemYears } from '../../lib/statementDateRepair';
+import { loadAllHouseholds } from '../../lib/queries';
+import type { Household } from '../../types/expense';
 
 interface StatementUploadProps {
   priorCardLabels: string[];
@@ -28,6 +30,23 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
   const [periodEnd, setPeriodEnd] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [sourceType, setSourceType] = useState<'csv' | 'pdf' | 'image'>('csv');
+
+  // Optional: which household(s) this statement actually covers. Narrows the
+  // matching candidate pool to just these (plus any uncategorized expense,
+  // regardless of household, and the always-global inbox pool) — leaving
+  // none selected keeps today's broad all-Labs-households behavior.
+  const [households, setHouseholds] = useState<Household[]>([]);
+  const [selectedHouseholdIds, setSelectedHouseholdIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    loadAllHouseholds().then((hh) =>
+      setHouseholds(hh.filter((h) => h.features_enabled?.labs_cc_reconciliation))
+    );
+  }, []);
+
+  const toggleHousehold = (id: string) => {
+    setSelectedHouseholdIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   // CSV column-mapping state
   const [csv, setCsv] = useState<ParsedCsv | null>(null);
@@ -167,6 +186,13 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
         .eq('id', statement.id);
       if (updateErr) throw new Error(updateErr.message);
 
+      if (selectedHouseholdIds.length > 0) {
+        const { error: householdsErr } = await supabase.from('statement_households').insert(
+          selectedHouseholdIds.map((householdId) => ({ statement_id: statement.id, household_id: householdId }))
+        );
+        if (householdsErr) throw new Error(householdsErr.message);
+      }
+
       const { error: lineItemsErr } = await supabase.from('statement_line_items').insert(
         importableItems.map((it) => ({
           statement_id: statement.id,
@@ -220,6 +246,32 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
               ))}
             </datalist>
           </div>
+
+          {households.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('labs.cc.householdsLabel')}</label>
+              <div className="flex flex-wrap gap-2">
+                {households.map((h) => {
+                  const selected = selectedHouseholdIds.includes(h.id);
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      onClick={() => toggleHousehold(h.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        selected
+                          ? 'bg-violet-600 border-violet-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-violet-300'
+                      }`}
+                    >
+                      {h.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">{t('labs.cc.householdsHint')}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
