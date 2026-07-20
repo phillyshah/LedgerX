@@ -100,7 +100,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
         placeholder={placeholder}
         disabled={disabled}
         rows={2}
-        className="w-full resize-none px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+        className="w-full resize-none px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
       />
       {open && matches.length > 0 && (
         <div className="absolute left-0 bottom-full mb-1 w-64 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg z-10">
@@ -110,7 +110,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
               type="button"
               onMouseDown={(e) => { e.preventDefault(); pick(p); }}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm ${
-                i === active ? 'bg-violet-50' : 'hover:bg-slate-50'
+                i === active ? 'bg-emerald-50' : 'hover:bg-slate-50'
               }`}
             >
               <span className="font-medium text-slate-900">@{p.username}</span>

@@ -33,7 +33,7 @@ function renderBody(body: string, me: string | undefined) {
     if (/^@[A-Za-z0-9_]{3,20}$/.test(part)) {
       const isMe = me && part.slice(1).toLowerCase() === me.toLowerCase();
       return (
-        <span key={i} className={isMe ? 'font-semibold text-violet-800 bg-violet-100 rounded px-0.5' : 'font-medium text-violet-700'}>
+        <span key={i} className={isMe ? 'font-semibold text-emerald-800 bg-emerald-100 rounded px-0.5' : 'font-medium text-emerald-700'}>
           {part}
         </span>
       );
@@ -106,7 +106,7 @@ export function LineItemCommentsModal({
         <div className="p-5 border-b border-slate-200">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-bold text-violet-600 uppercase tracking-wide mb-1">{t('labs.cc.comments.heading')}</p>
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">{t('labs.cc.comments.heading')}</p>
               <p className="font-semibold text-slate-900 truncate">{description}</p>
               <p className="text-xs text-slate-500">{formatDate(lineDate)} · {formatAmount(amount)} · {cardLabel}</p>
             </div>
@@ -119,7 +119,7 @@ export function LineItemCommentsModal({
         {/* Thread */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-[8rem]">
           {loading ? (
-            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-violet-500 animate-spin" /></div>
+            <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-emerald-500 animate-spin" /></div>
           ) : comments.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6">{t('labs.cc.comments.empty')}</p>
           ) : (
@@ -153,7 +153,7 @@ export function LineItemCommentsModal({
             <button
               onClick={post}
               disabled={posting || !draft.trim()}
-              className="p-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all disabled:opacity-50 shrink-0"
+              className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all disabled:opacity-50 shrink-0"
               title={t('labs.cc.comments.send')}
             >
               {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

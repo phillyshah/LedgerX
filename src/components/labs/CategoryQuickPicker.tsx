@@ -29,7 +29,7 @@ export function CategoryQuickPicker({ householdId, onSave, busy }: CategoryQuick
       disabled={busy}
       onChange={(e) => { if (e.target.value) onSave(e.target.value); }}
       onClick={(e) => e.stopPropagation()}
-      className="mt-1.5 w-full px-2 py-1 bg-white border border-dashed border-slate-300 rounded-md text-[11px] text-slate-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+      className="mt-1.5 w-full px-2 py-1 bg-white border border-dashed border-slate-300 rounded-md text-[11px] text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
     >
       <option value="" disabled>{t('labs.cc.categorize.placeholder')}</option>
       {categories.map((c) => (

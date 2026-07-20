@@ -19,7 +19,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Exporting Your Data](#exporting-your-data)
 - [Reports](#reports)
 - [Surgeon NPI Lookup](#surgeon-npi-lookup)
-- [LedgerX Labs](#ledgerx-labs)
+- [Credit Card Reconciliation](#credit-card-reconciliation)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
@@ -427,23 +427,19 @@ Results come from the public CMS NPPES registry. The button is hidden for househ
 
 ---
 
-## LedgerX Labs
-<!-- roles: member, admin -->
+## Credit Card Reconciliation
+<!-- roles: admin -->
 
-**LedgerX Labs** is a home for experimental tools we're trying out before deciding whether they graduate into the main app. Labs features may change or be removed — feedback is welcome. **LedgerX Labs is only available to full admins and household admins** — regular members and contractors never see it, even in households where it's turned on.
+Match expense receipts against the line items on a credit card statement, so you can confirm every charge on the card has a matching receipt on file. **Credit Card Reconciliation is only available to full admins and household admins** — regular members and contractors never see it. It's enabled per property, so it only appears once at least one household is opted in.
 
-### Credit Card Reconciliation
-
-The first Labs experiment: match expense receipts against the line items on a credit card statement, so you can confirm every charge on the card has a matching receipt on file.
-
-1. An admin enables **Labs: Credit Card Reconciliation** for a household (Admin → Manage Households → Features).
-2. An admin uploads a card statement — as a CSV export, or as a PDF/photo that LedgerX reads automatically — under **LedgerX Labs → Credit Card Reconciliation**. A statement isn't tied to one household by default, since one card often covers more than one property — but you can optionally pick which property (or properties) a given statement actually covers. Doing so narrows matching to just that property's receipts (plus any uncategorized receipt anywhere, and anything in the email inbox), which makes automatic matching noticeably more decisive since it's no longer comparing against every enrolled property's charges at once. Leave none selected and the statement behaves exactly as before. A statement scoped this way shows a small "Scoped to: ..." label wherever it appears.
-3. An admin (full admin or household admin) opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Matching looks across **every property enrolled in the experiment** — for a property's receipts to appear, an admin turns on **Labs: Credit Card Reconciliation** for that household under Manage Households → Features. Once enrolled, any admin can match a charge to the right receipt no matter which property it belongs to. (A household admin sees their own submissions plus those from regular users and contractors; receipts submitted by other admins or the account owner are kept out of their candidate list. A full admin sees everything.) A receipt is suggested whenever its **amount** matches the charge — the date and vendor only affect the ordering, so a receipt logged weeks later or with an edited vendor name still shows up. A persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone. If the suggestions don't include the receipt you're after, use the search box to **browse the full list of receipts** and pick the right one by hand.
-4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly. Once matched, that transaction shows a small violet **Matched** tag in your transaction list.
+1. An admin enables **Credit Card Reconciliation** for a household (Admin → Manage Households → Features). Once enabled, **Reconciliation** appears in the main navigation and on the admin home.
+2. An admin uploads a card statement — as a CSV export, or as a PDF/photo that LedgerX reads automatically — under **Reconciliation**. A statement isn't tied to one household by default, since one card often covers more than one property — but you can optionally pick which property (or properties) a given statement actually covers, either at upload time or later by tapping the **building icon** on a statement in the list. Doing so narrows matching to just that property's receipts (plus any uncategorized receipt anywhere, and anything in the email inbox), which makes automatic matching noticeably more decisive since it's no longer comparing against every enrolled property's charges at once. Leave none selected and the statement behaves exactly as before. A statement scoped this way shows a small "Scoped to: ..." label wherever it appears.
+3. An admin (full admin or household admin) opens the statement and works through its line items, matching each one to a receipt already in LedgerX. Matching looks across **every enrolled property** — for a property's receipts to appear, an admin turns on **Credit Card Reconciliation** for that household under Manage Households → Features. Once enrolled, any admin can match a charge to the right receipt no matter which property it belongs to. (A household admin sees their own submissions plus those from regular users and contractors; receipts submitted by other admins or the account owner are kept out of their candidate list. A full admin sees everything.) A receipt is suggested whenever its **amount** matches the charge — the date and vendor only affect the ordering, so a receipt logged weeks later or with an edited vendor name still shows up. A persistent **Auto-match** button clears the obvious ones in one tap, and every match can be undone. If the suggestions don't include the receipt you're after, use the search box to **browse the full list of receipts** and pick the right one by hand.
+4. You can also start from a receipt you already have: open it from your transaction list and choose **Match to card statement** to search for its line item directly. Once matched, that transaction shows a small **Matched** tag in your transaction list.
 
 Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is.
 
-**Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small violet comment badge.
+**Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small comment badge.
 
 **Reconciliation report** (full admins). The **Reconciliation report** button on the statement list opens a report of every charge across all statements: which are matched and which aren't, who reconciled each and when. Filter by card, status, person, or date, and export to CSV — including a one-click **Export unreconciled** to produce a list of what's still outstanding to send around.
 

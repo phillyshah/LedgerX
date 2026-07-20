@@ -101,7 +101,7 @@ export function MatchToStatementModal({ expense, onClose, onMatched }: MatchToSt
       <button
         onClick={() => confirmMatch(li.id)}
         disabled={busyId === li.id}
-        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50"
       >
         {busyId === li.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
         {t('labs.cc.confirmMatch')}
@@ -136,7 +136,7 @@ export function MatchToStatementModal({ expense, onClose, onMatched }: MatchToSt
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('labs.cc.searchLineItems')}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
 

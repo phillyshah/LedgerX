@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.5',
+    version: 'v13.5',
+    date: '2026-07-20',
+    title: {
+      'en': 'Credit Card Reconciliation graduates from Labs + a cleaner layout',
+      'pt-BR': 'A Conciliação de Cartão sai do Labs + um layout mais limpo',
+    },
+    body: {
+      'en':
+        "Credit Card Reconciliation is now a first-class part of LedgerX — it has moved out of the experimental \"Labs\" area and into the main navigation and admin home, right alongside your other work. Nothing about who can use it changed: it's still enabled per property under Manage Households. You can now also re-tag which properties an existing statement covers (open the statement list and tap the building icon), not just at upload time. Along the way we tidied up the interface: the account menu and navigation no longer double up on mobile, and a few labels were made consistent (\"Submit Estimate\", \"Inbox\").",
+      'pt-BR':
+        "A Conciliação de Cartão de Crédito agora faz parte central do LedgerX — saiu da área experimental \"Labs\" e foi para a navegação principal e a tela inicial do admin, ao lado dos seus outros trabalhos. Nada mudou sobre quem pode usá-la: continua sendo ativada por residência em Gerenciar Residências. Agora você também pode reetiquetar quais residências uma fatura já enviada cobre (abra a lista de faturas e toque no ícone de prédio), não apenas no momento do envio. No caminho, deixamos a interface mais organizada: o menu da conta e a navegação não se duplicam mais no celular, e alguns rótulos ficaram consistentes (\"Enviar Orçamento\", \"Caixa de Entrada\").",
+    },
+  },
+  {
     id: 'v13.4',
     version: 'v13.4',
     date: '2026-07-19',

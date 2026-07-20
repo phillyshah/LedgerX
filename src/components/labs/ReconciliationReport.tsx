@@ -98,7 +98,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
       <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-6xl shadow-xl min-h-screen sm:min-h-0 sm:max-h-[90vh] flex flex-col">
         <div className="sticky top-0 bg-white border-b border-slate-200 p-5 rounded-t-2xl z-10 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileBarChart className="w-5 h-5 text-violet-600" />
+            <FileBarChart className="w-5 h-5 text-emerald-600" />
             <h2 className="text-lg font-bold text-slate-900">{t('labs.cc.report.title')}</h2>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all">
@@ -114,7 +114,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
             {[
               { label: t('labs.cc.report.total'), value: stats.total, accent: 'text-slate-900' },
               { label: t('labs.cc.report.reconciled'), value: stats.matched, accent: 'text-emerald-700' },
-              { label: t('labs.cc.report.unreconciled'), value: stats.unmatched, accent: 'text-violet-700' },
+              { label: t('labs.cc.report.unreconciled'), value: stats.unmatched, accent: 'text-emerald-700' },
               { label: t('labs.cc.report.percent'), value: `${stats.pct}%`, accent: 'text-slate-900' },
             ].map((s) => (
               <div key={s.label} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -156,7 +156,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
             <button
               onClick={() => exportRows(rows.filter((r) => !r.is_matched), `unreconciled-${today}.csv`)}
               disabled={rows.filter((r) => !r.is_matched).length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {t('labs.cc.report.exportUnreconciled')}
@@ -165,7 +165,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
 
           {/* Table */}
           {loading ? (
-            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-violet-500 animate-spin" /></div>
+            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-emerald-500 animate-spin" /></div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-10">{t('labs.cc.report.noRows')}</p>
           ) : (
@@ -194,7 +194,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
                         {r.is_matched ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-100">{t('labs.cc.report.yes')}</span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-violet-700 bg-violet-100">{t('labs.cc.report.no')}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-100">{t('labs.cc.report.no')}</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-slate-600">{r.matched_by_username ? `@${r.matched_by_username}` : '—'}</td>

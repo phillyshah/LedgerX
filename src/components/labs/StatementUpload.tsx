@@ -238,7 +238,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
               value={cardLabel}
               onChange={(e) => setCardLabel(e.target.value)}
               placeholder={t('labs.cc.cardLabelPlaceholder')}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
             <datalist id="cc-card-labels">
               {priorCardLabels.map((label) => (
@@ -260,8 +260,8 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                       onClick={() => toggleHousehold(h.id)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                         selected
-                          ? 'bg-violet-600 border-violet-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-violet-300'
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
                       }`}
                     >
                       {h.name}
@@ -280,7 +280,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                 type="date"
                 value={periodStart}
                 onChange={(e) => setPeriodStart(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -289,7 +289,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                 type="date"
                 value={periodEnd}
                 onChange={(e) => setPeriodEnd(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -298,7 +298,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
           )}
 
           {step === 'select' && (
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl p-10 cursor-pointer hover:border-violet-400 hover:bg-violet-50/40 transition-all">
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl p-10 cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all">
               <Upload className="w-8 h-8 text-slate-400" />
               <span className="text-sm font-medium text-slate-600">{t('labs.cc.pickFile')}</span>
               <span className="text-xs text-slate-400">{t('labs.cc.pickFileHint')}</span>
@@ -358,14 +358,14 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                   type="checkbox"
                   checked={signFlip}
                   onChange={(e) => setSignFlip(e.target.checked)}
-                  className="w-4 h-4 accent-violet-600"
+                  className="w-4 h-4 accent-emerald-600"
                 />
                 {t('labs.cc.signFlip')}
               </label>
               <button
                 onClick={applyMappingAndReview}
                 disabled={!mappingComplete}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl transition-all disabled:opacity-50"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50"
               >
                 {t('labs.cc.continueToReview')}
               </button>
@@ -376,14 +376,14 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
             <div className="space-y-4">
               {scanning ? (
                 <div className="flex flex-col items-center gap-3 py-10">
-                  <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
                   <p className="text-sm text-slate-500">{t('labs.cc.scanning')}</p>
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-slate-600">{t('labs.cc.reviewHint')}</p>
                   {dateRepairCount > 0 && (
-                    <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-xl text-sm text-violet-800">
+                    <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800">
                       <Info className="w-4 h-4 shrink-0" />
                       {t('labs.cc.dateRepairNotice', { count: dateRepairCount })}
                     </div>
@@ -427,7 +427,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                   </div>
                   <button
                     onClick={addBlankItem}
-                    className="flex items-center gap-1.5 text-sm text-violet-700 hover:text-violet-800 font-medium"
+                    className="flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-800 font-medium"
                   >
                     <Plus className="w-4 h-4" />
                     {t('labs.cc.addRow')}
@@ -443,7 +443,7 @@ export function StatementUpload({ priorCardLabels, onClose, onSaved }: Statement
                   <button
                     onClick={handleImport}
                     disabled={saving || !cardLabel.trim() || importableItems.length === 0}
-                    className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     {t('labs.cc.importCount', { count: importableItems.length })}

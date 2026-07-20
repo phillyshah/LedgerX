@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
-import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart, Building2 } from 'lucide-react';
 import { useT } from '../../hooks/useT';
+import type { Household } from '../../types/expense';
+import { StatementHouseholdsModal } from './StatementHouseholdsModal';
 
 export interface StatementSummary {
   id: string;
@@ -11,22 +13,26 @@ export interface StatementSummary {
   created_at: string;
   totalItems: number;
   matchedItems: number;
-  /** Households this statement was tagged with at upload (empty = matches every enrolled property, as before). */
+  /** Households this statement was tagged with (empty = matches every enrolled property, as before). */
   householdNames: string[];
+  householdIds: string[];
 }
 
 interface StatementListProps {
   statements: StatementSummary[];
   isAdmin: boolean;
+  /** Labs-enrolled households an admin can tag a statement with. */
+  allHouseholds: Household[];
   onUpload: () => void;
   onReconcile: (statement: StatementSummary) => void;
   onDelete: (statementId: string) => void;
   onRename: (statementId: string, newLabel: string) => Promise<boolean>;
+  onEditHouseholds: (statementId: string, householdIds: string[]) => Promise<boolean>;
   /** Super-admin only — opens the reconciliation report. Omitted for others. */
   onOpenReport?: () => void;
 }
 
-export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDelete, onRename, onOpenReport }: StatementListProps) {
+export function StatementList({ statements, isAdmin, allHouseholds, onUpload, onReconcile, onDelete, onRename, onEditHouseholds, onOpenReport }: StatementListProps) {
   const { t, locale } = useT();
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -34,6 +40,7 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
   const [editValue, setEditValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [householdsFor, setHouseholdsFor] = useState<StatementSummary | null>(null);
 
   const handleDelete = (id: string) => {
     if (armedDeleteId !== id) {
@@ -90,7 +97,7 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
           {onOpenReport && (
             <button
               onClick={onOpenReport}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl transition-all font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all font-medium"
             >
               <FileBarChart className="w-4 h-4" />
               {t('labs.cc.report.button')}
@@ -99,7 +106,7 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
           {isAdmin && (
             <button
               onClick={onUpload}
-              className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-all shadow-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               {t('labs.cc.uploadStatement')}
@@ -126,8 +133,8 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                 {isEditing ? (
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5 text-violet-600" />
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                        <CreditCard className="w-5 h-5 text-emerald-600" />
                       </div>
                       <input
                         type="text"
@@ -140,7 +147,7 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                           if (e.key === 'Enter') saveEdit();
                           if (e.key === 'Escape') { setEditingId(null); setRenameError(''); }
                         }}
-                        className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+                        className="flex-1 min-w-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                       />
                     </div>
                     {renameError && (
@@ -152,8 +159,8 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                     onClick={() => onReconcile(s)}
                     className="flex-1 text-left flex items-center gap-3 min-w-0"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-5 h-5 text-violet-600" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{s.card_label}</p>
@@ -166,7 +173,7 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                           : t('labs.cc.matchProgress', { matched: String(s.matchedItems), total: String(s.totalItems) })}
                       </p>
                       {s.householdNames.length > 0 && (
-                        <p className="text-[11px] text-violet-600 font-medium truncate mt-0.5">
+                        <p className="text-[11px] text-emerald-600 font-medium truncate mt-0.5">
                           {t('labs.cc.scopedTo', { households: s.householdNames.join(', ') })}
                         </p>
                       )}
@@ -185,6 +192,13 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
                     </>
                   ) : (
                     <>
+                      <button
+                        onClick={() => setHouseholdsFor(s)}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-all shrink-0"
+                        title={t('labs.cc.editHouseholds')}
+                      >
+                        <Building2 className="w-4 h-4 text-slate-500" />
+                      </button>
                       <button
                         onClick={() => startEdit(s)}
                         className="p-2 hover:bg-slate-100 rounded-lg transition-all shrink-0"
@@ -208,6 +222,16 @@ export function StatementList({ statements, isAdmin, onUpload, onReconcile, onDe
             );
           })}
         </div>
+      )}
+
+      {householdsFor && (
+        <StatementHouseholdsModal
+          cardLabel={householdsFor.card_label}
+          initialHouseholdIds={householdsFor.householdIds}
+          allHouseholds={allHouseholds}
+          onSave={(ids) => onEditHouseholds(householdsFor.id, ids)}
+          onClose={() => setHouseholdsFor(null)}
+        />
       )}
     </div>
   );
