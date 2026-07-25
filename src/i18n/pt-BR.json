@@ -704,6 +704,7 @@
   "activityReport.eventEstimateCreated": "Orçamento enviado",
   "activityReport.eventEstimateAccepted": "Orçamento aceito",
   "activityReport.eventEstimateRejected": "Orçamento recusado",
+  "activityReport.eventEmailPending": "Encaminhado — aguardando revisão",
   "estimateReport.title": "Relatório de orçamentos",
   "estimateReport.subtitle": "Fluxo, taxa de aceitação e tempo de espera dos orçamentos",
   "estimateReport.navLabel": "Relatório de orçamentos",

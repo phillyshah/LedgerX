@@ -662,8 +662,9 @@ Os prestadores podem enviar **orçamentos** (cotações) para você revisar e di
 Uma linha do tempo de quem fez o quê entre as pessoas que você acompanha. Abra pela navegação (ou pelo botão **Atividade** na tela inicial do admin).
 
 - **Linha do tempo** — todo envio de recibo, envio de nota fiscal, marcação de pagamento e evento de orçamento (enviado, aceito, recusado) em uma única lista cronológica. Toque em qualquer linha para abrir o recibo, a nota ou o orçamento correspondente, sem sair da tela.
+- **Encaminhado — aguardando revisão** — recibos ou notas que alguém encaminhou por e-mail e que ainda não foram revisados (ainda na caixa de entrada dessa pessoa, aguardando ser salvos). É o único tipo de linha que não pode ser aberto — ainda não é um recibo/nota de verdade — e ela desaparece da lista assim que a pessoa revisar o item, já que nesse momento ele vira uma linha normal de "Recibo enviado"/"Nota fiscal enviada". Útil para confirmar que um encaminhamento realmente chegou antes de ser revisado.
 - **Últimos acessos** — uma linha por usuário com a última vez que entrou no app. Útil para identificar prestadores que sumiram.
-- **Filtros** — período (padrão: últimos 30 dias), domicílio, pessoa e chips de tipo de evento, todos no topo (incluindo os três tipos de evento de orçamento).
+- **Filtros** — período (padrão: últimos 30 dias), domicílio, pessoa e chips de tipo de evento, todos no topo (incluindo os três tipos de evento de orçamento e "Encaminhado — aguardando revisão"). Observação: o filtro de domicílio não mostra itens encaminhados pendentes — um e-mail encaminhado não tem uma propriedade atribuída até ser revisado, então ele só aparece em "Todos os domicílios".
 
 **Quem vê a atividade de quem:**
 - Admins completos veem a atividade de todos, em todos os domicílios.

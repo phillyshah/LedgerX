@@ -6,8 +6,49 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.6`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.7`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.7 (Activity report: "Forwarded — pending review")**:
+  1. Run migration **`20260730000000_activity_email_pending.sql`** in the SQL
+     editor (full `CREATE OR REPLACE` of `list_team_activity` — preserves all
+     existing branches verbatim, adds one new UNION sourcing `email_inbox`
+     WHERE `status='pending'`). **No edge function, no new secrets.** Then
+     rebuild + rsync the frontend.
+  2. **Follow-up from the v13.6 email incident**: once the mailbox issue
+     resolved, a user asked why 19 successfully-processed forwarded receipts
+     weren't showing in the Activity report for that team member. Diagnosis
+     (confirmed correct-by-design, not a bug): `list_team_activity`'s
+     "Submitted receipt" event is a live `SELECT` off `expenses` — it only
+     exists once a human opens the pending `email_inbox` card and hits Save
+     (the same action that both creates the `expenses` row and flips the
+     inbox row to `'accepted'`). A forwarded email sitting unreviewed has no
+     `expenses` row yet, so there was nothing to show — expected behavior.
+  3. Rather than leave that gap, added a new, distinct event type
+     **`email_pending`** sourced directly from `email_inbox` pending rows.
+     Two things that make it behave differently from every other event type
+     in this report, both intentional (see the migration's header comment):
+     - **Transient, not historical** — it's a live snapshot of current
+       pending state, not a permanent log. Once an item is reviewed
+       (accepted or discarded), it naturally drops out of the feed on the
+       next query, since `status` is no longer `'pending'`. Re-querying a
+       past date range after review won't show it anymore — by design.
+     - **`household_id` is always NULL** — email_inbox has no household
+       until the item is accepted into a real expense. Filtering the report
+       to one specific household correctly excludes these rows; only "All
+       households" surfaces them.
+  4. Frontend (`ActivityReport.tsx`): new event type renders with an amber
+     `Mail` icon/badge, no click-to-open (nothing to open yet), and shows
+     the OCR-guessed vendor/subject in the household column instead of a
+     blank dash.
+  5. Tested against a full migration replay on local Postgres 16 (custom
+     minimal scaffold covering `expenses`/`contractor_invoices`/`estimates`/
+     `email_inbox`/household scoping) — 7 assertions: full admin sees both
+     the historical expense + the new pending events; household admin scoping
+     matches every other event type exactly (sees own household's pending
+     item, not another household's); household-filter correctly excludes
+     pending rows; event-type filter isolates `email_pending`; an accepted
+     item disappears from the feed on the next query; existing
+     `expense_created` unaffected (regression check).
 - **⚠️ Pending manual steps for v13.6 (bug fixes: household sort order + receipt-date reset)**:
   1. **One edge function redeploy** (`inbound-email`), **plus VPS rsync for the frontend**.
      No SQL migration, no new secrets.

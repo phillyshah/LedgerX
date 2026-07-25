@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.7',
+    version: 'v13.7',
+    date: '2026-07-25',
+    title: {
+      'en': 'Activity report now shows forwarded receipts still awaiting review',
+      'pt-BR': 'Relatório de Atividade agora mostra recibos encaminhados ainda aguardando revisão',
+    },
+    body: {
+      'en':
+        "The Activity report only ever showed a submission once someone had actually reviewed and saved it — so a receipt forwarded by email that was still sitting unreviewed in someone's inbox didn't show up anywhere, even though it had arrived successfully. Now those show up too, as a distinct \"Forwarded — pending review\" entry, so admins can confirm a forward actually made it in without waiting for it to be acted on. It disappears once that person reviews it, since at that point it becomes a normal submission entry instead.",
+      'pt-BR':
+        "O Relatório de Atividade só mostrava um envio depois que alguém realmente revisava e salvava — então um recibo encaminhado por e-mail que ainda estava sem revisão na caixa de entrada de alguém não aparecia em lugar nenhum, mesmo tendo chegado com sucesso. Agora isso também aparece, como um item distinto \"Encaminhado — aguardando revisão\", para que os administradores possam confirmar que um encaminhamento realmente chegou sem precisar esperar que alguém o revise. Ele desaparece assim que a pessoa revisa o item, já que nesse momento ele vira um envio normal.",
+    },
+  },
+  {
     id: 'v13.6',
     version: 'v13.6',
     date: '2026-07-20',
