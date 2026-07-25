@@ -194,7 +194,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
                         {r.is_matched ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-100">{t('labs.cc.report.yes')}</span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-emerald-700 bg-emerald-100">{t('labs.cc.report.no')}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-amber-700 bg-amber-100">{t('labs.cc.report.no')}</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-slate-600">{r.matched_by_username ? `@${r.matched_by_username}` : '—'}</td>

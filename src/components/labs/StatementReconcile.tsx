@@ -13,7 +13,7 @@ import {
   type InboxCandidate,
 } from '../../lib/statementMatching';
 import { parseExpenseDate } from '../../lib/dateUtils';
-import { readImageDimensions } from '../../lib/imagePicker';
+import { reuploadInboxImages } from '../../lib/inboxImages';
 import { useReconciliationInboxCandidates } from '../../hooks/useReconciliationInboxCandidates';
 import { InboxCandidateMatchForm } from './InboxCandidateMatchForm';
 import { CategoryQuickPicker } from './CategoryQuickPicker';
@@ -234,36 +234,6 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
     setCategoryOverrides((prev) => new Map(prev).set(expenseId, category));
   };
 
-  // Postgres can't move bytes between storage prefixes — download from the
-  // email-inbox path and re-upload under the chosen household, exactly like
-  // AddExpense.tsx's own email-inbox-to-expense path. The RPC only writes the
-  // resulting DB rows.
-  const downloadAndReuploadInboxImages = async (paths: string[], householdId: string) => {
-    const usable = paths.filter((p) => !/\.html?$/i.test(p));
-    const images: Array<{ path: string; mime: string; width: number | null; height: number | null }> = [];
-    for (const p of usable) {
-      const { data, error: downloadError } = await supabase.storage.from('receipts').download(p);
-      if (downloadError || !data) continue;
-      const filename = p.split('/').pop() || 'attachment';
-      const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-      const mime =
-        data.type ||
-        (ext === 'pdf' ? 'application/pdf'
-          : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-          : ext === 'png' ? 'image/png'
-          : ext === 'webp' ? 'image/webp'
-          : 'application/octet-stream');
-      const file = new File([data], filename, { type: mime });
-      const fileName = `${householdId}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('receipts').upload(fileName, file);
-      if (uploadError) continue;
-      const preview = URL.createObjectURL(file);
-      const { width, height } = await readImageDimensions({ file, preview });
-      images.push({ path: fileName, mime, width, height });
-    }
-    return images;
-  };
-
   // Confirms a match against a pending inbox item: creates the real expense,
   // dual-writes images, accepts the inbox row, and matches the line item, all
   // atomically server-side. Used both from the auto-match preview and the
@@ -278,7 +248,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
     setBusyInboxId(inboxRow.id);
     setInboxErrors((prev) => { const m = new Map(prev); m.delete(inboxRow.id); return m; });
     try {
-      const images = await downloadAndReuploadInboxImages(inboxRow.attachment_paths, householdId);
+      const images = await reuploadInboxImages(inboxRow.attachment_paths, householdId);
       const { error: rpcError } = await supabase.rpc('match_inbox_item_to_line_item', {
         p_line_item_id: lineItemId,
         p_inbox_id: inboxRow.id,
@@ -344,12 +314,26 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
   };
 
   const highConfidenceMatches = useMemo(() => {
-    return unmatched
+    const scored = unmatched
       .map((item) => {
         const candidates = candidatesFor(item);
         return isHighConfidence(candidates) ? { item, candidate: candidates[0] } : null;
       })
       .filter((v): v is { item: StatementLineItem; candidate: MatchCandidate } => v !== null);
+
+    // Two line items with the same amount and date can both nominate the SAME
+    // expense. The DB rejects the loser (unique index on matched_expense_id),
+    // so without this the batch quietly under-applies. Resolve greedily by
+    // descending score — the strongest claim wins, the other line item drops
+    // back to manual review, which is the honest outcome for an ambiguous pair.
+    const claimed = new Set<string>();
+    return scored
+      .sort((a, b) => b.candidate.score - a.candidate.score)
+      .filter((s) => {
+        if (claimed.has(s.candidate.expense.id)) return false;
+        claimed.add(s.candidate.expense.id);
+        return true;
+      });
   }, [unmatched, candidatesFor]);
 
   // Split the preview: real-expense pairs stay a true one-click bulk confirm;
@@ -362,13 +346,22 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
     if (expenseSourcedPreview.length === 0) return;
     setAutoMatching(true);
     setError('');
-    const { error: rpcError } = await supabase.rpc('bulk_match_statement_line_items', {
+    const { data, error: rpcError } = await supabase.rpc('bulk_match_statement_line_items', {
       p_matches: expenseSourcedPreview.map((p) => ({ line_item_id: p.item.id, expense_id: p.candidate.expense.id })),
     });
     setAutoMatching(false);
     if (rpcError) {
       setError(rpcError.message);
       return;
+    }
+    // The RPC applies matches individually and reports what it couldn't do.
+    // Surfacing that matters: a silently-skipped pair looks identical to a
+    // successful one, so the user would believe the statement was fully
+    // reconciled when it wasn't.
+    const result = data as { matched?: number; skipped?: Array<{ reason: string }> } | null;
+    const skippedCount = result?.skipped?.length ?? 0;
+    if (skippedCount > 0) {
+      setError(t('labs.cc.autoMatchSkipped', { count: String(skippedCount) }));
     }
     // Keep the preview open if inbox-sourced rows still need a household picked.
     setAutoMatchPreview(inboxSourcedPreview.length > 0 ? inboxSourcedPreview : null);

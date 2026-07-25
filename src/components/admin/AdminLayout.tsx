@@ -263,6 +263,16 @@ export function AdminLayout() {
 
   const handleNotificationOpen = (n: AppNotification) => openEntity(n.entity_type, n.entity_id);
 
+  // Review-queue rows from the bell. The inbox panel lives on the home view for
+  // a full admin and above every view for a household admin, so 'home' works
+  // for both. 'uncategorized' is a full-admin screen (its RPC refuses anyone
+  // else), so a household admin — whose count only ever covers their own
+  // submissions — goes to My Transactions instead.
+  const handleOpenReview = useCallback((target: 'inbox' | 'uncategorized') => {
+    setActiveView(target === 'inbox' ? 'home' : isAdmin ? 'uncategorized' : 'my-transactions');
+    setMobileMenuOpen(false);
+  }, [isAdmin]);
+
   // Honor a deep link arriving in the URL (e.g. from a mention email).
   useInitialDeepLink((target) => openEntity(target.type, target.id));
 
@@ -405,7 +415,7 @@ export function AdminLayout() {
           </button>
 
           <div className="flex items-center gap-1">
-            <NotificationBell dark compact onOpen={handleNotificationOpen} />
+            <NotificationBell dark compact onOpen={handleNotificationOpen} onOpenReview={handleOpenReview} />
             {/* Desktop: account menu lives here (nav is the sidebar). Mobile:
                 account actions move into the hamburger drawer, so this avatar
                 is hidden to avoid two adjacent menu triggers. */}
