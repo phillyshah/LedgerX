@@ -662,6 +662,16 @@ BEGIN
         'purge_whatsapp_dedup'
       )
   LOOP
+    -- PUBLIC first, and it must NOT go through %I — that would quote it into a
+    -- literal role named "PUBLIC" rather than the pseudo-role. This matters:
+    -- several of these functions (e.g. resolve_sender_email, 20260430000000:104)
+    -- only ever had a GRANT and never a REVOKE FROM PUBLIC, so they still carry
+    -- the default EXECUTE that Postgres puts on every new function. Every role
+    -- inherits PUBLIC, so revoking anon/authenticated by name accomplishes
+    -- nothing on its own for those — verified in production, where
+    -- resolve_sender_email's ACL still read `=X/postgres` afterwards.
+    EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM PUBLIC', v_fn, v_args);
+
     FOREACH v_role IN ARRAY ARRAY['anon', 'authenticated'] LOOP
       IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_role) THEN
         EXECUTE format('REVOKE ALL ON FUNCTION public.%I(%s) FROM %I', v_fn, v_args, v_role);
