@@ -9,10 +9,16 @@ substantial session.
 - **Version `v13.9`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **⚠️ Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
-  1. **`pip3 install pymupdf` on the VPS**, then copy the updated
-     `scripts/poll_email_inbox.py` to `/opt/ledgerx/`. Without the wheel the
-     poller still runs — the import is guarded — it just doesn't rasterize,
-     i.e. today's behaviour.
+  1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
+     pip3/apt.** Confirmed 2026-07-25: cron runs
+     `/opt/ledgerx/venv/bin/python3` (with `. /opt/ledgerx/env` sourced first
+     for env vars), not `/usr/bin/python3` as QUICK_START previously and
+     wrongly documented (now fixed). `apt install python3-fitz` installs
+     system-wide and is invisible to that venv — wasted effort, caught live
+     during this deploy. weasyprint likewise only exists in the venv. Then
+     copy the updated `scripts/poll_email_inbox.py` to `/opt/ledgerx/`.
+     Without the wheel the poller still runs — the import is guarded — it
+     just doesn't rasterize, i.e. today's behaviour.
   2. Redeploy `inbound-email`. **⚠️ The live copy has drifted from the repo
      (gotcha #7) — diff before pasting, do NOT wholesale-replace.** The two
      changes needed are small: drop `|| a.content_type === "application/pdf"`

@@ -7,7 +7,9 @@ Connects to the receipts@90ten.life IMAP mailbox, fetches unseen messages,
 and forwards each one to the Supabase inbound-email edge function.
 
 Cron entry (crontab -e):
-    */5 * * * * /usr/bin/python3 /opt/ledgerx/poll_email_inbox.py >> /var/log/ledgerx_email.log 2>&1
+    */5 * * * * set -a && . /opt/ledgerx/env && set +a && /opt/ledgerx/venv/bin/python3 /opt/ledgerx/poll_email_inbox.py >> /var/log/ledgerx_email.log 2>&1
+    (runs inside a venv, NOT system python3 — that's where weasyprint and,
+    as of v13.9, PyMuPDF live; installing to system pip won't reach cron)
 
 Configuration: edit the CONFIG block below, or set the equivalent
 environment variables (env vars take precedence).
