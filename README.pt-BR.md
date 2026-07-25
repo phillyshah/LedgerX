@@ -267,6 +267,14 @@ Cada item pendente é mostrado como um cartão com:
 - Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba; arquivos HEIC de encaminhamentos do iPhone aparecem como uma miniatura genérica que abre o original)
 - Um botão pequeno **Revisar ▾** à direita
 
+**Recibos em PDF são lidos como fotos.** A maioria das lojas envia recibos em
+PDF em vez de imagem, e agora eles são lidos automaticamente igual a uma foto de
+celular — fornecedor, valor e data já vêm preenchidos. Nos bastidores, a
+primeira página é convertida em imagem antes da leitura, já que o serviço de
+reconhecimento de texto só lê imagens; o PDF original é mantido e continua sendo
+o que você abre pelo cartão. Arquivos HEIC de encaminhamentos do iPhone
+continuam sendo o único formato não lido automaticamente.
+
 Toque em **Revisar ▾** e escolha o tipo do item:
 
 | Escolha | O que acontece |
