@@ -6,7 +6,7 @@ import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { loadUserHouseholds, loadAllHouseholds } from '../../lib/queries';
 import {
   X, Activity, Home, Calendar, User as UserIcon, Filter, ChevronRight,
-  FileText, Receipt, CheckCircle, HardHat, LogIn, ClipboardList, XCircle,
+  FileText, Receipt, CheckCircle, HardHat, LogIn, ClipboardList, XCircle, Mail,
 } from 'lucide-react';
 import type { Expense, Household } from '../../types/expense';
 import type { ContractorInvoice, InvoiceImage } from '../../types/invoice';
@@ -22,12 +22,13 @@ type EventType =
   | 'invoice_paid'
   | 'estimate_created'
   | 'estimate_accepted'
-  | 'estimate_rejected';
+  | 'estimate_rejected'
+  | 'email_pending';
 
 interface ActivityRow {
   event_id: string;
   event_type: EventType;
-  entity_type: 'expense' | 'invoice' | 'estimate';
+  entity_type: 'expense' | 'invoice' | 'estimate' | 'email_inbox';
   entity_id: string;
   actor_id: string | null;
   actor_username: string;
@@ -70,6 +71,7 @@ const EVENT_TYPES: EventType[] = [
   'estimate_created',
   'estimate_accepted',
   'estimate_rejected',
+  'email_pending',
 ];
 
 export function ActivityReport({ onClose }: ActivityReportProps) {
@@ -226,6 +228,11 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
   // AdminInvoices detail panel so household_admins (no mark-paid powers) see
   // the same shape admins do.
   const openDetail = async (row: ActivityRow) => {
+    // A pending email-inbox item isn't a real expense/invoice yet — there's
+    // nothing to open (no household, no saved record). The row is
+    // informational only; see the table render, which also skips the
+    // chevron/hover affordance for this entity_type.
+    if (row.entity_type === 'email_inbox') return;
     setLoadingDetail(true);
     try {
       if (row.entity_type === 'expense') {
@@ -309,6 +316,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'estimate_created':  return t('activityReport.eventEstimateCreated');
       case 'estimate_accepted': return t('activityReport.eventEstimateAccepted');
       case 'estimate_rejected': return t('activityReport.eventEstimateRejected');
+      case 'email_pending':     return t('activityReport.eventEmailPending');
     }
   };
 
@@ -321,6 +329,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'estimate_created':  return ClipboardList;
       case 'estimate_accepted': return CheckCircle;
       case 'estimate_rejected': return XCircle;
+      case 'email_pending':     return Mail;
     }
   };
 
@@ -333,6 +342,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
       case 'estimate_created':  return 'bg-violet-50 text-violet-700 border-violet-200';
       case 'estimate_accepted': return 'bg-green-50 text-green-700 border-green-200';
       case 'estimate_rejected': return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'email_pending':     return 'bg-amber-50 text-amber-700 border-amber-200';
     }
   };
 
@@ -549,10 +559,21 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                         const ccy = (r.metadata && typeof r.metadata.currency === 'string')
                           ? (r.metadata.currency as string)
                           : 'USD';
+                        // A pending email-inbox item has no household or
+                        // confirmed amount yet (see migration comment) — show
+                        // the OCR-guessed vendor/subject where the household
+                        // would normally go, and skip the click-to-open
+                        // affordance since there's no record to open yet.
+                        const isPending = r.entity_type === 'email_inbox';
+                        const pendingLabel = isPending
+                          ? (typeof r.metadata?.vendor_guess === 'string' && r.metadata.vendor_guess) ||
+                            (typeof r.metadata?.subject === 'string' && r.metadata.subject) ||
+                            null
+                          : null;
                         return (
                           <tr
                             key={r.event_id}
-                            className="hover:bg-slate-50 cursor-pointer transition-colors"
+                            className={`transition-colors ${isPending ? '' : 'hover:bg-slate-50 cursor-pointer'}`}
                             onClick={() => openDetail(r)}
                           >
                             <td className="px-3 py-2.5 text-sm text-slate-600 whitespace-nowrap">{fmtDateTime(r.occurred_at)}</td>
@@ -565,14 +586,16 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                                 {eventLabel(r.event_type)}
                               </span>
                             </td>
-                            <td className="px-3 py-2.5 text-sm text-slate-600 hidden sm:table-cell">
-                              {r.household_name ?? <span className="text-slate-300">—</span>}
+                            <td className="px-3 py-2.5 text-sm text-slate-600 hidden sm:table-cell truncate max-w-[14rem]">
+                              {isPending
+                                ? (pendingLabel ?? <span className="text-slate-300">—</span>)
+                                : (r.household_name ?? <span className="text-slate-300">—</span>)}
                             </td>
                             <td className="px-3 py-2.5 text-sm text-slate-900 text-right whitespace-nowrap font-medium">
                               {fmtAmount(r.amount, ccy)}
                             </td>
                             <td className="px-2 py-2.5 text-right">
-                              <ChevronRight className="w-4 h-4 text-slate-400 inline" />
+                              {!isPending && <ChevronRight className="w-4 h-4 text-slate-400 inline" />}
                             </td>
                           </tr>
                         );

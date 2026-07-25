@@ -704,6 +704,7 @@
   "activityReport.eventEstimateCreated": "Estimate submitted",
   "activityReport.eventEstimateAccepted": "Estimate accepted",
   "activityReport.eventEstimateRejected": "Estimate rejected",
+  "activityReport.eventEmailPending": "Forwarded — pending review",
   "estimateReport.title": "Estimate report",
   "estimateReport.subtitle": "Pipeline, acceptance rate, and aging for contractor estimates",
   "estimateReport.navLabel": "Estimate Report",

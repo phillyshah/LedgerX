@@ -663,8 +663,9 @@ Contractors can submit **estimates** (quotes) for you to review and discuss befo
 A chronological feed of who's been doing what across the people you oversee. Open it from the nav (or the **Activity** quick-action on the admin home).
 
 - **Activity feed** — every receipt submission, invoice submission, mark-paid event, and estimate event (submitted, accepted, rejected) in one timeline. Tap any row to open the underlying receipt, invoice, or estimate without leaving the screen.
+- **Forwarded — pending review** — receipts or invoices someone forwarded by email that haven't been reviewed yet (still sitting in their inbox awaiting a save). This is the one row type you can't click into — it's not a real receipt/invoice yet — and it disappears from the feed once that person reviews it, since at that point it becomes a normal "Submitted receipt"/"Submitted invoice" row instead. Handy for confirming a forward actually arrived before it's been acted on.
 - **Last logins** — one row per user with the last time they signed in. Handy for spotting contractors who've gone quiet.
-- **Filters** — date range (defaults to the last 30 days), household, person, and event type chips at the top (including the three estimate event types).
+- **Filters** — date range (defaults to the last 30 days), household, person, and event type chips at the top (including the three estimate event types and "Forwarded — pending review"). Note: the Household filter won't show pending forwarded items — a forwarded email has no property assigned until it's reviewed, so it only ever appears under "All households."
 
 **Who sees whose activity:**
 - Full admins see activity for every user, across every household.
