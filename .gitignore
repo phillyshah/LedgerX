@@ -31,3 +31,7 @@ dist-ssr
 .claude/session-state.md
 .claude/session-state.md.bak
 .claude/mode
+
+# Python bytecode — a stray .pyc was tracked and churned on every local run
+__pycache__/
+*.pyc
