@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import { Bell, MessageCircle, AtSign, ClipboardList, FileText, CheckCheck, Trash2 } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Bell, MessageCircle, AtSign, ClipboardList, FileText, CheckCheck, Trash2, Mail, Tag, ChevronRight } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { useNotifications } from '../hooks/useNotifications';
+import { useReviewQueue } from '../hooks/useReviewQueue';
 import type { AppNotification, NotificationKind } from '../types/notification';
+
+/** What a pinned review-queue row links to when tapped. */
+export type ReviewTarget = 'inbox' | 'uncategorized';
 
 interface NotificationBellProps {
   /** Compact size for the contractor mobile header. */
@@ -15,6 +19,13 @@ interface NotificationBellProps {
    * a tap only marks the row read (legacy behavior).
    */
   onOpen?: (n: AppNotification) => void;
+  /**
+   * Handler for the pinned review-queue rows. When omitted the rows still
+   * render (the count is the point) but aren't tappable — so a shell that
+   * hasn't wired up a destination degrades to informational rather than
+   * offering a dead tap.
+   */
+  onOpenReview?: (target: ReviewTarget) => void;
 }
 
 const KIND_ICON: Record<NotificationKind, typeof Bell> = {
@@ -40,22 +51,65 @@ function relativeTime(iso: string, locale: string): string {
 }
 
 /**
+ * One pinned review-queue row. Renders as a plain (non-interactive) row when
+ * no handler is supplied so a shell without a destination never offers a tap
+ * that goes nowhere.
+ */
+function ReviewRow({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
+      <span className="shrink-0 mt-0.5 text-amber-600">{icon}</span>
+      <span className="min-w-0 flex-1 text-sm text-amber-900 leading-snug">{label}</span>
+      {onClick && <ChevronRight className="shrink-0 w-4 h-4 text-amber-400 mt-0.5" aria-hidden="true" />}
+    </>
+  );
+  return (
+    <li>
+      {onClick ? (
+        <button
+          onClick={onClick}
+          className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-amber-100/70 transition-colors"
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="flex items-start gap-3 px-4 py-3">{content}</div>
+      )}
+    </li>
+  );
+}
+
+/**
  * Header notification bell. Repurposed from the old "What's New" bell (release
  * notes moved to the footer in v11.3). Shows the unread count and opens a
  * dropdown of recent activity — new chat messages, new estimates/invoices, and
  * status changes. Data + read-tracking come from `useNotifications`.
  */
-export function NotificationBell({ compact = false, dark = false, onOpen }: NotificationBellProps) {
+export function NotificationBell({ compact = false, dark = false, onOpen, onOpenReview }: NotificationBellProps) {
   const { t, locale } = useT();
   const { notifications, unreadCount, markRead, remove } = useNotifications();
+  const { summary, total: reviewCount } = useReviewQueue();
   const [open, setOpen] = useState(false);
+
+  // The badge is everything demanding attention, not just unread events — a
+  // forwarded receipt nobody has reviewed is exactly the thing users were
+  // missing, and it never produced a notification row.
+  const badgeCount = unreadCount + reviewCount;
 
   const iconSize = compact ? 'w-5 h-5' : 'w-4 h-4';
   const colorClass = dark
-    ? unreadCount > 0
+    ? badgeCount > 0
       ? 'text-amber-300 hover:text-amber-200 hover:bg-emerald-800'
       : 'text-emerald-200 hover:text-white hover:bg-emerald-800'
-    : unreadCount > 0
+    : badgeCount > 0
       ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50';
 
@@ -96,12 +150,12 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
         title={t('notifications.title')}
       >
         <Bell className={iconSize} />
-        {unreadCount > 0 && (
+        {badgeCount > 0 && (
           <span
             className={`absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ${dark ? 'ring-emerald-900' : 'ring-white'}`}
             aria-hidden="true"
           >
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {badgeCount > 9 ? '9+' : badgeCount}
           </span>
         )}
       </button>
@@ -137,8 +191,40 @@ export function NotificationBell({ compact = false, dark = false, onOpen }: Noti
             </div>
 
             <div className="max-h-96 overflow-y-auto">
+              {/* Pinned review queue. Not dismissible and carries no read
+                  state — these are live counts, so they disappear on their own
+                  once the underlying items are dealt with. */}
+              {reviewCount > 0 && (
+                <ul className="divide-y divide-amber-100 bg-amber-50/70 border-b border-amber-100">
+                  {summary.pendingInbox > 0 && (
+                    <ReviewRow
+                      icon={<Mail className="w-4 h-4" />}
+                      label={
+                        summary.pendingInbox === 1
+                          ? t('reviewQueue.pendingInboxOne')
+                          : t('reviewQueue.pendingInboxMany', { count: String(summary.pendingInbox) })
+                      }
+                      onClick={onOpenReview ? () => { onOpenReview('inbox'); setOpen(false); } : undefined}
+                    />
+                  )}
+                  {summary.uncategorized > 0 && (
+                    <ReviewRow
+                      icon={<Tag className="w-4 h-4" />}
+                      label={
+                        summary.uncategorized === 1
+                          ? t('reviewQueue.uncategorizedOne')
+                          : t('reviewQueue.uncategorizedMany', { count: String(summary.uncategorized) })
+                      }
+                      onClick={onOpenReview ? () => { onOpenReview('uncategorized'); setOpen(false); } : undefined}
+                    />
+                  )}
+                </ul>
+              )}
+
               {notifications.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-10 px-4">{t('notifications.empty')}</p>
+                reviewCount === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-10 px-4">{t('notifications.empty')}</p>
+                ) : null
               ) : (
                 <ul className="divide-y divide-slate-100">
                   {notifications.map((n) => {

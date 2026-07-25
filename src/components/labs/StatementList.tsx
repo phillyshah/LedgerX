@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart, Building2 } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart, Building2, Wand2 } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 import type { Household } from '../../types/expense';
 import { StatementHouseholdsModal } from './StatementHouseholdsModal';
@@ -28,11 +28,13 @@ interface StatementListProps {
   onDelete: (statementId: string) => void;
   onRename: (statementId: string, newLabel: string) => Promise<boolean>;
   onEditHouseholds: (statementId: string, householdIds: string[]) => Promise<boolean>;
+  /** Opens the global sweep across every statement. Available to household admins and above. */
+  onAutoReconcile: () => void;
   /** Super-admin only — opens the reconciliation report. Omitted for others. */
   onOpenReport?: () => void;
 }
 
-export function StatementList({ statements, isAdmin, allHouseholds, onUpload, onReconcile, onDelete, onRename, onEditHouseholds, onOpenReport }: StatementListProps) {
+export function StatementList({ statements, isAdmin, allHouseholds, onUpload, onReconcile, onDelete, onRename, onEditHouseholds, onAutoReconcile, onOpenReport }: StatementListProps) {
   const { t, locale } = useT();
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,6 +96,16 @@ export function StatementList({ statements, isAdmin, allHouseholds, onUpload, on
           <p className="text-sm text-slate-500 mt-0.5">{t('labs.cc.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Only worth offering once there's something to sweep. */}
+          {statements.length > 0 && (
+            <button
+              onClick={onAutoReconcile}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all font-medium"
+            >
+              <Wand2 className="w-4 h-4" />
+              {t('labs.cc.auto.button')}
+            </button>
+          )}
           {onOpenReport && (
             <button
               onClick={onOpenReport}

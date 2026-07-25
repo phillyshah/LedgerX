@@ -81,6 +81,11 @@ export function Dashboard() {
   const [deepLink, setDeepLink] = useState<{ type: 'estimate' | 'invoice'; id: string } | null>(null);
   const [estimatesExpand, setEstimatesExpand] = useState(0);
   const [invoicesExpand, setInvoicesExpand] = useState(0);
+  // Same expand-signal idiom, driven by the bell's review-queue rows rather
+  // than by a notification: tapping "3 receipts awaiting review" should open
+  // the (collapsed-by-default) section that actually holds them.
+  const [inboxExpand, setInboxExpand] = useState(0);
+  const [transactionsExpand, setTransactionsExpand] = useState(0);
 
   // Open an estimate/invoice detail: set the deep-link target and bump the
   // matching section's expand signal so its (possibly-collapsed) list mounts.
@@ -95,6 +100,13 @@ export function Dashboard() {
   }, []);
 
   const handleNotificationOpen = (n: AppNotification) => openEntity(n.entity_type, n.entity_id);
+
+  // This shell has no dedicated "uncategorized" screen — a regular user fixes
+  // a missing category from their own transaction list, so point there.
+  const handleOpenReview = useCallback((target: 'inbox' | 'uncategorized') => {
+    if (target === 'inbox') setInboxExpand((x) => x + 1);
+    else setTransactionsExpand((x) => x + 1);
+  }, []);
 
   // Honor a deep link arriving in the URL (e.g. from a mention email).
   useInitialDeepLink((target) => openEntity(target.type, target.id));
@@ -194,7 +206,7 @@ export function Dashboard() {
 
   const HeaderActions = (
     <div className="flex items-center gap-1 sm:gap-2">
-      <NotificationBell onOpen={handleNotificationOpen} />
+      <NotificationBell onOpen={handleNotificationOpen} onOpenReview={handleOpenReview} />
       <UserMenu
         variant="light"
         username={username}
@@ -260,6 +272,7 @@ export function Dashboard() {
           {/* Email inbox — forwarded receipts/invoices awaiting review.
               Only surfaces when there's at least one pending item. */}
           <CollapsibleSection
+            expandSignal={inboxExpand}
             storageKey="contractor.inbox"
             title={t('inbox.pendingTitle')}
             icon={<Mail className="w-4 h-4" />}
@@ -308,6 +321,7 @@ export function Dashboard() {
           </CollapsibleSection>
 
           <CollapsibleSection
+            expandSignal={transactionsExpand}
             storageKey="contractor.submissions"
             title={t('dashboard.yourSubmissions')}
             icon={<ListChecks className="w-4 h-4" />}
@@ -409,6 +423,7 @@ export function Dashboard() {
 
           {/* Email inbox — only surfaces when at least one pending item */}
           <CollapsibleSection
+            expandSignal={inboxExpand}
             storageKey="dashboard.inbox"
             title={t('inbox.pendingTitle')}
             icon={<Mail className="w-4 h-4" />}
@@ -426,6 +441,7 @@ export function Dashboard() {
 
           {/* Transactions lead — the list a household member most often wants. */}
           <CollapsibleSection
+            expandSignal={transactionsExpand}
             storageKey="dashboard.transactions"
             title={t('expenses.heading')}
             icon={<ListChecks className="w-4 h-4" />}

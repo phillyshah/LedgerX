@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.8',
+    version: 'v13.8',
+    date: '2026-07-25',
+    title: {
+      'en': 'Nothing gets forgotten: review reminders and one-click Auto Reconcile',
+      'pt-BR': 'Nada mais é esquecido: lembretes de revisão e Conciliação Automática',
+    },
+    body: {
+      'en':
+        "Two things that were quietly piling up are now hard to miss. First, the bell at the top of the screen counts anything waiting on you — receipts you forwarded by email that nobody has reviewed yet, and transactions saved without a category. Tap the count and it takes you straight there. If something sits for more than three days, we'll also send you a short email, and keep nudging every three days until it's cleared.\n\nSecond, Reconciliation has a new \"Auto reconcile\" button. Instead of opening one credit card statement at a time, it compares every unmatched charge across all your statements against every receipt that isn't linked to a statement yet — including receipts still sitting in the inbox. It shows you what it found in a simple table with a confidence score, you untick anything that looks wrong, and apply them all at once. When a statement covers just one property, it even fills the property in for you. Anything it couldn't confidently place is listed underneath, so you always know exactly where you stand.",
+      'pt-BR':
+        "Duas coisas que se acumulavam em silêncio agora ficam impossíveis de ignorar. Primeiro, o sininho no topo da tela conta tudo que está esperando por você — recibos que você encaminhou por e-mail e ninguém revisou ainda, e transações salvas sem categoria. Toque no número e você vai direto para lá. Se algo ficar parado por mais de três dias, também enviamos um e-mail curto, e continuamos lembrando a cada três dias até resolver.\n\nSegundo, a Conciliação ganhou o botão \"Conciliar automaticamente\". Em vez de abrir uma fatura de cartão por vez, ele compara todos os lançamentos em aberto de todas as suas faturas com todos os recibos que ainda não estão vinculados a nenhuma fatura — incluindo os que estão na caixa de entrada. Ele mostra o que encontrou em uma tabela simples com um índice de confiança, você desmarca o que parecer errado e aplica tudo de uma vez. Quando a fatura cobre apenas uma propriedade, ele já preenche a propriedade para você. O que não deu para identificar com segurança fica listado logo abaixo, para você sempre saber exatamente onde está.",
+    },
+  },
+  {
     id: 'v13.7',
     version: 'v13.7',
     date: '2026-07-25',

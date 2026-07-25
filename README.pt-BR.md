@@ -439,6 +439,35 @@ Somente um administrador completo pode enviar faturas — e renomear uma depois,
 
 **Comentários e perguntar a alguém.** Cada lançamento da fatura tem um botão de **comentário**. Abra-o para deixar observações e digite **@** para mencionar alguém — um seletor sugere administradores e as pessoas que enviaram recibos. Quem você mencionar é notificado (no app e por e-mail ou WhatsApp, conforme a preferência) com todos os detalhes da cobrança e a sua pergunta, então sabe exatamente do que se trata. Lançamentos com discussão exibem uma pequena etiqueta de comentário.
 
+**Conciliação automática — varra todas as faturas de uma vez** (administradores
+completos e de residência). Trabalhar uma fatura por vez funciona bem em um
+cartão novo, mas não para limpar um acúmulo. O botão **Conciliar
+automaticamente** na lista de faturas compara **todos os lançamentos em aberto
+de todas as faturas que você enxerga** com **todos os recibos ainda não
+vinculados a nenhuma fatura** — incluindo os que estão na caixa de entrada de
+e-mail.
+
+Os resultados vêm em uma tabela: o lançamento, em qual cartão está, o recibo
+correspondente, a propriedade e um índice de confiança. Tudo que é confiável já
+vem marcado — desmarque o que parecer errado e aplique o restante de uma vez. O
+critério é o mesmo da Associação automática por fatura, então os dois caminhos
+concordam sobre qualquer par: os valores precisam bater, e um lançamento é
+deixado de lado se dois recibos forem igualmente plausíveis.
+
+Dois pontos importantes:
+
+- **A fatura pode preencher a propriedade para você.** Um recibo encaminhado não
+  tem propriedade — normalmente você teria que escolher uma. Mas se o lançamento
+  está em uma fatura vinculada a exatamente uma propriedade, essa é a resposta, e
+  ela é preenchida automaticamente (marcada como "Pela fatura"). Quando a fatura
+  cobre várias propriedades, ou nenhuma, você escolhe em uma lista naquela linha;
+  essas linhas não podem ser aplicadas até você escolher.
+- **Ele mostra o que não conseguiu identificar.** Abaixo da tabela, uma seção
+  recolhível lista todos os lançamentos restantes, para você terminar sabendo
+  exatamente onde está — e não apenas o que foi conciliado. Se dois lançamentos
+  disputarem o mesmo recibo, o de correspondência mais forte vence e o outro é
+  sinalizado para você resolver manualmente.
+
 **Relatório de conciliação** (administradores completos). O botão **Relatório de conciliação** na lista de faturas abre um relatório de todas as cobranças de todas as faturas: quais estão associadas e quais não, quem conciliou cada uma e quando. Filtre por cartão, status, pessoa ou data e exporte para CSV — incluindo um **Exportar não conciliados** com um clique para gerar uma lista do que ainda está pendente para enviar.
 
 **Corrigindo um lançamento lido errado** (administradores completos). A leitura automática da fatura é boa, mas não é perfeita — às vezes ela pode ler a data errada, confundir o nome do estabelecimento ou errar um dígito no valor. Toque em **Editar** em qualquer lançamento (associado ou não) para corrigir a data, a descrição ou o valor direto na tela de conciliação, sem precisar reenviar a fatura.
@@ -474,6 +503,29 @@ mostra um número quando há algo novo para você:
 - **alguém @mencionou você** em uma conversa (mostrado como "mencionou você"),
 - um **novo orçamento ou nota fiscal** enviado na sua propriedade,
 - um **orçamento avaliado** (aceito/recusado) ou uma **nota marcada como paga**.
+
+**Sua fila de revisão.** O sino também conta o que está parado esperando por
+você, fixado no topo da lista em âmbar:
+
+- **recibos encaminhados aguardando revisão** — tudo que você enviou por e-mail
+  e que ninguém salvou como transação ainda,
+- **transações que precisam de categoria**.
+
+Isso não são mensagens, então não há o que marcar como lido nem remover — os
+itens simplesmente desaparecem quando você resolve o que está pendente. Toque em
+um deles e o LedgerX leva você ao lugar certo: a seção Caixa de Entrada para
+recibos encaminhados, e suas transações (ou, para administradores completos, a
+tela **Sem Categoria**) para o resto. Administradores completos veem a contagem
+de itens sem categoria de todo o sistema, igual ao que a tela Sem Categoria
+mostra; os demais veem apenas os próprios envios.
+
+**Lembretes por e-mail.** Se algo ficar sem revisão por mais de **três dias**, o
+LedgerX envia um e-mail para quem é dono do item — quem encaminhou o recibo ou
+quem salvou a transação sem categoria — com um resumo curto e um link. O
+lembrete se repete a cada três dias até o item ser resolvido, e então para. Você
+só recebe se tiver um endereço de e-mail real cadastrado em Configurações; e se
+seu canal de notificação estiver definido como WhatsApp (com número vinculado),
+o e-mail é ignorado.
 
 Toque no sino para ver a lista e **toque num item para ir direto a ele** — o
 LedgerX abre o orçamento exato (com a conversa) ou a nota fiscal a que a

@@ -18,3 +18,12 @@ verify_jwt = false
 # handshake as send-inactivity-reminder.
 [functions.whatsapp-send]
 verify_jwt = false
+
+# Also pg_cron via pg_net with X-Cron-Secret. send-inactivity-reminder was
+# missing from this file despite being invoked exactly the same way — adding
+# both so the cron-triggered functions are declared consistently.
+[functions.send-review-reminder]
+verify_jwt = false
+
+[functions.send-inactivity-reminder]
+verify_jwt = false

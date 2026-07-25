@@ -6,14 +6,55 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.7`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.8`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **⚠️ Pending manual steps for v13.7 (Activity report: "Forwarded — pending review")**:
-  1. Run migration **`20260730000000_activity_email_pending.sql`** in the SQL
-     editor (full `CREATE OR REPLACE` of `list_team_activity` — preserves all
-     existing branches verbatim, adds one new UNION sourcing `email_inbox`
-     WHERE `status='pending'`). **No edge function, no new secrets.** Then
-     rebuild + rsync the frontend.
+- **✅ v13.7 is DEPLOYED and confirmed working.** The user ran
+  `20260730000000_activity_email_pending.sql` on 2026-07-25 and the pending
+  rows appeared. The earlier "options show but no data" report was simply the
+  migration not having been run — the frontend had already shipped, and
+  `EVENT_TYPES` is client-side, so the filter option renders regardless of what
+  the DB knows. **Diagnostic worth reusing** for any "new RPC branch returns
+  nothing" report:
+  `SELECT count(*) FROM pg_proc WHERE proname='<fn>' AND prosrc LIKE '%<marker>%';`
+  — `0` means the migration never ran, and no amount of frontend debugging will
+  help.
+- **⚠️ Pending manual steps for v13.8 (review queue + global Auto Reconcile)**:
+  1. Run migration **`20260731000000_review_queue_and_auto_reconcile.sql`**.
+  2. Deploy the new edge function **`send-review-reminder`** (paste into the
+     dashboard — no CLI linked on this project).
+  3. Schedule the cron using the session-`SET` + `cron.schedule` single-Run
+     pattern from deploy gotcha #9, then verify with
+     `SELECT jobname, schedule FROM cron.job;`. **While you're there, check
+     whether `ledgerx-inactivity-reminders-daily` actually exists** — per
+     gotcha #9 its GUC was never set on this project, so it may never have
+     fired since v10.1.
+  4. Rebuild + rsync the frontend (`deploy-ledgerx`). No new secrets —
+     `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`, `APP_URL`, `CRON_SECRET` are
+     all already set.
+  5. Optional smoke test before scheduling cron: POST to the function with
+     `{"dry_run": true}` and the `X-Cron-Secret` header — it returns exactly who
+     *would* be emailed without sending anything or writing `notification_log`.
+- **🔒 Security fix folded into v13.8 — read this.** Writing
+  `list_review_reminder_recipients` surfaced a project-wide privilege trap.
+  Every backend-only RPC here is declared as
+  `REVOKE ALL ... FROM PUBLIC; GRANT EXECUTE ... TO service_role;`
+  which *reads* as "service role only" but isn't: Supabase's platform default
+  privileges grant EXECUTE on each new public-schema function directly to
+  `anon` and `authenticated`, and revoking PUBLIC does not remove an explicit
+  role grant. Several of the affected functions return **real contact email
+  addresses**; two are mutations. Reproduced in plain Postgres 16 and confirmed
+  both directions. The migration adds a hardening block that revokes
+  `anon`/`authenticated` by name from 13 such functions (verified first that
+  none are called from `src/` — the only two textual hits are a code comment
+  and a generated type). `20260525000000_harden_last_activity_fn.sql` had
+  already done this by hand for one function, so the intent was established.
+  **Going forward: for any service-role-only function, revoke the roles by
+  name — `REVOKE ... FROM PUBLIC` is not sufficient.**
+- **✅ v13.7 details (shipped)**:
+  1. Migration **`20260730000000_activity_email_pending.sql`** — full
+     `CREATE OR REPLACE` of `list_team_activity`, preserving all existing
+     branches verbatim, adding one new UNION sourcing `email_inbox`
+     WHERE `status='pending'`. **Applied 2026-07-25.**
   2. **Follow-up from the v13.6 email incident**: once the mailbox issue
      resolved, a user asked why 19 successfully-processed forwarded receipts
      weren't showing in the Activity report for that team member. Diagnosis

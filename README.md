@@ -441,6 +441,34 @@ Only a full admin can upload statements — and rename one later by tapping the 
 
 **Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small comment badge.
 
+**Auto reconcile — sweep every statement at once** (full admins and household
+admins). Working one statement at a time is fine for a fresh card, but not for
+clearing a backlog. The **Auto reconcile** button on the statement list compares
+**every unmatched charge across all statements you can see** against **every
+receipt that isn't linked to a statement yet** — including receipts still
+sitting in the email inbox.
+
+Results come back as a table: the charge, which card it's on, the receipt it
+matched, the property, and a confidence score. Everything confident is ticked by
+default — untick anything that looks wrong and apply the rest in one go. The
+same standard applies as the per-statement Auto-match, so both routes agree on
+any given pair: amounts must line up, and a charge is left alone if two receipts
+are equally plausible.
+
+Two things worth knowing:
+
+- **The statement can fill in the property for you.** A forwarded receipt has no
+  property attached — normally you'd have to pick one. But if the charge sits on
+  a statement tagged to exactly one property, that's the answer, and it's filled
+  in automatically (marked "From statement"). Where the statement covers several
+  properties, or none, you pick from a dropdown on that row; those rows can't be
+  applied until you do.
+- **It tells you what it couldn't place.** Below the table, a collapsible
+  section lists every charge left over, so you finish knowing exactly where you
+  stand rather than only what got matched. If two charges both wanted the same
+  receipt, the stronger match wins and the other is flagged for you to handle by
+  hand.
+
 **Reconciliation report** (full admins). The **Reconciliation report** button on the statement list opens a report of every charge across all statements: which are matched and which aren't, who reconciled each and when. Filter by card, status, person, or date, and export to CSV — including a one-click **Export unreconciled** to produce a list of what's still outstanding to send around.
 
 **Fixing a misread line item** (full admins). Statement scanning is good but not perfect — it can occasionally misread a date, garble a merchant name, or get a digit wrong on the amount. Tap **Edit** on any line item (matched or unmatched) to correct its date, description, or amount right on the reconciliation screen, no re-upload needed.
@@ -476,6 +504,27 @@ count when there's something new for you:
 - **someone @mentioned you** in a conversation (shown as "mentioned you"),
 - a **new estimate or invoice** submitted in your household,
 - an **estimate reviewed** (accepted/rejected) or an **invoice marked paid**.
+
+**Your review queue.** The bell also counts work that's sitting waiting on you,
+pinned to the top of the list in amber:
+
+- **forwarded receipts awaiting review** — anything you emailed in that nobody
+  has saved as a transaction yet,
+- **transactions that need a category**.
+
+These aren't messages, so there's nothing to mark read or delete — they simply
+disappear once the underlying items are dealt with. Tap one and LedgerX takes
+you to the right place: the Inbox section for forwarded receipts, and your
+transactions (or, for full admins, the **Uncategorized** screen) for the rest.
+Full admins see the uncategorized count for the whole system, matching what the
+Uncategorized screen shows; everyone else sees their own submissions.
+
+**Email reminders.** If something sits unreviewed for more than **three days**,
+LedgerX emails whoever owns it — the person who forwarded the receipt, or who
+saved the uncategorized transaction — with a short summary and a link. It
+repeats every three days until the item is cleared, then stops. You'll only get
+these if you have a real email address saved in Settings, and if you've set your
+notification channel to WhatsApp (with a number linked), the email is skipped.
 
 Tap the bell to see the list, then **tap an item to jump straight to it** —
 LedgerX opens the exact estimate (with its chat thread) or invoice the

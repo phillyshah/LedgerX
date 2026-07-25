@@ -10,13 +10,16 @@ import { StatementUpload } from './StatementUpload';
 import { StatementReconcile } from './StatementReconcile';
 
 const ReconciliationReport = lazy(() => import('./ReconciliationReport').then((m) => ({ default: m.ReconciliationReport })));
+// Lazy: the global sweep pulls three RPCs' worth of data and is only reached
+// deliberately, so it shouldn't weigh on the statement list's first paint.
+const AutoReconcile = lazy(() => import('./AutoReconcile').then((m) => ({ default: m.AutoReconcile })));
 
 interface CreditCardReconciliationProps {
   openLineItemId?: string | null;
   onLineItemHandled?: () => void;
 }
 
-type View = 'list' | 'upload' | { reconcile: StatementSummary };
+type View = 'list' | 'upload' | 'autoReconcile' | { reconcile: StatementSummary };
 
 export function CreditCardReconciliation({ openLineItemId, onLineItemHandled }: CreditCardReconciliationProps) {
   const { t } = useT();
@@ -163,8 +166,16 @@ export function CreditCardReconciliation({ openLineItemId, onLineItemHandled }: 
           onDelete={handleDelete}
           onRename={handleRename}
           onEditHouseholds={handleEditHouseholds}
+          onAutoReconcile={() => setView('autoReconcile')}
           onOpenReport={isAdmin ? () => setShowReport(true) : undefined}
         />
+      ) : view === 'autoReconcile' ? (
+        <Suspense fallback={<div className="h-64 bg-white rounded-2xl border border-slate-200 animate-pulse" />}>
+          <AutoReconcile
+            onBack={() => { setView('list'); loadStatements(); }}
+            onApplied={() => setCandidatesRefreshKey((k) => k + 1)}
+          />
+        </Suspense>
       ) : typeof view === 'object' ? (
         <StatementReconcile
           statementId={view.reconcile.id}
