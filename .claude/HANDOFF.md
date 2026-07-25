@@ -6,8 +6,41 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.8`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.9`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
+- **⚠️ Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
+  1. **`pip3 install pymupdf` on the VPS**, then copy the updated
+     `scripts/poll_email_inbox.py` to `/opt/ledgerx/`. Without the wheel the
+     poller still runs — the import is guarded — it just doesn't rasterize,
+     i.e. today's behaviour.
+  2. Redeploy `inbound-email`. **⚠️ The live copy has drifted from the repo
+     (gotcha #7) — diff before pasting, do NOT wholesale-replace.** The two
+     changes needed are small: drop `|| a.content_type === "application/pdf"`
+     from the `ocrTarget` filter, and route the four `if (!resp.ok) return {}`
+     sites through the new `logOcrFailure()` helper.
+  3. Verify: forward a Lowe's-style receipt, wait one poll cycle (≤5 min), then
+     `SELECT prefilled FROM email_inbox ORDER BY received_at DESC LIMIT 1;`
+     — expect a populated `total_amount`.
+- **The v13.9 bug, for the record** (found while deploying v13.8): production
+  had **23 pending expense receipts, 0 with an OCR'd amount**, every one a PDF.
+  Two independent defects stacked:
+  1. `inbound-email` passed PDFs to OpenAI's vision endpoint as a
+     `data:application/pdf;base64,…` URL. That endpoint takes JPEG/PNG/WEBP/GIF
+     only — it 400s — and `if (!resp.ok) return {}` swallowed it silently. The
+     `ocrTarget` filter directly contradicted `isOcrSupportedImage`'s own doc
+     comment two definitions above it.
+  2. The poller, when it rendered an HTML body to PDF, **nulled out
+     `body_text`/`body_html`** on the reasoning that the PDF superseded them.
+     So the inline-body fallback had nothing left to read either. Both paths
+     dead → `prefilled` was literally `{}` rather than a set of nulls.
+  Fix rasterizes page 1 to PNG in the poller and inserts it **ahead of** the
+  PDF, which matters: `inbound-email` scans for the *first* OCR-compatible
+  attachment, so the fix works against the currently-deployed function even
+  before step 2 lands. **Already-pending rows do not self-heal** — a backfill
+  script would be needed if those 23 should be prefilled.
+- **Generalizable lesson**: a bare `return {}` on a non-OK HTTP response is
+  indistinguishable from "found nothing". Both OCR paths failed for months with
+  zero log output. Log the status.
 - **✅ v13.7 is DEPLOYED and confirmed working.** The user ran
   `20260730000000_activity_email_pending.sql` on 2026-07-25 and the pending
   rows appeared. The earlier "options show but no data" report was simply the

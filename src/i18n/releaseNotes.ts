@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.9',
+    version: 'v13.9',
+    date: '2026-07-25',
+    title: {
+      'en': 'Emailed PDF receipts now fill in the form for you',
+      'pt-BR': 'Recibos em PDF enviados por e-mail agora preenchem o formulário',
+    },
+    body: {
+      'en':
+        "If you forwarded a receipt that arrived as a PDF — which is how most stores send them, Lowe's included — LedgerX was saving it but leaving the form completely blank, so you had to type in the store, date and amount yourself. Photos taken with your phone worked fine, which is why this went unnoticed for a while.\n\nThat's fixed. PDF receipts are now read the same way photos always were, so the vendor, total and date come pre-filled and you just check them and save. This applies to receipts arriving from now on — anything already sitting in your inbox stays as it is.",
+      'pt-BR':
+        "Se você encaminhava um recibo que chegava em PDF — como a maioria das lojas envia — o LedgerX salvava o arquivo mas deixava o formulário totalmente em branco, e você tinha que digitar loja, data e valor na mão. Fotos tiradas pelo celular funcionavam normalmente, e por isso isso passou despercebido por um tempo.\n\nJá está corrigido. Recibos em PDF agora são lidos do mesmo jeito que as fotos sempre foram, então fornecedor, valor e data vêm preenchidos e você só confere e salva. Vale para os recibos que chegarem de agora em diante — o que já está na sua caixa de entrada continua como está.",
+    },
+  },
+  {
     id: 'v13.8',
     version: 'v13.8',
     date: '2026-07-25',

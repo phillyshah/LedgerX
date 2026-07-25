@@ -269,6 +269,14 @@ Each pending item is shown as a card with:
 - Clickable thumbnails of any attachments (image or PDF — opens full-size in a new tab; HEIC files from iPhone forwards show a generic file tile that opens the original)
 - A small **Review ▾** button on the right
 
+**PDF receipts read the same as photos.** Most retailers send receipts as a PDF
+rather than an image, and those are now scanned automatically just like a phone
+photo — vendor, total, and date arrive pre-filled. Behind the scenes the first
+page is converted to an image before scanning, since the text-recognition
+service only reads images; the original PDF is kept and is still what you open
+from the card. HEIC files from iPhone forwards remain the one format that isn't
+scanned automatically.
+
 Tap **Review ▾** and pick what kind of item it is:
 
 | Choice | What happens |

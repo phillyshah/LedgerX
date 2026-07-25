@@ -8,7 +8,9 @@
  *   2. Resolves the sender email → user_id via resolve_sender_email()
  *   3. Skips silently if no user match or duplicate Message-ID
  *   4. Uploads each attachment to the 'receipts' storage bucket
- *   5. Runs OCR on the first image/PDF attachment
+ *   5. Runs OCR on the first vision-compatible IMAGE attachment. PDFs are
+ *      not eligible — the vision endpoint rejects them — so the VPS poller
+ *      rasterizes page 1 of any PDF to a PNG and sends it ahead of the PDF.
  *   6. If no attachment OCR succeeded, runs text extraction on the
  *      forwarded email body (text or stripped-HTML). Many vendor
  *      receipts (Uber, airline, SaaS invoices, etc.) ship the receipt
@@ -120,6 +122,23 @@ function detectKind(subject: string, filenames: string[]): "expense" | "invoice"
 }
 
 // ── OCR calls ─────────────────────────────────────────────────────────────────
+// Every OCR helper below used to `return {}` on a non-OK response with no trace
+// whatsoever. That silence hid a real outage: PDFs were being sent to the vision
+// endpoint, which rejects them outright, and every PDF-borne receipt landed with
+// prefilled={} and a blank form for the user. Nobody could tell OCR had failed
+// versus simply found nothing. Log the status and a snippet of the body so the
+// next failure is visible in the function logs.
+async function logOcrFailure(label: string, resp: Response): Promise<Record<string, unknown>> {
+  let detail = "";
+  try {
+    detail = (await resp.text()).slice(0, 300);
+  } catch {
+    // Body already consumed or unreadable — the status alone is still useful.
+  }
+  console.error(`[inbound-email] ${label} failed: HTTP ${resp.status} ${detail}`);
+  return {};
+}
+
 async function runReceiptOCR(
   apiKey: string,
   base64Data: string,
@@ -152,7 +171,7 @@ Use null for any field you cannot determine.`,
       ],
     }),
   });
-  if (!resp.ok) return {};
+  if (!resp.ok) return await logOcrFailure("receipt image OCR", resp);
   const json = await resp.json();
   try {
     return JSON.parse(json.choices[0].message.content);
@@ -191,7 +210,7 @@ ${text.slice(0, 8000)}`,
       ],
     }),
   });
-  if (!resp.ok) return {};
+  if (!resp.ok) return await logOcrFailure("receipt body-text extraction", resp);
   const json = await resp.json();
   try {
     return JSON.parse(json.choices[0].message.content);
@@ -229,7 +248,7 @@ ${text.slice(0, 8000)}`,
       ],
     }),
   });
-  if (!resp.ok) return {};
+  if (!resp.ok) return await logOcrFailure("invoice body-text extraction", resp);
   const json = await resp.json();
   try {
     return JSON.parse(json.choices[0].message.content);
@@ -296,7 +315,7 @@ Use null for any field you cannot determine.`,
       ],
     }),
   });
-  if (!resp.ok) return {};
+  if (!resp.ok) return await logOcrFailure("invoice image OCR", resp);
   const json = await resp.json();
   try {
     return JSON.parse(json.choices[0].message.content);
@@ -469,15 +488,27 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 7. OCR the first OpenAI-vision-compatible image or PDF attachment.
-    //    HEIC from iPhone forwards is intentionally excluded — the vision
-    //    API rejects it, so we'd just be burning a round-trip. The row
-    //    still gets inserted and the user can open the attachment by hand.
+    // 7. OCR the first OpenAI-vision-compatible IMAGE attachment.
+    //
+    //    PDFs are deliberately NOT eligible. This used to read
+    //      isOcrSupportedImage(...) || a.content_type === "application/pdf"
+    //    which contradicted isOcrSupportedImage's own doc comment two
+    //    definitions above: the vision endpoint takes JPEG/PNG/WEBP/GIF and
+    //    rejects a `data:application/pdf;base64,...` URL outright. So every
+    //    PDF-borne receipt burned a round-trip, 400'd, and landed with
+    //    prefilled={} — a blank form for the user. Since retailer receipts are
+    //    overwhelmingly PDFs, that was most forwarded mail.
+    //
+    //    The VPS poller now rasterizes page 1 of any PDF to a PNG and inserts
+    //    it AHEAD of the PDF, so this scan finds the image and OCR works. If
+    //    rasterizing was unavailable, skipping the PDF lets the inline
+    //    body-text extractor below have a go instead — strictly better than a
+    //    guaranteed failure.
+    //
+    //    HEIC from iPhone forwards is excluded for the same reason.
     const apiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
     let prefilled: Record<string, unknown> = {};
-    const ocrTarget = attachments.find(
-      (a) => isOcrSupportedImage(a.content_type) || a.content_type === "application/pdf",
-    );
+    const ocrTarget = attachments.find((a) => isOcrSupportedImage(a.content_type));
     if (ocrTarget && apiKey) {
       prefilled =
         kind === "invoice"

@@ -39,6 +39,30 @@ try:
 except Exception as _ex:
     WEASYPRINT_IMPORT_ERROR = str(_ex)
 
+# PyMuPDF rasterizes PDFs to PNG so they can actually be OCR'd.
+#
+# Why this exists: OpenAI's vision endpoint accepts JPEG/PNG/WEBP/GIF only —
+# it rejects a `data:application/pdf;base64,...` URL outright. The edge
+# function was handing it PDFs anyway and swallowing the 400, so every
+# PDF-borne receipt landed with `prefilled = {}` and the user got a blank
+# form. Retailer receipts are overwhelmingly PDFs (attached, or rendered
+# from an HTML body below), so in practice that was most forwarded mail.
+#
+# Rasterizing here rather than in the edge function keeps the Deno side
+# simple and means the fix works against the CURRENTLY DEPLOYED function
+# without touching it — we insert the PNG ahead of the PDF, and its
+# "first OCR-compatible attachment" scan picks the PNG up on its own.
+#
+# Guarded like weasyprint: a missing wheel degrades to today's behaviour
+# rather than taking the whole poller down.
+PYMUPDF_AVAILABLE = False
+PYMUPDF_IMPORT_ERROR = None
+try:
+    import fitz  # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except Exception as _ex:
+    PYMUPDF_IMPORT_ERROR = str(_ex)
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Fill these in once you have the Hostinger mailbox credentials.
 # You can also set them as environment variables on the VPS.
@@ -194,6 +218,78 @@ def render_html_to_pdf(html: str) -> bytes | None:
         log(f"  render_html_to_pdf: FAILED ({type(ex).__name__}: {ex})")
         return None
 
+# Rendering DPI for the OCR companion image. 150 keeps receipt text legible
+# without producing a multi-megabyte PNG; the vision call downsamples anyway,
+# so going higher buys nothing but upload time.
+PDF_RASTER_DPI = 150
+
+def rasterize_pdf_first_page(pdf_bytes: bytes) -> bytes | None:
+    """Render page 1 of a PDF to PNG bytes so it can be OCR'd.
+
+    Only page 1: receipts are effectively always single-page, and the edge
+    function OCRs exactly one attachment, so extra pages would be uploaded
+    and never read.
+
+    Returns None on any failure — callers fall back to today's behaviour of
+    sending the PDF alone, which is no worse than before.
+    """
+    if not PYMUPDF_AVAILABLE:
+        log(f"  rasterize_pdf: PyMuPDF not available "
+            f"(import error: {PYMUPDF_IMPORT_ERROR})")
+        return None
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        if doc.page_count == 0:
+            log("  rasterize_pdf: PDF has no pages")
+            doc.close()
+            return None
+        pix = doc.load_page(0).get_pixmap(dpi=PDF_RASTER_DPI)
+        png_bytes = pix.tobytes("png")
+        doc.close()
+
+        if len(png_bytes) > CONFIG["MAX_ATTACH_BYTES"]:
+            log(f"  rasterize_pdf: PNG too large ({len(png_bytes)} bytes), skipping")
+            return None
+        log(f"  rasterize_pdf: page 1 -> PNG ({len(png_bytes)} bytes @ {PDF_RASTER_DPI}dpi)")
+        return png_bytes
+    except Exception as ex:
+        log(f"  rasterize_pdf: FAILED ({type(ex).__name__}: {ex})")
+        return None
+
+def add_ocr_companion_images(attachments: list) -> list:
+    """Insert a PNG render ahead of each PDF so OCR has something it can read.
+
+    The edge function scans for the FIRST OCR-compatible attachment, so
+    position matters: putting the PNG before its PDF means even the currently
+    deployed function (which still tries, and fails, to OCR PDFs directly)
+    picks up the image instead. The original PDF is kept and still uploaded —
+    it remains the better artifact for a human to open.
+    """
+    if not any(a["content_type"] == "application/pdf" for a in attachments):
+        return attachments
+
+    result = []
+    rendered = 0
+    for att in attachments:
+        if att["content_type"] == "application/pdf" and rendered == 0:
+            try:
+                pdf_bytes = base64.b64decode(att["data"])
+            except Exception as ex:
+                log(f"  rasterize_pdf: could not decode {att['filename']} ({ex})")
+                result.append(att)
+                continue
+            png_bytes = rasterize_pdf_first_page(pdf_bytes)
+            if png_bytes:
+                stem = att["filename"].rsplit(".", 1)[0] or "attachment"
+                result.append({
+                    "filename": f"{stem}.png",
+                    "content_type": "image/png",
+                    "data": base64.b64encode(png_bytes).decode("ascii"),
+                })
+                rendered += 1
+        result.append(att)
+    return result
+
 # ── Edge function call ────────────────────────────────────────────────────────
 def post_to_function(payload: dict) -> bool:
     body = json.dumps(payload).encode("utf-8")
@@ -278,11 +374,19 @@ def main():
                     "data": base64.b64encode(pdf_bytes).decode("ascii"),
                 })
                 log(f"  Rendered HTML body to PDF ({len(pdf_bytes)} bytes)")
-                # Don't send raw body text since we have a rendered PDF
-                body_text = None
-                body_html = None
+                # Deliberately KEEP body_text/body_html. This used to null them
+                # out on the reasoning that the PDF superseded them — but the
+                # edge function can't OCR a PDF, so that left it with nothing at
+                # all to read and every such receipt landed with prefilled={}.
+                # The inline-body extractor only runs when attachment OCR came
+                # back empty, so keeping these costs nothing in the happy path
+                # and is the difference between a prefilled form and a blank one
+                # if rasterizing is unavailable.
             else:
                 log(f"  HTML to PDF rendering failed or output too large, sending body as text")
+
+        # Give every PDF an OCR-readable PNG companion, inserted ahead of it.
+        attachments = add_ocr_companion_images(attachments)
 
         payload = {
             "from_email": from_email,
