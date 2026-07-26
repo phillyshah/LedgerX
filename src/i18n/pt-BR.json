@@ -1003,6 +1003,7 @@
   "labs.cc.inbox.matchError": "Não foi possível confirmar esta associação. Tente novamente.",
 
   "labs.cc.auto.button": "Conciliar automaticamente",
+  "labs.cc.auto.labsBadge": "Labs",
   "labs.cc.auto.title": "Conciliação automática",
   "labs.cc.auto.scanned": "Comparamos {charges} lançamentos em aberto com {receipts} recibos",
   "labs.cc.auto.loadError": "Não foi possível carregar os lançamentos. Tente de novo.",

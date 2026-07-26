@@ -6,11 +6,59 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.12`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.13`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **✅ v13.10 (PR #90) and v13.11 (PR #91) are BOTH MERGED**, but likely not
-  yet deployed — the SQL migration + frontend/VPS steps below are still owed
-  regardless of merge state.
+- **✅ v13.10 (PR #90), v13.11 (PR #91), and v13.12 (PR #92) are ALL MERGED**,
+  but likely not yet deployed — the SQL migration + frontend/VPS steps below
+  are still owed regardless of merge state.
+- **v13.13 in one paragraph** (unmerged — new PR needed, same pattern as
+  v13.12 above): two independent things, both requested live in the same
+  session after v13.12 had already merged. (1) **Word-doc receipts now open
+  in a preview instead of only downloading.** v13.12 fixed `.docx` receipts
+  being silently dropped by extracting their text into `body_text` — but the
+  user then asked why tapping the attachment in the inbox just downloads it
+  instead of opening inline, the way a PDF does. No browser renders `.docx`
+  inline, and the two real alternatives (Microsoft/Google's online embed
+  viewers) would mean sending the receipt's signed URL to a third party —
+  flagged to the user as a privacy tradeoff rather than silently built. Went
+  with an in-house alternative instead: `poll_email_inbox.py` gained
+  `docx_text_to_preview_pdf()`, which HTML-escapes the already-extracted text
+  and renders it through the *same* `render_html_to_pdf()` (weasyprint)
+  pipeline already used elsewhere in this file — no new dependency. The
+  generated preview PDF is inserted into `attachments` immediately before the
+  original `.docx` (which is never removed — an explicit constraint from an
+  earlier round of this same bug report: "it NEEDS to be present as that's
+  the actual receipt"). Zero frontend changes needed — `EmailInboxPanel.tsx`
+  and `AddExpense.tsx` already open any `application/pdf` attachment inline
+  via signed URL; the preview PDF just rides that existing path. Tested
+  against the user's real uploaded `.docx` file (extraction, PDF generation,
+  HTML-escaping of special characters, missing-weasyprint degradation,
+  multiple-docx-attachments pairing) — all assertions passed, plus a manual
+  round-trip check (extracted text back out of the generated PDF via PyMuPDF
+  to visually confirm it matches the source). **No new VPS steps beyond what
+  v13.12 already required** — weasyprint and python-docx are both already
+  installed there; this only changes code in the same already-updated
+  `poll_email_inbox.py` file, so it needs the same one `cp` to `/opt/ledgerx/`
+  as v13.12's docx fix, nothing additional. (2) **Auto Reconcile restricted
+  to full admins + marked Labs.** Live mid-session, the user pointed out Auto
+  Reconcile "still needs work and we aren't there yet" and asked for it to
+  move back into a Labs-style gate — it's had two real bugs this session
+  alone (the original blank-screen root cause, and the currency-arg /
+  raw-cast fixes in v13.10). The button in `StatementList.tsx` was previously
+  shown to anyone who could reach the statement list at all (full admins AND
+  household admins); now gated to `isAdmin` only, with a small violet "Labs"
+  badge next to the label so it reads as explicitly experimental even to the
+  admins who still see it. `CreditCardReconciliation.tsx` also bounces back
+  to the list view if a non-admin somehow lands on the `autoReconcile` view
+  state (defense in depth, mirrors the "never render blank" principle behind
+  this session's error-boundary work). Deliberately NOT a new per-household
+  `labs_*` flag — Auto Reconcile is a global cross-household sweep, not a
+  per-property feature, so a role check is the more honest gate than
+  inventing a flag that doesn't map onto what the tool actually does. Zero
+  new SQL for either half of v13.13. Verified: typecheck/lint/build clean
+  (same 15 pre-existing lint findings, none new), i18n key parity (1044/1044
+  en/pt-BR), 15 assertions on the docx-preview path including the real user
+  file.
 - **⚠️ Real mistake worth flagging so it doesn't repeat**: after PR #91
   merged, two more commits (the candidate-pool exclusion fix and the .docx
   fix, both described below) got pushed to the SAME branch out of habit —
@@ -21,10 +69,13 @@ substantial session.
   before assuming a push landed anywhere** — a branch name being "the
   designated branch" does not mean every push to it is inside an open PR.
   Those two fixes are now correctly their own version, v13.12, in a fresh PR.
-- **⚠️ Pending manual steps for v13.10 + v13.11 + v13.12**:
+- **⚠️ Pending manual steps for v13.10 + v13.11 + v13.12 + v13.13**:
   0. **`/opt/ledgerx/venv/bin/pip install python-docx` on the VPS — same venv
      as PyMuPDF/weasyprint, NOT system pip.** New in v13.12 (see below). Also
-     copy the updated `scripts/poll_email_inbox.py`.
+     copy the updated `scripts/poll_email_inbox.py`. **v13.13 needs no
+     additional install** — its docx-preview-PDF feature reuses weasyprint
+     (already installed) and lands in the same `poll_email_inbox.py` file, so
+     the same one `cp` covers both v13.12 and v13.13's poller changes.
   1. **SQL** — `20260801000000_activity_report_self_inclusion.sql` (v13.10,
      already merged, may not be applied to the live DB yet). No new SQL in
      v13.11.

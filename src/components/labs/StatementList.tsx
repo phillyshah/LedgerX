@@ -139,14 +139,19 @@ export function StatementList({ statements, isAdmin, allHouseholds, onUpload, on
           <p className="text-sm text-slate-500 mt-0.5">{t('labs.cc.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Only worth offering once there's something to sweep. */}
-          {statements.length > 0 && (
+          {/* Still experimental (has had real bugs live) — kept admin-only,
+              same as it would be under the old "Labs" area, rather than
+              exposed to every household admin who can reach this screen. */}
+          {statements.length > 0 && isAdmin && (
             <button
               onClick={onAutoReconcile}
               className="flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all font-medium"
             >
               <Wand2 className="w-4 h-4" />
               {t('labs.cc.auto.button')}
+              <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 rounded">
+                {t('labs.cc.auto.labsBadge')}
+              </span>
             </button>
           )}
           {onOpenReport && (
