@@ -6,9 +6,40 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.9`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.10`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **⚠️ Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
+- **⚠️ Pending manual steps for v13.10**:
+  1. **SQL only** — `20260801000000_activity_report_self_inclusion.sql`. No
+     edge function, no frontend rebuild needed for the SQL fix by itself, but
+     the frontend DOES need a rebuild for the new AddExpense statement-match
+     panel — run `deploy-ledgerx` as usual.
+- **v13.10 in one paragraph**: three things landed in the same session. (1) A
+  household admin ("onion") reported Auto Reconcile showing a totally blank
+  screen even after a hard refresh — traced to **Step 4 of the v13.8 SQL
+  rollout never actually being applied** (`list_unlinked_expenses()` and
+  `list_open_statement_line_items()` didn't exist; confirmed via
+  `SELECT proname FROM pg_proc WHERE proname IN (...)` returning 0 rows — that
+  query is worth keeping as a general diagnostic for "new RPC branch returns
+  nothing"). Also closed a real architectural gap while investigating: **there
+  was no React error boundary anywhere in this app**, so any future
+  render-time exception (including the classic stale-lazy-chunk-after-deploy
+  failure) would blank the entire page with zero signal — added
+  `src/components/ErrorBoundary.tsx`, wraps the root in `main.tsx`, and
+  auto-reloads once on the specific "Failed to fetch dynamically imported
+  module" error text. (2) New feature: `AddExpense.tsx` gained an inline
+  "Possible card charge" panel (`StatementMatchPanel.tsx`) that live-scores
+  against `list_open_statement_line_items()` while reviewing a forwarded
+  receipt, **before** it's saved — selecting a candidate links it via the
+  existing `match_statement_line_item` RPC right after the real save succeeds,
+  deliberately NOT via `match_inbox_item_to_line_item` (that RPC builds the
+  expense from `email_inbox.prefilled` server-side, which would silently
+  discard any correction the user made to the form). Zero new SQL. (3) Bug
+  fix: `list_team_activity` and `list_team_member_last_login` both had
+  `au.id <> auth.uid()` in the household-admin branch — literally excluding
+  the caller's own activity/name from their own report. Full admins never had
+  this exclusion; it was an asymmetry, not an intentional rule. Fixed in
+  `20260801000000_activity_report_self_inclusion.sql`.
+- **Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
   1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
      pip3/apt.** Confirmed 2026-07-25: cron runs
      `/opt/ledgerx/venv/bin/python3` (with `. /opt/ledgerx/env` sourced first

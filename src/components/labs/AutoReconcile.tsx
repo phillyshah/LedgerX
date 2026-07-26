@@ -82,68 +82,97 @@ export function AutoReconcile({ onBack, onApplied }: AutoReconcileProps) {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const [itemsRes, expensesRes, inboxRes] = await Promise.all([
-      supabase.rpc('list_open_statement_line_items' as never),
-      supabase.rpc('list_unlinked_expenses' as never),
-      supabase.rpc('list_reconciliation_inbox_candidates' as never),
-    ]);
+    try {
+      const [itemsRes, expensesRes, inboxRes] = await Promise.all([
+        supabase.rpc('list_open_statement_line_items' as never),
+        supabase.rpc('list_unlinked_expenses' as never),
+        supabase.rpc('list_reconciliation_inbox_candidates' as never),
+      ]);
 
-    if (itemsRes.error) {
-      console.error('[auto-reconcile] open line items failed', itemsRes.error);
+      if (itemsRes.error) {
+        console.error('[auto-reconcile] open line items failed', itemsRes.error);
+        setError(t('labs.cc.auto.loadError'));
+        return;
+      }
+
+      setOpenItems(
+        ((itemsRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+          id: r.id as string,
+          statement_id: r.statement_id as string,
+          card_label: r.card_label as string,
+          line_date: r.line_date as string,
+          description: r.description as string,
+          amount: Number(r.amount),
+          currency: (r.currency as string) ?? 'USD',
+          matched_expense_id: null,
+          household_ids: (r.household_ids as string[]) ?? [],
+        })),
+      );
+
+      // A failure on either candidate source degrades the sweep rather than
+      // breaking it — matching against the half that did load is still useful.
+      if (expensesRes.error) {
+        console.error('[auto-reconcile] unlinked expenses failed', expensesRes.error);
+      }
+      setExpenses(
+        ((expensesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+          id: r.id as string,
+          expense_date: r.expense_date as string,
+          vendor: (r.vendor as string) ?? null,
+          total: Number(r.total),
+          currency: (r.currency as string) ?? 'USD',
+          category: (r.category as string) ?? null,
+          notes: (r.notes as string) ?? null,
+          transcript: (r.transcript as string) ?? null,
+          household_id: (r.household_id as string) ?? null,
+          household_name: (r.household_name as string) ?? undefined,
+          image_path: (r.image_path as string) ?? null,
+          image_mime: (r.image_mime as string) ?? null,
+          image_width: (r.image_width as number) ?? null,
+          image_height: (r.image_height as number) ?? null,
+          created_by: r.created_by as string,
+          submitter_username: (r.submitter_username as string) ?? undefined,
+          paid_at: (r.paid_at as string) ?? null,
+        })) as Expense[],
+      );
+
+      // Household admins only see inbox rows from their own household members;
+      // a non-eligible caller gets an empty list rather than an error.
+      if (inboxRes.error) {
+        console.error('[auto-reconcile] inbox candidates failed', inboxRes.error);
+      }
+      // Mapped field-by-field with explicit numeric coercion, matching
+      // useReconciliationInboxCandidates.ts's treatment of this exact RPC —
+      // a raw cast trusts the RPC's numeric columns to already be JS numbers,
+      // which PostgREST does not always guarantee.
+      setInboxRows(
+        ((inboxRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+          id: r.id as string,
+          from_email: r.from_email as string,
+          subject: (r.subject as string | null) ?? null,
+          received_at: r.received_at as string,
+          attachment_paths: ((r.attachment_paths as string[] | null) ?? []) as string[],
+          vendor: (r.vendor as string | null) ?? null,
+          total: Number(r.total),
+          expense_date: r.expense_date as string,
+          notes: (r.notes as string | null) ?? null,
+          submitter_user_id: r.submitter_user_id as string,
+          submitter_username: (r.submitter_username as string | null) ?? null,
+        })),
+      );
+    } catch (e) {
+      // A genuinely thrown/rejected promise (network failure, a JWT causing
+      // supabase-js to throw instead of resolving with an error object) used
+      // to propagate out of the fire-and-forget `void load()` in the effect
+      // below as an unhandled rejection — setLoading(false) was never
+      // reached, so the screen was stuck on the loading skeleton forever
+      // with no visible signal at all. This degrades it to the same banner
+      // every other failure path already shows.
+      console.error('[auto-reconcile] load failed', e);
       setError(t('labs.cc.auto.loadError'));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setOpenItems(
-      ((itemsRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-        id: r.id as string,
-        statement_id: r.statement_id as string,
-        card_label: r.card_label as string,
-        line_date: r.line_date as string,
-        description: r.description as string,
-        amount: Number(r.amount),
-        currency: (r.currency as string) ?? 'USD',
-        matched_expense_id: null,
-        household_ids: (r.household_ids as string[]) ?? [],
-      })),
-    );
-
-    // A failure on either candidate source degrades the sweep rather than
-    // breaking it — matching against the half that did load is still useful.
-    if (expensesRes.error) {
-      console.error('[auto-reconcile] unlinked expenses failed', expensesRes.error);
-    }
-    setExpenses(
-      ((expensesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-        id: r.id as string,
-        expense_date: r.expense_date as string,
-        vendor: (r.vendor as string) ?? null,
-        total: Number(r.total),
-        currency: (r.currency as string) ?? 'USD',
-        category: (r.category as string) ?? null,
-        notes: (r.notes as string) ?? null,
-        transcript: (r.transcript as string) ?? null,
-        household_id: (r.household_id as string) ?? null,
-        household_name: (r.household_name as string) ?? undefined,
-        image_path: (r.image_path as string) ?? null,
-        image_mime: (r.image_mime as string) ?? null,
-        image_width: (r.image_width as number) ?? null,
-        image_height: (r.image_height as number) ?? null,
-        created_by: r.created_by as string,
-        submitter_username: (r.submitter_username as string) ?? undefined,
-        paid_at: (r.paid_at as string) ?? null,
-      })) as Expense[],
-    );
-
-    // Household admins only see inbox rows from their own household members;
-    // a non-eligible caller gets an empty list rather than an error.
-    if (inboxRes.error) {
-      console.error('[auto-reconcile] inbox candidates failed', inboxRes.error);
-    }
-    setInboxRows((inboxRes.data ?? []) as InboxCandidate[]);
-
-    setLoading(false);
   }, [t]);
 
   useEffect(() => { void load(); }, [load]);
@@ -415,7 +444,7 @@ export function AutoReconcile({ onBack, onApplied }: AutoReconcileProps) {
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5">
                           {formatDate(p.candidate.expense.expense_date)} ·{' '}
-                          {formatAmount(Number(p.candidate.expense.total))}
+                          {formatAmount(Number(p.candidate.expense.total), p.candidate.expense.currency)}
                         </div>
                         {p.source === 'inbox' && (
                           <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">
