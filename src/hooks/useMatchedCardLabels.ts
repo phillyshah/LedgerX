@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 /**
@@ -15,9 +15,19 @@ import { supabase } from '../lib/supabase';
 export function useMatchedCardLabels(expenseIds: string[], enabled: boolean) {
   const [matchedCardLabels, setMatchedCardLabels] = useState<Map<string, string>>(new Map());
 
+  // Joining is what makes the effect depend on the ids' *content* rather than
+  // the array's identity, but doing it inline in the dep array re-walks every
+  // id on every render of the calling component (including each keystroke in
+  // its search box). Callers already memoize the array, so keying off that
+  // reference means the join runs only when the ids actually change.
+  const idsKey = useMemo(() => expenseIds.join(','), [expenseIds]);
+
   useEffect(() => {
     if (!enabled || expenseIds.length === 0) {
-      setMatchedCardLabels(new Map());
+      // Reuse the existing empty Map rather than allocating a fresh one —
+      // callers use this Map as a memo dependency, so a new identity here
+      // would invalidate their filtering work for no actual change.
+      setMatchedCardLabels((prev) => (prev.size === 0 ? prev : new Map()));
       return;
     }
     let cancelled = false;
@@ -45,10 +55,10 @@ export function useMatchedCardLabels(expenseIds: string[], enabled: boolean) {
     return () => {
       cancelled = true;
     };
-    // expenseIds is a derived array; depend on its joined content, not its
+    // Keyed on the ids' joined content (see idsKey above), not the array
     // reference, so this doesn't refetch on every parent render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, expenseIds.join(',')]);
+  }, [enabled, idsKey]);
 
   return matchedCardLabels;
 }
