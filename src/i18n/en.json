@@ -1003,6 +1003,7 @@
   "labs.cc.inbox.matchError": "Couldn't confirm this match. Please try again.",
 
   "labs.cc.auto.button": "Auto reconcile",
+  "labs.cc.auto.labsBadge": "Labs",
   "labs.cc.auto.title": "Auto reconcile",
   "labs.cc.auto.scanned": "Compared {charges} open charges against {receipts} receipts",
   "labs.cc.auto.loadError": "Couldn't load charges to reconcile. Try again.",

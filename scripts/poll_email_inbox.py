@@ -19,6 +19,7 @@ import imaplib
 import email
 import email.policy
 import base64
+import html
 import io
 import json
 import os
@@ -293,6 +294,29 @@ def render_html_to_pdf(html: str) -> bytes | None:
         log(f"  render_html_to_pdf: FAILED ({type(ex).__name__}: {ex})")
         return None
 
+def docx_text_to_preview_pdf(text: str) -> bytes | None:
+    """Render extracted .docx text into a real PDF the browser can show
+    inline, the same way it already shows an uploaded PDF.
+
+    No browser has a native Word-document viewer, unlike PDF — the only ways
+    to preview a raw .docx inline are Microsoft's or Google's online-viewer
+    embeds, and both require sending the (signed) file URL to that third
+    party to fetch and render, which isn't something to do with a household's
+    receipt data without asking first. This stays in-house instead: reuse the
+    weasyprint pipeline already here for HTML-body rendering, just fed the
+    extracted text instead of an email body. The original .docx is still kept
+    as its own attachment for anyone who wants the real editable file — this
+    is purely an additional, clickable preview.
+    """
+    escaped_lines = [html.escape(line) if line.strip() else "" for line in text.split("\n")]
+    body_html = "<br>\n".join(escaped_lines)
+    fragment = (
+        '<div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; '
+        'font-family: Menlo, Consolas, monospace;">'
+        f"{body_html}</div>"
+    )
+    return render_html_to_pdf(fragment)
+
 # Rendering DPI for the OCR companion image. 150 keeps receipt text legible
 # without producing a multi-megabyte PNG; the vision call downsamples anyway,
 # so going higher buys nothing but upload time.
@@ -446,12 +470,34 @@ def main():
         # synthetic PDF while the actual receipt content sits unread in the
         # attachment — attachments is non-empty now that the docx is kept, so
         # that branch correctly no longer applies here at all.
-        docx_texts = [
-            extract_docx_text(base64.b64decode(att["data"]))
-            for att in attachments
-            if att["content_type"] in DOCX_CONTENT_TYPES
-        ]
-        docx_texts = [t for t in docx_texts if t]
+        # ALSO render that same text into a real PDF via the existing
+        # weasyprint pipeline and insert it just ahead of the original .docx,
+        # so clicking the attachment in the app opens an in-browser preview
+        # exactly like an uploaded PDF does. No browser has a native .docx
+        # renderer — the only alternatives (Microsoft/Google's online-viewer
+        # embeds) require sending the file's URL to that third party to fetch
+        # and render, which isn't something to do with a household's receipt
+        # data without asking first. The real .docx is kept too, right after
+        # its preview, for anyone who wants the original editable file.
+        docx_texts = []
+        attachments_with_previews = []
+        for att in attachments:
+            if att["content_type"] in DOCX_CONTENT_TYPES:
+                text = extract_docx_text(base64.b64decode(att["data"]))
+                if text:
+                    docx_texts.append(text)
+                    preview_bytes = docx_text_to_preview_pdf(text)
+                    if preview_bytes and len(preview_bytes) < CONFIG["MAX_ATTACH_BYTES"]:
+                        stem = att["filename"].rsplit(".", 1)[0] or "receipt"
+                        attachments_with_previews.append({
+                            "filename": f"{stem}.pdf",
+                            "content_type": "application/pdf",
+                            "data": base64.b64encode(preview_bytes).decode("ascii"),
+                        })
+                        log(f"  Rendered Word-doc preview PDF ({len(preview_bytes)} bytes)")
+            attachments_with_previews.append(att)
+        attachments = attachments_with_previews
+
         if docx_texts:
             combined = "\n\n".join(docx_texts)
             body_text = f"{combined}\n\n{body_text}" if body_text else combined

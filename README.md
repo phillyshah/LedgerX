@@ -457,9 +457,10 @@ Only a full admin can upload statements — and rename one later by tapping the 
 
 **Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small comment badge.
 
-**Auto reconcile — sweep every statement at once** (full admins and household
-admins). Working one statement at a time is fine for a fresh card, but not for
-clearing a backlog. The **Auto reconcile** button on the statement list compares
+**Auto reconcile — sweep every statement at once** (full admins only — marked
+**Labs**, since it's still being refined and has had rough edges). Working one
+statement at a time is fine for a fresh card, but not for clearing a backlog.
+The **Auto reconcile** button on the statement list compares
 **every unmatched charge across all statements you can see** against **every
 receipt that isn't linked to a statement yet** — including receipts still
 sitting in the email inbox.

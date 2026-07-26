@@ -455,9 +455,10 @@ Somente um administrador completo pode enviar faturas — e renomear uma depois,
 
 **Comentários e perguntar a alguém.** Cada lançamento da fatura tem um botão de **comentário**. Abra-o para deixar observações e digite **@** para mencionar alguém — um seletor sugere administradores e as pessoas que enviaram recibos. Quem você mencionar é notificado (no app e por e-mail ou WhatsApp, conforme a preferência) com todos os detalhes da cobrança e a sua pergunta, então sabe exatamente do que se trata. Lançamentos com discussão exibem uma pequena etiqueta de comentário.
 
-**Conciliação automática — varra todas as faturas de uma vez** (administradores
-completos e de residência). Trabalhar uma fatura por vez funciona bem em um
-cartão novo, mas não para limpar um acúmulo. O botão **Conciliar
+**Conciliação automática — varra todas as faturas de uma vez** (somente
+administradores completos — marcado como **Labs**, já que ainda está sendo
+aprimorado e teve alguns problemas). Trabalhar uma fatura por vez funciona bem
+em um cartão novo, mas não para limpar um acúmulo. O botão **Conciliar
 automaticamente** na lista de faturas compara **todos os lançamentos em aberto
 de todas as faturas que você enxerga** com **todos os recibos ainda não
 vinculados a nenhuma fatura** — incluindo os que estão na caixa de entrada de

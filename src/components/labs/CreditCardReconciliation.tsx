@@ -103,6 +103,13 @@ export function CreditCardReconciliation({ openLineItemId, onLineItemHandled }: 
     loadStatements();
   }, [loadStatements]);
 
+  // Auto Reconcile is admin-only (still experimental). Bounce back to the
+  // list instead of rendering nothing if a non-admin ever lands on this
+  // view state (e.g. a stale render right as a role changes).
+  useEffect(() => {
+    if (view === 'autoReconcile' && !isAdmin) setView('list');
+  }, [view, isAdmin]);
+
   // Deep-link from a comment notification: resolve the line item's statement,
   // then open its reconcile view (StatementReconcile then preselects the line
   // item and opens its comments).
@@ -169,7 +176,7 @@ export function CreditCardReconciliation({ openLineItemId, onLineItemHandled }: 
           onAutoReconcile={() => setView('autoReconcile')}
           onOpenReport={isAdmin ? () => setShowReport(true) : undefined}
         />
-      ) : view === 'autoReconcile' ? (
+      ) : view === 'autoReconcile' && isAdmin ? (
         <Suspense fallback={<div className="h-64 bg-white rounded-2xl border border-slate-200 animate-pulse" />}>
           <AutoReconcile
             onBack={() => { setView('list'); loadStatements(); }}

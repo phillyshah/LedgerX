@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.13',
+    version: 'v13.13',
+    date: '2026-07-26',
+    title: {
+      'en': 'Word-document receipts now open in a preview, just like a PDF',
+      'pt-BR': 'Recibos em Word agora abrem em uma prévia, igual a um PDF',
+    },
+    body: {
+      'en':
+        "When a forwarded receipt's actual content is a Word document (.docx), tapping it in the inbox used to just download the file — no browser can show a Word document inline the way it shows a PDF. Now a clean, readable preview opens in a new tab instead, generated from the document's own text, so you can glance at the receipt the same way you would a photo or PDF. The original Word file is still there too, right alongside the preview, for anyone who wants the exact original. Also: Auto Reconcile (the \"sweep every statement at once\" tool) is now marked Labs and limited to full admins — it's still being refined, so it's no longer offered to household admins by default.",
+      'pt-BR':
+        "Quando o conteúdo real de um recibo encaminhado é um documento do Word (.docx), tocar nele na caixa de entrada apenas baixava o arquivo — nenhum navegador consegue exibir um documento do Word incorporado do jeito que exibe um PDF. Agora uma prévia limpa e legível abre em uma nova aba, gerada a partir do texto do próprio documento, para você dar uma olhada no recibo do mesmo jeito que faria com uma foto ou PDF. O arquivo original do Word continua lá também, ao lado da prévia, para quem quiser o original exato. Além disso: a Conciliação automática (a ferramenta que \"varre todas as faturas de uma vez\") agora é marcada como Labs e limitada a administradores completos — ela ainda está sendo aprimorada, então deixou de ser oferecida por padrão a administradores de residência.",
+    },
+  },
+  {
     id: 'v13.12',
     version: 'v13.12',
     date: '2026-07-26',
