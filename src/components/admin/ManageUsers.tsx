@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Loader2 } from 'lucide-react';
+import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Loader2 , FileWarning } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
 import { useT } from '../../hooks/useT';
@@ -26,10 +26,22 @@ interface Household {
   name: string;
 }
 
+interface TaxStatus {
+  contractor_id: string;
+  paid_ytd: number;
+  w9_on_file: boolean;
+  needs_w9: boolean;
+}
+
 export function ManageUsers() {
   const { user: currentUser } = useAuth();
   const { t, locale } = useT();
   const [users, setUsers] = useState<User[]>([]);
+  // Year-round 1099 nudge. Collecting a W-9 before the first payment is
+  // trivial; chasing a contractor for one in January after the job ended is
+  // the failure mode this badge exists to prevent. Full-admin-only — the
+  // RPC refuses anyone else, so a failure here just hides the badge.
+  const [taxStatus, setTaxStatus] = useState<Map<string, TaxStatus>>(new Map());
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -62,6 +74,24 @@ export function ManageUsers() {
 
   useEffect(() => {
     loadUsers();
+  }, []);
+
+  // Contractor 1099 status for the current calendar year. Its own effect so a
+  // failure (or a non-admin caller, whom the RPC refuses) simply leaves the
+  // badge off rather than breaking the user list.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .rpc('list_contractor_tax_status', { p_tax_year: new Date().getFullYear() })
+      .then(({ data, error: e }) => {
+        if (cancelled || e || !data) return;
+        setTaxStatus(
+          new Map(
+            (data as TaxStatus[]).map((r) => [r.contractor_id, { ...r, paid_ytd: Number(r.paid_ytd) }])
+          )
+        );
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const loadUsers = async () => {
@@ -507,6 +537,26 @@ export function ManageUsers() {
                           {t('admin.roleContractor')}
                         </span>
                       )}
+                      {(() => {
+                        const ts = taxStatus.get(user.id);
+                        if (!ts || ts.paid_ytd <= 0) return null;
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${
+                              ts.needs_w9 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                            }`}
+                            title={ts.needs_w9 ? t('tax.badge.needsW9Tooltip') : t('tax.badge.paidTooltip')}
+                          >
+                            {ts.needs_w9 && <FileWarning className="w-3 h-3" />}
+                            {t('tax.badge.paidYtd', {
+                              amount: new Intl.NumberFormat(locale, {
+                                style: 'currency', currency: 'USD', maximumFractionDigits: 0,
+                              }).format(ts.paid_ytd),
+                            })}
+                            {ts.needs_w9 && ` · ${t('tax.badge.noW9')}`}
+                          </span>
+                        );
+                      })()}
                       {user.is_household_admin && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded">
                           <Shield className="w-3 h-3" />

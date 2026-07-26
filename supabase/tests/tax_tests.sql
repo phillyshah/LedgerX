@@ -167,6 +167,17 @@ begin
   select amount into v_supplies from list_capital_review_queue(2026) limit 1;
   perform assert(v_supplies = 8000, 'queue is ordered largest-dollar first, got ' || v_supplies);
 
+  -- The queue carries the resolved Schedule E line so the client suggester
+  -- can use the "routine upkeep category" signal, not just amount+keywords.
+  perform assert(
+    exists (select 1 from list_capital_review_queue(2026)
+             where amount = 5000 and line = 'repairs'),
+    'queue resolves the Schedule E line for a categorized invoice');
+  perform assert(
+    exists (select 1 from list_capital_review_queue(2026)
+             where amount = 8000 and line is null),
+    'uncategorized invoice yields a null line rather than erroring');
+
   raise notice '--- admin_set_capital_treatment ---';
   select id into v_rec from contractor_invoices where description = 'Deck rebuild';
   perform admin_set_capital_treatment('invoice', v_rec.id, 'improvement');

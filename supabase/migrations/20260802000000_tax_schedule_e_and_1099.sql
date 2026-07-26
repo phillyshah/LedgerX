@@ -318,6 +318,9 @@ returns table (
   vendor         text,
   description    text,
   category       text,
+  -- Lets the client suggester use the category signal ("routine upkeep")
+  -- instead of relying on amount and description keywords alone.
+  line           schedule_e_line,
   amount         numeric,
   currency       text
 )
@@ -337,7 +340,7 @@ begin
   -- moment the select list changes.
   return query
   select q.kind, q.id, q.household_id, q.household_name, q.txn_date,
-         q.vendor, q.description, q.category, q.amount, q.currency
+         q.vendor, q.description, q.category, q.line, q.amount, q.currency
     from (
       select 'expense'::text  as kind,
              e.id             as id,
@@ -347,10 +350,12 @@ begin
              e.vendor         as vendor,
              e.notes          as description,
              e.category       as category,
+             m.schedule_e_line as line,
              e.total          as amount,
              e.currency       as currency
         from expenses e
         left join households h on h.id = e.household_id
+        left join category_schedule_e_map m on m.category_key = lower(btrim(e.category))
        where e.capital_treatment is null
          and e.total >= v_threshold
          and extract(year from e.expense_date) = p_tax_year
@@ -365,11 +370,13 @@ begin
              up.username,
              ci.description,
              c.name,
+             m.schedule_e_line,
              ci.amount,
              ci.currency
         from contractor_invoices ci
         left join households h on h.id = ci.household_id
         left join categories c on c.id = ci.category_id
+        left join category_schedule_e_map m on m.category_key = lower(btrim(c.name))
         left join user_profiles up on up.id = ci.created_by
        where ci.capital_treatment is null
          and ci.status = 'paid'

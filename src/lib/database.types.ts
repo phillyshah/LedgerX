@@ -362,18 +362,21 @@ export interface Database {
           name: string;
           household_id: string | null;
           created_at: string;
+          schedule_e_line: ScheduleELine | null;
         };
         Insert: {
           id?: string;
           name: string;
           household_id?: string | null;
           created_at?: string;
+          schedule_e_line?: ScheduleELine | null;
         };
         Update: {
           id?: string;
           name?: string;
           household_id?: string | null;
           created_at?: string;
+          schedule_e_line?: ScheduleELine | null;
         };
         Relationships: [];
       };
@@ -968,6 +971,143 @@ export interface Database {
           matched_at: string | null;
         }>;
       };
+
+      // ── Tax: Schedule E + 1099-NEC (v13.15, full-admin only) ───────────
+      get_tax_settings: {
+        Args: Record<string, never>;
+        Returns: TaxSettings;
+      };
+      admin_update_tax_settings: {
+        Args: { p_de_minimis: number; p_1099: number };
+        Returns: TaxSettings;
+      };
+      schedule_e_report: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          household_id: string | null;
+          household_name: string | null;
+          line: ScheduleELine | null;
+          treatment: CapitalTreatment | null;
+          total: number;
+          txn_count: number;
+          source: 'expense' | 'invoice';
+        }>;
+      };
+      list_capital_review_queue: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          kind: 'expense' | 'invoice';
+          id: string;
+          household_id: string | null;
+          household_name: string | null;
+          txn_date: string;
+          vendor: string | null;
+          description: string | null;
+          category: string | null;
+          line: ScheduleELine | null;
+          amount: number;
+          currency: string;
+        }>;
+      };
+      admin_set_capital_treatment: {
+        Args: {
+          p_kind: 'expense' | 'invoice';
+          p_id: string;
+          p_treatment: CapitalTreatment | null;
+        };
+        Returns: void;
+      };
+      form_1099_summary: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          contractor_id: string;
+          username: string | null;
+          legal_name: string | null;
+          entity_type: TaxEntityType | null;
+          reportable_total: number;
+          excluded_total: number;
+          ambiguous_total: number;
+          unknown_method_total: number;
+          payment_count: number;
+          threshold: number;
+          crosses_threshold: boolean;
+          w9_on_file: boolean;
+          entity_exempt: boolean;
+          requires_1099: boolean;
+        }>;
+      };
+      list_contractor_tax_status: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          contractor_id: string;
+          username: string | null;
+          legal_name: string | null;
+          entity_type: TaxEntityType | null;
+          paid_ytd: number;
+          w9_on_file: boolean;
+          needs_w9: boolean;
+        }>;
+      };
+      admin_upsert_contractor_tax_profile: {
+        Args: {
+          p_user_id: string;
+          p_legal_name: string | null;
+          p_entity_type: TaxEntityType | null;
+          p_address_line1: string | null;
+          p_address_line2: string | null;
+          p_city: string | null;
+          p_state: string | null;
+          p_postal_code: string | null;
+          p_w9_received_at: string | null;
+          p_w9_doc_path: string | null;
+          p_is_exempt_payee: boolean;
+          p_notes: string | null;
+        };
+        Returns: ContractorTaxProfile;
+      };
     };
   };
+}
+
+/** The 15 Schedule E Part I expense lines. Form 8825 (multi-member LLC)
+ *  uses near-identical lines, so one mapping drives both. */
+export type ScheduleELine =
+  | 'advertising' | 'auto_travel' | 'cleaning_maintenance' | 'commissions'
+  | 'insurance' | 'legal_professional' | 'management_fees' | 'mortgage_interest'
+  | 'other_interest' | 'repairs' | 'supplies' | 'taxes' | 'utilities'
+  | 'depreciation' | 'other';
+
+/** Currently-deductible repair vs. capitalize-and-depreciate improvement.
+ *  null = not yet reviewed, which is what the review queue selects on. */
+export type CapitalTreatment = 'repair' | 'improvement';
+
+export type TaxEntityType =
+  | 'individual' | 'sole_prop' | 'partnership'
+  | 'c_corp' | 's_corp' | 'llc' | 'other';
+
+export interface TaxSettings {
+  id: number;
+  de_minimis_threshold: number;
+  form_1099_threshold: number;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+/** Note the absence of any TIN/SSN/EIN field — deliberate, see
+ *  .claude/SPEC-tax-features.md. The TIN lives only inside the W-9 PDF. */
+export interface ContractorTaxProfile {
+  user_id: string;
+  legal_name: string | null;
+  entity_type: TaxEntityType | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  w9_received_at: string | null;
+  w9_doc_path: string | null;
+  is_exempt_payee: boolean;
+  notes: string | null;
+  updated_at: string;
+  updated_by: string | null;
 }

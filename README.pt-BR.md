@@ -24,6 +24,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Configurações da Conta](#configurações-da-conta)
 - [Gerenciar Residências](#gerenciar-residências)
 - [Recursos de Administrador](#recursos-de-administrador)
+- [Central Fiscal](#central-fiscal)
 - [FAQ e Solução de Problemas](#faq-e-solução-de-problemas)
 
 ---
@@ -771,6 +772,56 @@ Administradores de residência recebem resultados restritos às suas próprias r
 Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX sabe quem é você. Não precisa de anexo; um e-mail *com* anexo continua sendo processado como recibo/nota normalmente.
 
 **Avisos de atividade:** sempre que uma nota ou orçamento tem nova atividade (enviado, aceito/recusado ou marcado como pago), todos naquela propriedade recebem um aviso curto por e-mail para dar uma olhada — sem valores nem detalhes, apenas um lembrete para abrir o app. Prestadores só são avisados sobre as notas e orçamentos que eles mesmos enviaram, e transações comuns nunca disparam esses e-mails.
+
+---
+
+## Central Fiscal
+<!-- roles: admin -->
+
+**Somente administradores completos.** Abra pela barra lateral ou pela tela inicial. Tudo abaixo é filtrado por um **ano fiscal**, escolhido uma vez no topo e compartilhado pelas três abas.
+
+> Estas ferramentas organizam os seus próprios registros no formato que uma declaração exige. Não são consultoria fiscal — peça ao seu contador para validar o mapeamento de categorias e os valores-limite uma vez, e o app aplica essas decisões de forma consistente daí em diante.
+
+### Schedule E
+
+Um detalhamento dos gastos do ano por propriedade, organizado por linha de despesa fiscal, pronto para entregar ao contador. Exporte em CSV.
+
+O mapeamento é configurado uma vez e depois funciona sozinho:
+
+1. Vá em **Gerenciar → Categorias** e escolha uma linha fiscal para cada categoria (Materiais → Materiais, Serviço/mão de obra → Reparos, e assim por diante).
+2. Toda transação naquela categoria passa a se classificar sozinha — inclusive as futuras.
+3. O que ainda não estiver mapeado aparece em um aviso âmbar no topo, para que nada suma silenciosamente.
+
+Recibos sem categoria usam o **catálogo de fornecedores** como alternativa — se a Lowe's estiver mapeada para Materiais, um recibo da Lowe's sem categoria ainda cai na linha certa.
+
+> **LLC de sócio único?** Os aluguéis vão no Schedule E Parte I. **LLC com vários sócios?** Você entrega o Form 1065 e declara no Form 8825, cujas linhas de despesa são quase idênticas — o mesmo mapeamento serve para os dois.
+
+Valores marcados como melhorias de capital aparecem **separados** do total dedutível, porque pertencem a um cronograma de depreciação, não a uma linha de despesa.
+
+### Revisão de capital
+
+A pergunta reparo-ou-melhoria, um item por vez. Um reparo sai da renda deste ano; uma melhoria entra na base do imóvel e é depreciada em 27,5 anos.
+
+Só aparecem aqui os itens **iguais ou acima do limite de minimis** — os menores já são dedutíveis e não exigem decisão. Cada linha mostra uma resposta sugerida com o motivo ("a descrição parece uma benfeitoria", "a categoria é manutenção de rotina"), pré-selecionada mas nunca aplicada automaticamente. Toque em **Reparo** ou **Melhoria** e o item sai da fila.
+
+Os pagamentos usam a data em que você *pagou*, não a data do serviço — então um trabalho de dezembro pago em janeiro conta para o ano seguinte.
+
+### 1099-NEC
+
+Acompanha quanto cada prestador recebeu no ano e quem vai precisar de um 1099.
+
+- **Acima do limite e sem W-9** fica sinalizado em vermelho o ano inteiro — não só em janeiro. Pedir o W-9 antes do primeiro pagamento é fácil; correr atrás depois que o serviço acabou, não.
+- **Pagamentos no cartão são excluídos automaticamente**, porque a operadora já os declara. Zelle, cheque e ACH continuam sendo sua responsabilidade.
+- **Venmo é marcado como ambíguo** em vez de adivinhado — pagamentos para perfil comercial são declarados pelo Venmo, os pessoais não.
+- **Empresas geralmente são isentas**, e é por isso que vale registrar o tipo de entidade. Se deixar como desconhecido, o app assume que o 1099 *é* obrigatório em vez de ignorar.
+
+Exporte a tabela inteira em CSV para o seu contador.
+
+**Os perfis fiscais nunca guardam número de identificação fiscal.** Envie o W-9 assinado — o número fica dentro desse arquivo, em armazenamento privado que só administradores completos podem abrir. Registre a razão social e o tipo de entidade, já que são eles que definem se o 1099 é necessário.
+
+### Limites
+
+O ícone de engrenagem guarda os dois valores, porque os dois mudam: o porto seguro de minimis e o limite de declaração do 1099 (que agora é corrigido pela inflação). São configurações e não números fixos exatamente por isso — confirme os valores do ano vigente com seu contador.
 
 ---
 

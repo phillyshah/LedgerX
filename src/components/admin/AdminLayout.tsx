@@ -14,6 +14,7 @@ import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, CreditCard, HelpCircle, LogOut,
+  Landmark,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 // hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
@@ -30,6 +31,7 @@ const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ de
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const EstimateReport      = lazy(() => import('./EstimateReport').then((m) => ({ default: m.EstimateReport })));
+const TaxCenter           = lazy(() => import('./tax/TaxCenter').then((m) => ({ default: m.TaxCenter })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
 const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ default: m.EstimateForm })));
@@ -55,7 +57,7 @@ type AdminView =
   | 'my-transactions'
   | 'reconciliation';
 
-type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
+type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report' | 'tax';
 
 // ── Home screen (full admin only) ─────────────────────────────────────────────
 
@@ -87,6 +89,7 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
     { key: 'reports', icon: FileText, label: t('reports.title') },
     { key: 'activity', icon: Activity, label: t('activityReport.title') },
     { key: 'estimate-report', icon: PieChart, label: t('estimateReport.navLabel') },
+    { key: 'tax', icon: Landmark, label: t('tax.navLabel') },
   ];
 
   return (
@@ -233,6 +236,7 @@ export function AdminLayout() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showTax, setShowTax] = useState(false);
   const [showEstimateReport, setShowEstimateReport] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -313,6 +317,8 @@ export function AdminLayout() {
       setShowActivity(true);
     } else if (view === 'estimate-report') {
       setShowEstimateReport(true);
+    } else if (view === 'tax') {
+      setShowTax(true);
     } else {
       setActiveView(view);
     }
@@ -324,6 +330,7 @@ export function AdminLayout() {
     if (key === 'reports') return showReports;
     if (key === 'activity') return showActivity;
     if (key === 'estimate-report') return showEstimateReport;
+    if (key === 'tax') return showTax;
     return activeView === key;
   };
 
@@ -377,6 +384,7 @@ export function AdminLayout() {
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
     { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
+    { key: 'tax',             label: t('tax.navLabel'),             icon: Landmark },
   ];
 
   const manageSubItems: { key: AdminNavKey; label: string; icon: typeof Home }[] = [
@@ -665,6 +673,10 @@ export function AdminLayout() {
         {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
         {showReports   && <Reports        onClose={() => setShowReports(false)} />}
         {showActivity  && <ActivityReport onClose={() => setShowActivity(false)} />}
+        {/* Tax Center is full-admin only. Household admins DO get reports
+            generally, so this must gate on isAdmin specifically rather than
+            riding along with the reports group. */}
+        {showTax && isAdmin && <TaxCenter onClose={() => setShowTax(false)} />}
         {showEstimateReport && <EstimateReport onClose={() => setShowEstimateReport(false)} />}
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}

@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.15',
+    version: 'v13.15',
+    date: '2026-07-26',
+    title: {
+      'en': 'Tax Center: Schedule E totals and 1099 tracking for contractors',
+      'pt-BR': 'Central Fiscal: totais do Schedule E e controle de 1099 dos prestadores',
+    },
+    body: {
+      'en':
+        "There's a new Tax Center for full admins that turns a year of receipts and invoices into the numbers a tax return actually needs. Tag each category once with the tax line it belongs to and every expense sorts itself from then on \u2014 the Schedule E tab then shows a property-by-property breakdown you can hand straight to your accountant. A Capital Review tab collects the bigger jobs and asks one question about each: was this a repair you deduct now, or an improvement you write off over time? It pre-fills a suggested answer and explains its reasoning, but the final call is always yours. The 1099-NEC tab tracks what you've paid each contractor this year, flags who will need a 1099, and warns you when someone is over the limit without a W-9 on file \u2014 while there's still plenty of time to ask for one. Payments made by credit card are set aside automatically, since the card processor already reports those. Contractor tax profiles never store a tax ID number: you upload the signed W-9 instead, and only full admins can open it.",
+      'pt-BR':
+        "H\u00e1 uma nova Central Fiscal para administradores completos que transforma um ano de recibos e notas nos n\u00fameros que a declara\u00e7\u00e3o realmente precisa. Marque cada categoria uma vez com a linha fiscal correspondente e todas as despesas passam a se organizar sozinhas \u2014 a aba Schedule E mostra ent\u00e3o um detalhamento por propriedade que voc\u00ea pode entregar direto ao seu contador. A aba Revis\u00e3o de Capital re\u00fane os servi\u00e7os maiores e faz uma pergunta sobre cada um: foi um reparo que voc\u00ea deduz agora ou uma melhoria que se deprecia ao longo do tempo? Ela j\u00e1 sugere uma resposta e explica o motivo, mas a decis\u00e3o final \u00e9 sempre sua. A aba 1099-NEC acompanha quanto voc\u00ea pagou a cada prestador no ano, sinaliza quem vai precisar de um 1099 e avisa quando algu\u00e9m passou do limite sem W-9 arquivado \u2014 ainda com bastante tempo para pedir. Pagamentos feitos no cart\u00e3o s\u00e3o separados automaticamente, j\u00e1 que a operadora do cart\u00e3o j\u00e1 os declara. Os perfis fiscais dos prestadores nunca guardam o n\u00famero de identifica\u00e7\u00e3o fiscal: voc\u00ea envia o W-9 assinado, e s\u00f3 administradores completos conseguem abri-lo.",
+    },
+  },
+  {
     id: 'v13.14',
     version: 'v13.14',
     date: '2026-07-26',

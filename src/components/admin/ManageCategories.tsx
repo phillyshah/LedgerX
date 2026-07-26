@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, X, Trash2, Edit2, Check, Home, Globe } from 'lucide-react';
+import { Plus, X, Trash2, Edit2, Check, Home, Globe, Landmark } from 'lucide-react';
 import { useT } from '../../hooks/useT';
+import { SCHEDULE_E_LINES, scheduleELineKey } from '../../lib/scheduleE';
+import type { ScheduleELine } from '../../lib/database.types';
 
 interface Category {
   id: string;
   name: string;
   created_at: string;
   household_id: string | null;
+  /** Drives the Schedule E rollup. Mapped once here; every expense in this
+   *  category then classifies itself. Full-admin-only, which this screen
+   *  already is. */
+  schedule_e_line: ScheduleELine | null;
 }
 
 interface CategoryHousehold {
@@ -113,6 +119,14 @@ export function ManageCategories() {
       setEditingId(null);
       await loadCategories();
     }
+  };
+
+  const setScheduleELine = async (id: string, line: ScheduleELine | '') => {
+    await supabase
+      .from('categories')
+      .update({ schedule_e_line: line === '' ? null : line })
+      .eq('id', id);
+    await loadCategories();
   };
 
   const deleteCategory = async (id: string) => {
@@ -282,7 +296,32 @@ export function ManageCategories() {
                             </span>
                           )
                         ))}
+                        {category.schedule_e_line ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg">
+                            <Landmark className="w-3 h-3" />
+                            {t(scheduleELineKey(category.schedule_e_line))}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-lg">
+                            <Landmark className="w-3 h-3" />
+                            {t('tax.cat.unmapped')}
+                          </span>
+                        )}
                       </div>
+                      {/* Schedule E mapping lives inline rather than behind a
+                          modal: it's a one-time pass over every category, and
+                          making that a modal-per-row would be tedious. */}
+                      <select
+                        value={category.schedule_e_line ?? ''}
+                        onChange={(e) => setScheduleELine(category.id, e.target.value as ScheduleELine | '')}
+                        className="mt-2 text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-slate-600"
+                        aria-label={t('tax.cat.mapLabel')}
+                      >
+                        <option value="">{t('tax.cat.unmappedOption')}</option>
+                        {SCHEDULE_E_LINES.map((line) => (
+                          <option key={line} value={line}>{t(scheduleELineKey(line))}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                       <button

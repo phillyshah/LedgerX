@@ -6,16 +6,64 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.14`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.15`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
 - **✅ v13.10 (PR #90), v13.11 (PR #91), v13.12 (PR #92), v13.13 (PR #93), and
   the requirements.txt follow-up (PR #95) are ALL MERGED and confirmed
   deployed** — poller script + deps copied to `/opt/ledgerx/`, and the v13.10
   Activity Report self-inclusion SQL confirmed live via
   `SELECT count(*) FROM pg_proc WHERE proname = 'list_team_activity' AND
-  prosrc LIKE '%au.id = auth.uid()%';` returning `1`. **v13.14 (this session's
-  transaction-list filter/sort rework) still needs a PR + frontend rebuild —
-  see below.**
+  prosrc LIKE '%au.id = auth.uid()%';` returning `1`. **v13.14 (transaction-list
+  filter/sort rework, PR #96) and its optimization follow-up (PR #97) are also
+  merged, and still need a frontend rebuild. v13.15 (tax features, this
+  session) needs SQL + a rebuild — see below.**
+- **v13.15 in one paragraph (THIS SESSION — needs SQL + rebuild)**: two tax
+  features, specced in `.claude/SPEC-tax-features.md` and built together.
+  (1) **Schedule E classification.** `categories.schedule_e_line` maps each
+  category once to one of the 15 Schedule E Part I expense lines; every
+  expense then classifies itself. Uncategorized expenses fall back through
+  the existing `vendor_category_map` (vendor -> category -> line), so the
+  auto-categorization the owner asked about is real and deterministic — no
+  AI. A `capital_treatment` column on both `expenses` and
+  `contractor_invoices` records repair-vs-improvement, surfaced through a
+  review queue that only shows items at/above the de minimis threshold and
+  pre-fills a *suggestion* (never auto-applies — the BRA test is a legal
+  judgment). (2) **1099-NEC readiness.** `contractor_tax_profiles` stores
+  W-9 metadata **with no TIN column, deliberately** — the number lives only
+  inside the uploaded W-9 PDF in a new private `tax-docs` bucket. Payment
+  method decides reportability: card excluded (processor files a 1099-K),
+  Zelle/check/ACH reportable, Venmo flagged ambiguous, null method
+  reportable-but-warned. Corporations are exempt; **unknown entity type is
+  treated as REQUIRING a 1099**, never silently skipped. Thresholds live in
+  a `tax_settings` singleton, not code — the 1099 figure went $600 -> $2,000
+  for payments after 2025-12-31 and is now inflation-indexed. Both features
+  are **full-admin only**: `AdminLayout` gates on `isAdmin` and every RPC
+  re-checks `is_admin()`. A leak was caught during the build — the nav item
+  initially landed in `haNavItems` (household-admin) as well; removed.
+  UI is one `TaxCenter` modal with three tabs sharing a tax-year selector
+  (`src/components/admin/tax/`), plus a Schedule E dropdown per row in
+  `ManageCategories` and a year-round "$X YTD · no W-9" badge in
+  `ManageUsers`. **One real correctness fix worth remembering**:
+  `contractor_invoices.paid_at` is `timestamptz`, so a naive
+  `extract(year ...)` resolves in UTC and pushes an invoice settled at 8pm ET
+  on Dec 31 into the next tax year — exactly when year-end settling
+  clusters. `tax_year_of()` anchors it to America/New_York; change that one
+  constant if the LLC's tax home moves. Verified: **49 SQL assertions** on
+  local Postgres 16 (`supabase/tests/`, incl. the timezone boundary, the
+  corporate exemption, config-driven thresholds, and all 8 RPCs refusing a
+  non-admin), **26 unit assertions** on the suggestion/pivot logic, and
+  **48 browser assertions** across desktop + mobile. Migration re-run is
+  idempotent and preserves data.
+- **⚠️ Pending manual steps for v13.15**:
+  1. **SQL** — run `supabase/migrations/20260802000000_tax_schedule_e_and_1099.sql`
+     in the Supabase SQL editor. It creates the `tax-docs` storage bucket
+     itself (`insert into storage.buckets ... on conflict do nothing`), so no
+     dashboard bucket step is needed. Safe to re-run.
+  2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
+  3. **First-use setup**: Manage -> Categories, set a Schedule E line on each
+     category. Until that's done the Schedule E tab shows everything as
+     "unmapped" (by design — nothing is silently dropped).
+  4. No VPS/poller changes.
 - **v13.14 in one paragraph**: the user asked for filtering/sorting on the
   transaction list to be redesigned "world-class" and mobile-first, then
   discovered along the way that two real call sites
