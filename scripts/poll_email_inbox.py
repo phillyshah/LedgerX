@@ -19,6 +19,7 @@ import imaplib
 import email
 import email.policy
 import base64
+import io
 import json
 import os
 import sys
@@ -93,6 +94,41 @@ ALLOWED_TYPES = {
     "application/pdf",
 }
 
+# Word documents (.docx). Recognized separately from ALLOWED_TYPES because
+# they need DIFFERENT handling — not uploaded-for-viewing-then-OCR'd like an
+# image/PDF, but read for their actual text (see extract_docx_text below).
+# Before this existed, a .docx attachment matched NO entry in ALLOWED_TYPES,
+# so extract_attachments() silently dropped it entirely. With attachments then
+# empty, the "no real attachment, render the HTML body to PDF" fallback further
+# down fired on the WRAPPER email ("Attached please find the receipt...") and
+# turned THAT into a synthetic PDF — the actual receipt content in the Word
+# doc was never read at all. Old binary .doc (not .docx) isn't handled here;
+# python-docx only reads the OOXML format.
+DOCX_CONTENT_TYPES = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+# python-docx reads a .docx's real text directly — no OCR needed at all, since
+# unlike a scanned receipt this content is already machine-readable. Guarded
+# import like weasyprint/PyMuPDF: a missing wheel degrades to today's
+# behavior (the doc still uploads for the user to open by hand) rather than
+# crashing the poller.
+DOCX_AVAILABLE = False
+DOCX_IMPORT_ERROR = None
+try:
+    import docx
+    DOCX_AVAILABLE = True
+except Exception as _ex:
+    DOCX_IMPORT_ERROR = str(_ex)
+
+def _is_docx_attachment(content_type: str, filename: str) -> bool:
+    """True if this looks like a Word doc even when the sender mislabeled the
+    MIME type (some mail clients send a generic application/octet-stream)."""
+    if content_type in DOCX_CONTENT_TYPES:
+        return True
+    generic = {"application/octet-stream", "application/zip", ""}
+    return content_type in generic and filename.lower().endswith(".docx")
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 def log(msg: str):
     print(f"[{datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}] {msg}", flush=True)
@@ -125,18 +161,55 @@ def extract_attachments(msg):
     attachments = []
     for part in msg.walk():
         ct = part.get_content_type()
-        if ct not in ALLOWED_TYPES:
+        filename = part.get_filename() or ""
+        is_docx = _is_docx_attachment(ct, filename)
+        if ct not in ALLOWED_TYPES and not is_docx:
             continue
         payload = part.get_payload(decode=True)
         if not payload or len(payload) > CONFIG["MAX_ATTACH_BYTES"]:
             continue
-        filename = part.get_filename() or f"attachment.{ct.split('/')[-1]}"
+        # Normalize a mislabeled docx (e.g. application/octet-stream) to the
+        # canonical MIME type so every downstream check (DOCX_CONTENT_TYPES
+        # lookups here, and the edge function's own content-type handling)
+        # agrees on what this file is.
+        if is_docx:
+            ct = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        filename = filename or f"attachment.{ct.split('/')[-1]}"
         attachments.append({
             "filename": str(filename),
             "content_type": ct,
             "data": base64.b64encode(payload).decode("ascii"),
         })
     return attachments
+
+def extract_docx_text(docx_bytes: bytes) -> str | None:
+    """Extract plain text from a .docx (Word) attachment.
+
+    Unlike a scanned receipt, this content is already machine-readable — no
+    OCR needed, no rasterizing. python-docx reads the paragraphs and, since a
+    contractor's invoice/receipt often puts the actual line items and total in
+    a table rather than plain paragraphs, the table cells too. Returns None on
+    any failure so the caller falls back to whatever the email body itself
+    carried, same failure mode as the PDF/weasyprint helpers above.
+    """
+    if not DOCX_AVAILABLE:
+        log(f"  extract_docx_text: python-docx not available (import error: {DOCX_IMPORT_ERROR})")
+        return None
+    try:
+        document = docx.Document(io.BytesIO(docx_bytes))
+        lines = [p.text for p in document.paragraphs if p.text.strip()]
+        for table in document.tables:
+            for row in table.rows:
+                cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                if cells:
+                    lines.append(" | ".join(cells))
+        text = "\n".join(lines).strip()
+        if text:
+            log(f"  extract_docx_text: extracted {len(text)} chars")
+        return text or None
+    except Exception as ex:
+        log(f"  extract_docx_text: FAILED ({type(ex).__name__}: {ex})")
+        return None
 
 def extract_body(msg):
     """Return (body_text, body_html) for the first text/plain and text/html parts.
@@ -364,6 +437,25 @@ def main():
 
         body_text, body_html = extract_body(msg)
         log(f"  Body: text={'yes' if body_text else 'no'} html={'yes' if body_html else 'no'}")
+
+        # Word-doc attachments: read their real text directly (no OCR needed —
+        # it's already machine-readable) and feed it through the same inline-
+        # body extraction path a plain-text email uses. This ALSO prevents the
+        # "no real attachment" HTML-to-PDF fallback just below from firing on
+        # a docx-only forward and turning the wrapper email text into a
+        # synthetic PDF while the actual receipt content sits unread in the
+        # attachment — attachments is non-empty now that the docx is kept, so
+        # that branch correctly no longer applies here at all.
+        docx_texts = [
+            extract_docx_text(base64.b64decode(att["data"]))
+            for att in attachments
+            if att["content_type"] in DOCX_CONTENT_TYPES
+        ]
+        docx_texts = [t for t in docx_texts if t]
+        if docx_texts:
+            combined = "\n\n".join(docx_texts)
+            body_text = f"{combined}\n\n{body_text}" if body_text else combined
+            log(f"  Word attachment text merged into body ({len(combined)} chars from {len(docx_texts)} file(s))")
 
         # If no real attachments but we have HTML body, render it to PDF
         # instead of sending raw body text for OCR (user will review visually).

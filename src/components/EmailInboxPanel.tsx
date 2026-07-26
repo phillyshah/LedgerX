@@ -109,7 +109,10 @@ function AttachmentThumb({ path }: { path: string }) {
     );
   }
 
-  const label = isHeic ? 'HEIC' : 'PDF';
+  // Was hardcoded to 'PDF' for every non-image/non-HTML attachment — harmless
+  // while PDF was the only such type, but a Word-doc attachment (.docx) would
+  // now land here too and get mislabeled. Derive it from the real extension.
+  const label = isHeic ? 'HEIC' : (path.match(/\.([a-z0-9]+)$/i)?.[1]?.toUpperCase() ?? 'FILE');
   return (
     <a
       href={url}

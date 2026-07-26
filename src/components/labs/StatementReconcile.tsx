@@ -137,19 +137,33 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
   const unmatched = lineItems.filter((li) => !li.matched_expense_id);
   const matched = lineItems.filter((li) => li.matched_expense_id);
 
+  // Expenses already matched to a line item on THIS statement. Distinct from
+  // claimedElsewhere (matched on a *different* statement) — that set
+  // deliberately excludes this statement's own matches, since it was never
+  // meant to cover this case. Without also excluding these, an expense stays
+  // in the candidate pool for every OTHER line item on the same statement
+  // even after it's been matched — e.g. a GoDaddy receipt matched to one
+  // charge kept showing up as an available candidate for a completely
+  // different unmatched charge below it.
+  const matchedOnThisStatement = useMemo(
+    () => new Set(lineItems.map((li) => li.matched_expense_id).filter((id): id is string => !!id)),
+    [lineItems],
+  );
+
   // Combined candidate pool: real expenses (excluding ones already claimed by
   // a *different* statement's line item — the DB's partial unique index is
-  // global, not per-statement) plus, for full admins, pending email-inbox
-  // receipts duck-typed into the same shape (inboxCandidateToExpense) so they
-  // score through the exact same algorithm with no fork. Newly-picked
-  // categories are applied on top so a categorization shows immediately.
+  // global, not per-statement — and ones already matched on this statement)
+  // plus, for full admins, pending email-inbox receipts duck-typed into the
+  // same shape (inboxCandidateToExpense) so they score through the exact same
+  // algorithm with no fork. Newly-picked categories are applied on top so a
+  // categorization shows immediately.
   const combinedPool = useMemo(() => {
     const expensePool = candidateExpenses
-      .filter((e) => !claimedElsewhere.has(e.id))
+      .filter((e) => !claimedElsewhere.has(e.id) && !matchedOnThisStatement.has(e.id))
       .map((e) => (categoryOverrides.has(e.id) ? { ...e, category: categoryOverrides.get(e.id)! } : e));
     const inboxPool = isAdmin ? inboxCandidates.map(inboxCandidateToExpense) : [];
     return [...expensePool, ...inboxPool];
-  }, [candidateExpenses, claimedElsewhere, categoryOverrides, isAdmin, inboxCandidates]);
+  }, [candidateExpenses, claimedElsewhere, matchedOnThisStatement, categoryOverrides, isAdmin, inboxCandidates]);
 
   const candidatesFor = useCallback(
     (item: StatementLineItem): MatchCandidate[] => rankCandidates(item, combinedPool),

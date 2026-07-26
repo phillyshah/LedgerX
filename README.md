@@ -292,6 +292,8 @@ If you don't want to keep something, tap the **×** in the top-right of the inbo
 
 > **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
 
+> **Word document tip:** if the actual receipt/invoice is a Word file (`.docx`) — common with contractor invoices — its text is read directly, no scanning needed, so vendor/amount/date still pre-fill. The file itself stays attached to the card so you can still open the original.
+
 **Matching to a credit card charge, right from the form** (full admins and household admins, on properties with **Credit Card Reconciliation** turned on). When you review a forwarded receipt as a transaction and a household with Reconciliation enabled is selected, a **"Possible card charge"** panel appears showing any statement line items that look like a match — updating live as you correct the vendor, amount, or date. Tap one to select it (nothing happens yet), then hit **Save** as normal: the transaction is created with your edited values, and the selected charge is linked to it in the same step. Nothing selected means nothing changes — the transaction saves exactly like it always has.
 
 ---

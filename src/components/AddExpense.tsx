@@ -150,6 +150,7 @@ export function AddExpense({ onClose, onSaved, initialData, isInboxReview = fals
               : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
               : ext === 'png' ? 'image/png'
               : ext === 'webp' ? 'image/webp'
+              : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
               : 'application/octet-stream');
           const file = new File([data], filename, { type: mime });
           // Use blob URL for both image and PDF previews — clicking opens
@@ -170,8 +171,17 @@ export function AddExpense({ onClose, onSaved, initialData, isInboxReview = fals
       // total already arrived from the server-side OCR — this specifically
       // catches the case where that OCR pass found vendor/total but missed
       // the date, which must never silently fall back to today's date.
+      //
+      // Gated to image/PDF only — a Word-doc attachment can't be OCR'd this
+      // way at all (no vision model reads a raw .docx), so sending it here
+      // would just burn a failed round-trip. Its content already arrived via
+      // the poller's text-extraction path server-side (see
+      // scripts/poll_email_inbox.py's extract_docx_text), which is what
+      // populated vendor/total/date in the first place.
       const hasDate = !!initialData?.expense_date;
-      if (!hasDate) handleScanReceipt(loaded[0].file);
+      const firstFile = loaded[0].file;
+      const firstIsScannable = firstFile.type.startsWith('image/') || firstFile.type === 'application/pdf';
+      if (!hasDate && firstIsScannable) handleScanReceipt(firstFile);
     })();
     return () => { cancelled = true; };
     // Only run on mount with the initial paths.
@@ -750,13 +760,17 @@ export function AddExpense({ onClose, onSaved, initialData, isInboxReview = fals
                           className="block hover:opacity-90 transition-opacity"
                           title={t('addExpense.viewFull')}
                         >
-                          {img.file.type === 'application/pdf' ? (
+                          {img.file.type.startsWith('image/') ? (
+                            <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
+                          ) : (
+                            // Was keyed on `=== 'application/pdf'` specifically, so anything
+                            // else non-image (e.g. a Word-doc attachment) fell through to the
+                            // <img> branch above and rendered a broken image icon. Any
+                            // non-image type gets the generic file tile now, not just PDF.
                             <div className="w-full h-32 bg-slate-50 flex flex-col items-center justify-center gap-1 text-slate-500">
                               <FileText className="w-8 h-8 text-red-400" />
                               <span className="text-xs text-center px-2 truncate w-full text-center">{img.file.name}</span>
                             </div>
-                          ) : (
-                            <img src={img.preview} alt={`Receipt ${index + 1}`} className="w-full h-32 object-cover" />
                           )}
                         </a>
                         <button

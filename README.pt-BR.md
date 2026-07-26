@@ -290,6 +290,8 @@ Se não quiser manter algo, toque no **×** no canto superior direito do cartão
 
 > **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
 
+> **Dica sobre documentos do Word:** se o recibo/nota real for um arquivo do Word (`.docx`) — comum em notas de prestadores — o texto dele é lido diretamente, sem precisar de digitalização, então fornecedor/valor/data ainda vêm preenchidos. O arquivo continua anexado ao cartão para você abrir o original quando quiser.
+
 **Associando a uma cobrança do cartão, direto no formulário** (administradores completos e de residência, em propriedades com **Conciliação de Cartão de Crédito** ativada). Ao revisar um recibo encaminhado como transação, com uma residência que tem a Conciliação ativada selecionada, aparece um painel **"Possível cobrança no cartão"** mostrando lançamentos de fatura que parecem corresponder — atualizando ao vivo conforme você corrige o fornecedor, o valor ou a data. Toque em um para selecioná-lo (nada acontece ainda), depois toque em **Salvar** normalmente: a transação é criada com os valores que você editou, e a cobrança selecionada é vinculada a ela na mesma etapa. Se nada for selecionado, nada muda — a transação é salva exatamente como sempre foi.
 
 ---

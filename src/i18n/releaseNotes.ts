@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.12',
+    version: 'v13.12',
+    date: '2026-07-26',
+    title: {
+      'en': 'Word-document receipts are read correctly, and a duplicate-suggestion fix',
+      'pt-BR': 'Recibos em Word são lidos corretamente, e correção de sugestão duplicada',
+    },
+    body: {
+      'en':
+        "Forwarded receipts where the actual receipt is a Word document (.docx) attachment — common with contractor invoices — now get read properly. Previously the Word file was silently skipped and LedgerX tried to read the forwarding email's cover note instead, missing the real vendor/amount/date entirely.\n\nAlso fixed: Reconciliation used to keep suggesting a receipt as a possible match even after that exact receipt had already been matched to a different charge on the same statement — it no longer shows up once it's spoken for.",
+      'pt-BR':
+        "Recibos encaminhados por e-mail em que o recibo de verdade é um anexo do Word (.docx) — comum em notas de prestadores — agora são lidos corretamente. Antes o arquivo do Word era ignorado silenciosamente e o LedgerX tentava ler o texto de apresentação do e-mail encaminhado, perdendo completamente o fornecedor, valor e data reais.\n\nTambém corrigimos: a Conciliação continuava sugerindo um recibo como possível correspondência mesmo depois de já ter sido associado a outra cobrança da mesma fatura — agora ele deixa de aparecer assim que já está vinculado.",
+    },
+  },
+  {
     id: 'v13.11',
     version: 'v13.11',
     date: '2026-07-26',
