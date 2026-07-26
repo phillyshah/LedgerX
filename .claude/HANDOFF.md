@@ -8,12 +8,11 @@ substantial session.
 
 - **Version `v13.13`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **✅ v13.10 (PR #90), v13.11 (PR #91), and v13.12 (PR #92) are ALL MERGED**,
-  but likely not yet deployed — the SQL migration + frontend/VPS steps below
-  are still owed regardless of merge state.
-- **v13.13 in one paragraph** (unmerged — new PR needed, same pattern as
-  v13.12 above): two independent things, both requested live in the same
-  session after v13.12 had already merged. (1) **Word-doc receipts now open
+- **✅ v13.10 (PR #90), v13.11 (PR #91), v13.12 (PR #92), and v13.13 (PR #93)
+  are ALL MERGED**, but likely not yet deployed — the SQL migration +
+  frontend/VPS steps below are still owed regardless of merge state.
+- **v13.13 in one paragraph**: two independent things, both requested live in
+  the same session after v13.12 had already merged. (1) **Word-doc receipts now open
   in a preview instead of only downloading.** v13.12 fixed `.docx` receipts
   being silently dropped by extracting their text into `body_text` — but the
   user then asked why tapping the attachment in the inbox just downloads it
