@@ -501,6 +501,7 @@ export function Dashboard() {
             onClose={() => { setShowAddExpense(false); setExpenseInitialData(undefined); setPendingInboxId(null); }}
             onSaved={handleExpenseAdded}
             initialData={expenseInitialData}
+            isInboxReview={pendingInboxId !== null}
           />
         )}
 

@@ -79,6 +79,9 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
   // prop so a categorization shows immediately without waiting on a full reload.
   const [categoryOverrides, setCategoryOverrides] = useState<Map<string, string>>(new Map());
   const [categorizingId, setCategorizingId] = useState<string | null>(null);
+  // Signed URL for the matched-receipt detail view — fetched fresh whenever
+  // the selection lands on an already-matched item with an image on file.
+  const [matchedImageUrl, setMatchedImageUrl] = useState<string | null>(null);
 
   const loadCommentCounts = useCallback(async (ids: string[]) => {
     if (ids.length === 0) { setCommentCounts(new Map()); return; }
@@ -154,6 +157,28 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
   );
 
   const selectedItem = lineItems.find((li) => li.id === selectedId) ?? null;
+
+  // Selecting a MATCHED item shows what it's matched to instead of a picker —
+  // there's nothing left to pick. candidateExpenses already carries matched
+  // expenses (the card's own vendor blurb reads from the same lookup).
+  const selectedMatchedExpense =
+    selectedItem?.matched_expense_id
+      ? candidateExpenses.find((e) => e.id === selectedItem.matched_expense_id) ?? null
+      : null;
+
+  // Fetch a fresh signed URL whenever the selection lands on a matched item
+  // with an image on file. Signed URLs expire, so this can't be cached
+  // alongside the expense data itself.
+  useEffect(() => {
+    setMatchedImageUrl(null);
+    if (!selectedMatchedExpense?.image_path) return;
+    let cancelled = false;
+    supabase.storage
+      .from('receipts')
+      .createSignedUrl(selectedMatchedExpense.image_path, 3600)
+      .then(({ data }) => { if (!cancelled) setMatchedImageUrl(data?.signedUrl ?? null); });
+    return () => { cancelled = true; };
+  }, [selectedMatchedExpense?.image_path]);
 
   // Strict, in-bounds suggestions (score-ordered, capped) — these keep the
   // reason chips and feed bulk auto-match.
@@ -540,7 +565,7 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
                 // Not `disabled` when matched: a disabled button can swallow
                 // clicks on its child controls (the comment + undo spans). We
                 // just make the card body itself non-selecting instead.
-                onClick={() => { if (!isMatched) setSelectedId(isSelected ? null : item.id); }}
+                onClick={() => setSelectedId(isSelected ? null : item.id)}
                 aria-disabled={isMatched}
                 className={`w-full text-left p-3 rounded-xl border transition-all ${
                   isSelected ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white'
@@ -618,6 +643,57 @@ export function StatementReconcile({ statementId, cardLabel, scopedHouseholdName
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t('labs.cc.candidatesHeading')}</h3>
           {!selectedItem ? (
             <p className="text-sm text-slate-500 py-6 text-center">{t('labs.cc.selectLineItemHint')}</p>
+          ) : selectedItem.matched_expense_id ? (
+            // Nothing left to pick for an already-matched item — show what
+            // it's matched to instead of an empty picker.
+            selectedMatchedExpense ? (
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <Check className="w-4 h-4" />
+                  <span className="text-sm font-semibold">{t('labs.cc.matchedReceiptHeading')}</span>
+                </div>
+                {matchedImageUrl && (
+                  <a href={matchedImageUrl} target="_blank" rel="noopener noreferrer" className="block">
+                    <img
+                      src={matchedImageUrl}
+                      alt={selectedMatchedExpense.vendor ?? ''}
+                      className="w-full max-h-64 object-contain rounded-lg border border-slate-200 bg-white"
+                    />
+                  </a>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    {selectedMatchedExpense.vendor || t('labs.cc.unknownVendor')}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {formatDate(selectedMatchedExpense.expense_date)} · {formatAmount(selectedMatchedExpense.total)}
+                    {selectedMatchedExpense.household_name ? ` · ${selectedMatchedExpense.household_name}` : ''}
+                  </p>
+                  {selectedMatchedExpense.submitter_username && (
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t('labs.cc.submittedBy', { username: selectedMatchedExpense.submitter_username })}
+                    </p>
+                  )}
+                  {selectedMatchedExpense.category && (
+                    <span className="inline-block mt-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                      {selectedMatchedExpense.category}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => undoMatch(selectedItem.id)}
+                  disabled={busyId === selectedItem.id}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-white border border-emerald-200 text-emerald-700 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
+                >
+                  {busyId === selectedItem.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />}
+                  {t('labs.cc.undo')}
+                </button>
+              </div>
+            ) : (
+              // matched_expense_id is set but the expense isn't in candidateExpenses
+              // (e.g. it belongs to a household outside this caller's visibility).
+              <p className="text-sm text-slate-500 py-6 text-center">{t('labs.cc.matchedReceiptUnavailable')}</p>
+            )
           ) : (
             <>
               {/* Persistent search — typing auto-reveals the full list. */}

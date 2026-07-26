@@ -293,6 +293,11 @@ export function AddExpense({ onClose, onSaved, initialData, isInboxReview = fals
     setImages([]);
     setWorkEvidence([]);
     setScanError(null);
+    // Otherwise a "keep adding" cycle would carry a stale selection into the
+    // NEXT save: match_statement_line_item has no "already matched" guard on
+    // this path, so the second save would silently steal the first save's
+    // match and reassign it, with no error and no visible sign anything moved.
+    setSelectedLineItemId(null);
   };
 
   const saveExpense = async () => {
@@ -435,12 +440,20 @@ export function AddExpense({ onClose, onSaved, initialData, isInboxReview = fals
       // this very form. The expense above was already saved from the user's
       // actual edited values, so linking it is a second, independent step —
       // and a non-fatal one: the expense is already safely saved either way.
+      // Own try/catch, deliberately separate from the outer one: the expense
+      // above is ALREADY saved at this point, so a failure here — whether a
+      // resolved `.error` or an actual thrown/rejected call — must never
+      // propagate to the outer catch, which would report the whole save as
+      // failed (generic alert, modal stays open) despite it having succeeded,
+      // inviting a duplicate resubmission of an expense that already exists.
       if (selectedLineItemId) {
-        const { error: matchError } = await supabase.rpc('match_statement_line_item', {
-          p_line_item_id: selectedLineItemId,
-          p_expense_id: expenseData.id,
-        });
-        if (matchError) {
+        try {
+          const { error: matchError } = await supabase.rpc('match_statement_line_item', {
+            p_line_item_id: selectedLineItemId,
+            p_expense_id: expenseData.id,
+          });
+          if (matchError) throw matchError;
+        } catch (matchError) {
           console.error('Error linking to statement line item:', matchError);
           alert(t('addExpense.statementMatchFailed'));
         }

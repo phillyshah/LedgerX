@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.11',
+    version: 'v13.11',
+    date: '2026-07-26',
+    title: {
+      'en': 'See what a charge is matched to, and a progress ring on every statement',
+      'pt-BR': 'Veja a que uma cobrança está associada, e um anel de progresso em cada fatura',
+    },
+    body: {
+      'en':
+        "Tapping an already-matched charge in Reconciliation used to do nothing — the screen just kept showing \"select a line item to see matching receipts,\" even though you'd clearly selected one. Now it shows exactly what that charge is matched to: vendor, date, amount, property, even the receipt photo, with an Undo button right there.\n\nEach card statement in the list now shows a small progress ring on its icon — gray, amber, or green depending on how much of it is matched — so you can tell what still needs attention without opening every one.\n\nA few things were also tightened up behind the scenes: a rare case where adding several transactions in a row could mislink one to the wrong card charge, a case where an unexpected app error could leave the screen permanently blank instead of offering to reload, and some edge cases in Auto Reconcile's data loading.",
+      'pt-BR':
+        "Tocar em uma cobrança já associada na Conciliação não fazia nada — a tela continuava mostrando \"selecione um lançamento para ver os recibos correspondentes\", mesmo com um item claramente selecionado. Agora ela mostra exatamente a que aquela cobrança está associada: fornecedor, data, valor, propriedade, até a foto do recibo, com um botão de Desfazer ali mesmo.\n\nCada fatura de cartão na lista agora mostra um pequeno anel de progresso no ícone — cinza, âmbar ou verde conforme o quanto já foi associado — para você identificar o que ainda precisa de atenção sem abrir cada uma.\n\nTambém ajustamos alguns detalhes nos bastidores: um caso raro em que adicionar várias transações seguidas podia associar uma à cobrança errada do cartão, um caso em que um erro inesperado no aplicativo podia deixar a tela permanentemente em branco em vez de oferecer recarregar, e alguns casos extremos no carregamento de dados da Conciliação Automática.",
+    },
+  },
+  {
     id: 'v13.10',
     version: 'v13.10',
     date: '2026-07-26',
