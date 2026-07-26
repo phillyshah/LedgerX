@@ -4,6 +4,49 @@ import { useT } from '../../hooks/useT';
 import type { Household } from '../../types/expense';
 import { StatementHouseholdsModal } from './StatementHouseholdsModal';
 
+// A ring around the card icon showing match completion at a glance, so the
+// list scans without reading each "X of Y matched" line individually. Colored
+// by how done it is — slate at zero, amber mid-way, emerald once complete —
+// with the percentage sitting right on the icon rather than off to the side.
+function MatchProgressRing({ matched, total }: { matched: number; total: number }) {
+  const percent = total > 0 ? Math.round((matched / total) * 100) : null;
+  if (percent === null) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+        <CreditCard className="w-5 h-5 text-emerald-600" />
+      </div>
+    );
+  }
+
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - percent / 100);
+  const ringColor = percent === 100 ? '#059669' : percent === 0 ? '#94a3b8' : '#d97706';
+
+  return (
+    <div className="relative w-10 h-10 shrink-0">
+      <svg viewBox="0 0 40 40" className="w-10 h-10 -rotate-90">
+        <circle cx="20" cy="20" r={radius} fill="none" stroke="#d1fae5" strokeWidth="3" />
+        <circle
+          cx="20" cy="20" r={radius} fill="none"
+          stroke={ringColor} strokeWidth="3" strokeLinecap="round"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          className="transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <CreditCard className="w-4 h-4 text-emerald-600" />
+      </div>
+      <span
+        className="absolute -bottom-1 -right-1 min-w-[22px] px-1 h-[16px] rounded-full text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm"
+        style={{ backgroundColor: ringColor }}
+      >
+        {percent}%
+      </span>
+    </div>
+  );
+}
+
 export interface StatementSummary {
   id: string;
   card_label: string;
@@ -145,9 +188,13 @@ export function StatementList({ statements, isAdmin, allHouseholds, onUpload, on
                 {isEditing ? (
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5 text-emerald-600" />
-                      </div>
+                      {s.status === 'ready' ? (
+                        <MatchProgressRing matched={s.matchedItems} total={s.totalItems} />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                          <CreditCard className="w-5 h-5 text-emerald-600" />
+                        </div>
+                      )}
                       <input
                         type="text"
                         value={editValue}
@@ -171,9 +218,13 @@ export function StatementList({ statements, isAdmin, allHouseholds, onUpload, on
                     onClick={() => onReconcile(s)}
                     className="flex-1 text-left flex items-center gap-3 min-w-0"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-5 h-5 text-emerald-600" />
-                    </div>
+                    {s.status === 'ready' ? (
+                      <MatchProgressRing matched={s.matchedItems} total={s.totalItems} />
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                        <CreditCard className="w-5 h-5 text-emerald-600" />
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{s.card_label}</p>
                       <p className="text-xs text-slate-500">

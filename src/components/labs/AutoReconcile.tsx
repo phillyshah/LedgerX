@@ -95,46 +95,51 @@ export function AutoReconcile({ onBack, onApplied }: AutoReconcileProps) {
         return;
       }
 
-      setOpenItems(
-        ((itemsRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-          id: r.id as string,
-          statement_id: r.statement_id as string,
-          card_label: r.card_label as string,
-          line_date: r.line_date as string,
-          description: r.description as string,
-          amount: Number(r.amount),
-          currency: (r.currency as string) ?? 'USD',
-          matched_expense_id: null,
-          household_ids: (r.household_ids as string[]) ?? [],
-        })),
-      );
+      // Build all three into local variables first and commit with setState
+      // only once every mapping has succeeded. Setting each independently as
+      // it was mapped meant a throw partway through (a malformed row from
+      // expensesRes/inboxRes) could commit fresh openItems while expenses/
+      // inboxRows stayed at stale pre-load values — a combination that never
+      // existed together on the server — while the UI simultaneously showed
+      // an error banner implying nothing had loaded. Building locally first
+      // makes the update all-or-nothing: either every collection reflects
+      // this load, or (on a throw) none of them do, matching the banner.
+      const nextOpenItems = ((itemsRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+        id: r.id as string,
+        statement_id: r.statement_id as string,
+        card_label: r.card_label as string,
+        line_date: r.line_date as string,
+        description: r.description as string,
+        amount: Number(r.amount),
+        currency: (r.currency as string) ?? 'USD',
+        matched_expense_id: null,
+        household_ids: (r.household_ids as string[]) ?? [],
+      }));
 
       // A failure on either candidate source degrades the sweep rather than
       // breaking it — matching against the half that did load is still useful.
       if (expensesRes.error) {
         console.error('[auto-reconcile] unlinked expenses failed', expensesRes.error);
       }
-      setExpenses(
-        ((expensesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-          id: r.id as string,
-          expense_date: r.expense_date as string,
-          vendor: (r.vendor as string) ?? null,
-          total: Number(r.total),
-          currency: (r.currency as string) ?? 'USD',
-          category: (r.category as string) ?? null,
-          notes: (r.notes as string) ?? null,
-          transcript: (r.transcript as string) ?? null,
-          household_id: (r.household_id as string) ?? null,
-          household_name: (r.household_name as string) ?? undefined,
-          image_path: (r.image_path as string) ?? null,
-          image_mime: (r.image_mime as string) ?? null,
-          image_width: (r.image_width as number) ?? null,
-          image_height: (r.image_height as number) ?? null,
-          created_by: r.created_by as string,
-          submitter_username: (r.submitter_username as string) ?? undefined,
-          paid_at: (r.paid_at as string) ?? null,
-        })) as Expense[],
-      );
+      const nextExpenses = ((expensesRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+        id: r.id as string,
+        expense_date: r.expense_date as string,
+        vendor: (r.vendor as string) ?? null,
+        total: Number(r.total),
+        currency: (r.currency as string) ?? 'USD',
+        category: (r.category as string) ?? null,
+        notes: (r.notes as string) ?? null,
+        transcript: (r.transcript as string) ?? null,
+        household_id: (r.household_id as string) ?? null,
+        household_name: (r.household_name as string) ?? undefined,
+        image_path: (r.image_path as string) ?? null,
+        image_mime: (r.image_mime as string) ?? null,
+        image_width: (r.image_width as number) ?? null,
+        image_height: (r.image_height as number) ?? null,
+        created_by: r.created_by as string,
+        submitter_username: (r.submitter_username as string) ?? undefined,
+        paid_at: (r.paid_at as string) ?? null,
+      })) as Expense[];
 
       // Household admins only see inbox rows from their own household members;
       // a non-eligible caller gets an empty list rather than an error.
@@ -145,21 +150,23 @@ export function AutoReconcile({ onBack, onApplied }: AutoReconcileProps) {
       // useReconciliationInboxCandidates.ts's treatment of this exact RPC —
       // a raw cast trusts the RPC's numeric columns to already be JS numbers,
       // which PostgREST does not always guarantee.
-      setInboxRows(
-        ((inboxRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-          id: r.id as string,
-          from_email: r.from_email as string,
-          subject: (r.subject as string | null) ?? null,
-          received_at: r.received_at as string,
-          attachment_paths: ((r.attachment_paths as string[] | null) ?? []) as string[],
-          vendor: (r.vendor as string | null) ?? null,
-          total: Number(r.total),
-          expense_date: r.expense_date as string,
-          notes: (r.notes as string | null) ?? null,
-          submitter_user_id: r.submitter_user_id as string,
-          submitter_username: (r.submitter_username as string | null) ?? null,
-        })),
-      );
+      const nextInboxRows = ((inboxRes.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+        id: r.id as string,
+        from_email: r.from_email as string,
+        subject: (r.subject as string | null) ?? null,
+        received_at: r.received_at as string,
+        attachment_paths: ((r.attachment_paths as string[] | null) ?? []) as string[],
+        vendor: (r.vendor as string | null) ?? null,
+        total: Number(r.total),
+        expense_date: r.expense_date as string,
+        notes: (r.notes as string | null) ?? null,
+        submitter_user_id: r.submitter_user_id as string,
+        submitter_username: (r.submitter_username as string | null) ?? null,
+      }));
+
+      setOpenItems(nextOpenItems);
+      setExpenses(nextExpenses);
+      setInboxRows(nextInboxRows);
     } catch (e) {
       // A genuinely thrown/rejected promise (network failure, a JWT causing
       // supabase-js to throw instead of resolving with an error object) used

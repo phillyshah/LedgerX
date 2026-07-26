@@ -6,14 +6,17 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.10`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.11`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **⚠️ Pending manual steps for v13.10**:
-  1. **SQL only** — `20260801000000_activity_report_self_inclusion.sql`. No
-     edge function, no frontend rebuild needed for the SQL fix by itself, but
-     the frontend DOES need a rebuild for the new AddExpense statement-match
-     panel — run `deploy-ledgerx` as usual.
-- **v13.10 in one paragraph**: three things landed in the same session. (1) A
+- **✅ v13.10 is MERGED (PR #90)**, but likely not yet deployed — the SQL
+  migration + frontend rebuild below are still owed regardless of merge state.
+- **⚠️ Pending manual steps for v13.10 + v13.11 (v13.11 not yet merged)**:
+  1. **SQL** — `20260801000000_activity_report_self_inclusion.sql` (v13.10,
+     already merged, may not be applied to the live DB yet). No new SQL in
+     v13.11.
+  2. **Frontend rebuild** — `deploy-ledgerx` — needed for both the v13.10
+     statement-match panel and everything in v13.11 below.
+- **v13.10 in one paragraph** (merged): three things landed in the same session. (1) A
   household admin ("onion") reported Auto Reconcile showing a totally blank
   screen even after a hard refresh — traced to **Step 4 of the v13.8 SQL
   rollout never actually being applied** (`list_unlinked_expenses()` and
@@ -39,6 +42,47 @@ substantial session.
   the caller's own activity/name from their own report. Full admins never had
   this exclusion; it was an asymmetry, not an intentional rule. Fixed in
   `20260801000000_activity_report_self_inclusion.sql`.
+- **v13.11 in one paragraph** (unmerged — this is what actually needs review):
+  originally thought this would fold into v13.10, but that PR merged before
+  this work landed, so it's its own version. (1) Clicking an already-matched
+  line item in `StatementReconcile.tsx` did nothing — `onClick` explicitly
+  skipped `setSelectedId` for matched items (`if (!isMatched) ...`), so the
+  right pane stayed on the static "select a line item" placeholder forever.
+  Fixed by always setting selection, and adding a real "Matched receipt"
+  detail branch (vendor/date/amount/household/submitter + signed-URL image +
+  Undo) instead of falling through to the candidate-picker UI. (2) Added a
+  circular match-percentage ring around each statement's icon in
+  `StatementList.tsx` (gray/amber/emerald by completion) per user request —
+  purely cosmetic, no new data needed. (3) An adversarial review pass on the
+  whole bundle before merge caught three real bugs, all fixed in this same
+  version: **(a)** `AddExpense.tsx`'s "keep adding" flow didn't clear
+  `selectedLineItemId` in `resetForm()` — since `match_statement_line_item`
+  has no already-matched guard, a second save in the same session could
+  silently steal the first save's match and reassign it to the wrong expense,
+  with zero error shown. **(b)** the statement-match RPC call in
+  `saveExpense()` wasn't in its own try/catch, so a THROWN (not
+  `.error`-shaped) rejection would propagate to the outer catch and report the
+  whole save as failed even though the expense had already been inserted —
+  risking a duplicate resubmission. Both are now isolated so a match-link
+  failure can never undo or misreport an already-successful expense save.
+  **(c)** `ErrorBoundary.tsx`'s reload-guard used `sessionStorage` directly
+  with no protection against it throwing (private-browsing modes), AND once
+  the auto-reload had fired once per tab session, ANY subsequent stale-chunk
+  crash rendered `null` forever with no fallback — contradicting the
+  component's own stated intent. Fixed with safe wrapper functions around
+  `sessionStorage` and by keying the "suppress the fallback UI" decision off
+  a local per-crash instance flag (reset on every mount) instead of the
+  session-persistent guard, plus a 3-second safety-net timer in case
+  `window.location.reload()` is silently blocked. Also hardened
+  `AutoReconcile.tsx`'s `load()` to build all three RPC results into local
+  variables and commit them with `setState` together at the end, so a
+  mid-mapping throw can no longer leave `openItems`/`expenses`/`inboxRows` in
+  a combination that never existed together on the server. **Zero new SQL for
+  any of v13.11.** Verified: typecheck/lint/build clean, i18n parity, plus a
+  second independent Postgres re-verification of the v13.10 activity-report
+  migration (30+ assertions, new fixture, adversarial edge cases including
+  multi-household admins and admins removed from all households) — no
+  regressions found there.
 - **Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
   1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
      pip3/apt.** Confirmed 2026-07-25: cron runs

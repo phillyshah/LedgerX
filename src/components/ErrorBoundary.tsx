@@ -15,6 +15,27 @@ interface State {
 // normal "something went wrong" screen.
 const RELOAD_GUARD_KEY = 'ledgerx:errorBoundaryAutoReloaded';
 
+// sessionStorage throws in some privacy-mode/locked-down browser configs.
+// This is the app's ONLY error boundary — a throw inside its own error
+// handling has no outer boundary to catch it, which would be worse than the
+// no-boundary baseline this component exists to fix. Fail to "no guard
+// recorded" rather than crash: worst case a reload is attempted more than
+// once in such a browser, never a silent failure.
+function safeSessionGet(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeSessionSet(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* see above */
+  }
+}
+
 // Vite's dynamic import() throws this exact message when a chunk referenced
 // by an already-loaded page no longer exists on the server — precisely what
 // happens to any tab left open across a deploy, since rsync --delete removes
@@ -38,6 +59,16 @@ function isStaleChunkError(error: Error): boolean {
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
+  // Local instance flag, deliberately NOT sessionStorage: true only for the
+  // render right after WE just called reload() ourselves, so that one brief
+  // frame shows nothing instead of flashing the fallback UI an instant before
+  // the page navigates away. It must reset on every remount and must never
+  // gate the fallback UI beyond that one attempt — a genuinely repeat crash
+  // (the reload-guard above already having fired once this session) always
+  // falls through to the real fallback UI below, never blank forever.
+  private reloadTriggered = false;
+  private reloadFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
@@ -45,17 +76,28 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary] caught:', error, info.componentStack);
 
-    if (isStaleChunkError(error) && !sessionStorage.getItem(RELOAD_GUARD_KEY)) {
-      sessionStorage.setItem(RELOAD_GUARD_KEY, '1');
+    if (isStaleChunkError(error) && !safeSessionGet(RELOAD_GUARD_KEY)) {
+      safeSessionSet(RELOAD_GUARD_KEY, '1');
+      this.reloadTriggered = true;
       window.location.reload();
+      // Safety net: if reload() is blocked or silently no-ops (some embedded
+      // webviews), don't leave the page blank forever — show the real
+      // fallback after a short grace period instead of trusting navigation
+      // to actually happen.
+      this.reloadFallbackTimer = setTimeout(() => {
+        this.reloadTriggered = false;
+        this.forceUpdate();
+      }, 3000);
     }
+  }
+
+  componentWillUnmount() {
+    if (this.reloadFallbackTimer) clearTimeout(this.reloadFallbackTimer);
   }
 
   render() {
     if (this.state.error) {
-      // A stale-chunk error is mid-reload — render nothing rather than
-      // flashing the fallback UI for the instant before the page refreshes.
-      if (isStaleChunkError(this.state.error) && sessionStorage.getItem(RELOAD_GUARD_KEY)) {
+      if (this.reloadTriggered) {
         return null;
       }
 
