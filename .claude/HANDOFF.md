@@ -6,13 +6,24 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.11`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.12`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **✅ v13.10 is MERGED (PR #90)**, but likely not yet deployed — the SQL
-  migration + frontend rebuild below are still owed regardless of merge state.
-- **⚠️ Pending manual steps for v13.10 + v13.11 (v13.11 not yet merged)**:
+- **✅ v13.10 (PR #90) and v13.11 (PR #91) are BOTH MERGED**, but likely not
+  yet deployed — the SQL migration + frontend/VPS steps below are still owed
+  regardless of merge state.
+- **⚠️ Real mistake worth flagging so it doesn't repeat**: after PR #91
+  merged, two more commits (the candidate-pool exclusion fix and the .docx
+  fix, both described below) got pushed to the SAME branch out of habit —
+  but GitHub does not attach new commits to an already-merged/closed PR, so
+  they sat unmerged with no PR open until the user asked "everything merged
+  right?" and a direct check (`git log origin/main..branch`,
+  `list_pull_requests` state=open) caught it. **Always re-verify merge state
+  before assuming a push landed anywhere** — a branch name being "the
+  designated branch" does not mean every push to it is inside an open PR.
+  Those two fixes are now correctly their own version, v13.12, in a fresh PR.
+- **⚠️ Pending manual steps for v13.10 + v13.11 + v13.12**:
   0. **`/opt/ledgerx/venv/bin/pip install python-docx` on the VPS — same venv
-     as PyMuPDF/weasyprint, NOT system pip.** New in v13.11 (see below). Also
+     as PyMuPDF/weasyprint, NOT system pip.** New in v13.12 (see below). Also
      copy the updated `scripts/poll_email_inbox.py`.
   1. **SQL** — `20260801000000_activity_report_self_inclusion.sql` (v13.10,
      already merged, may not be applied to the live DB yet). No new SQL in
@@ -45,9 +56,7 @@ substantial session.
   the caller's own activity/name from their own report. Full admins never had
   this exclusion; it was an asymmetry, not an intentional rule. Fixed in
   `20260801000000_activity_report_self_inclusion.sql`.
-- **v13.11 in one paragraph** (unmerged — this is what actually needs review):
-  originally thought this would fold into v13.10, but that PR merged before
-  this work landed, so it's its own version. (1) Clicking an already-matched
+- **v13.11 in one paragraph** (MERGED, PR #91): (1) Clicking an already-matched
   line item in `StatementReconcile.tsx` did nothing — `onClick` explicitly
   skipped `setSelectedId` for matched items (`if (!isMatched) ...`), so the
   right pane stayed on the static "select a line item" placeholder forever.
@@ -80,14 +89,20 @@ substantial session.
   `AutoReconcile.tsx`'s `load()` to build all three RPC results into local
   variables and commit them with `setState` together at the end, so a
   mid-mapping throw can no longer leave `openItems`/`expenses`/`inboxRows` in
-  a combination that never existed together on the server. (4) Found live via
-  a screenshot: a GoDaddy receipt already matched to one line item kept
-  showing up as a selectable candidate for a completely different charge on
-  the SAME statement — `claimedElsewhere` (the cross-statement exclusion) was
+  a combination that never existed together on the server. Verified: 30+
+  independent Postgres re-verification assertions on the v13.10
+  activity-report migration (multi-household admins, admins removed from all
+  households — no regressions), typecheck/lint/build clean, i18n parity.
+- **v13.12 in one paragraph** (unmerged — new PR needed, see the mistake noted
+  above): two fixes landed on the branch AFTER PR #91 had already merged, so
+  they need their own version + PR. (1) Found live via a screenshot: a
+  GoDaddy receipt already matched to one line item kept showing up as a
+  selectable candidate for a completely different charge on the SAME
+  statement — `claimedElsewhere` (the cross-statement exclusion) was
   deliberately scoped to exclude the current statement's own matches, and
   nothing else covered that case. Fixed by deriving `matchedOnThisStatement`
   from the already-loaded `lineItems` (no new query) and excluding it
-  alongside `claimedElsewhere` in `combinedPool`. (5) Found live via a
+  alongside `claimedElsewhere` in `combinedPool`. (2) Found live via a
   screenshot: a **.docx (Word) attachment forwarded as the actual receipt**
   (a contractor invoice) was silently dropped entirely — it matched no entry
   in `poll_email_inbox.py`'s `ALLOWED_TYPES`, so `attachments` ended up empty
@@ -110,14 +125,10 @@ substantial session.
   image icon; inverted to image-first (renders the generic file tile for
   anything non-image), and the auto-OCR-on-open call is now gated to
   image/PDF types only so a `.docx` never gets sent into a scan that can't
-  read it. **Zero new SQL for any of v13.11.** Verified: typecheck/lint/build
-  clean, i18n parity, plus a second independent Postgres re-verification of
-  the v13.10 activity-report migration (30+ assertions, new fixture,
-  adversarial edge cases including multi-household admins and admins removed
-  from all households — no regressions), and 16 assertions on the docx
-  extraction path (real generated .docx via python-docx, mislabeled
-  content-type recognition, missing-dependency degradation, corrupt-file
-  handling).
+  read it. **Zero new SQL for any of v13.12.** Verified: typecheck/lint/build
+  clean, i18n parity, plus 16 assertions on the docx extraction path (real
+  generated .docx via python-docx, mislabeled content-type recognition,
+  missing-dependency degradation, corrupt-file handling).
 - **Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
   1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
      pip3/apt.** Confirmed 2026-07-25: cron runs
