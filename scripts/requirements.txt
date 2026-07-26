@@ -1,0 +1,12 @@
+# Python dependencies for scripts/poll_email_inbox.py, installed into the
+# VPS venv at /opt/ledgerx/venv (NOT system pip — cron runs the venv's
+# python3, see the module docstring in poll_email_inbox.py).
+#
+# All three imports in poll_email_inbox.py are guarded (try/except) — a
+# missing package degrades a specific feature rather than crashing the
+# poller, so it's always safe to (re)run:
+#   /opt/ledgerx/venv/bin/pip install -q -r scripts/requirements.txt
+
+weasyprint     # HTML body -> PDF fallback, and the .docx text-preview PDF (v13.13)
+pymupdf        # rasterize PDF page 1 to PNG for OCR (v13.9)
+python-docx    # extract text from .docx receipt attachments (v13.12)
