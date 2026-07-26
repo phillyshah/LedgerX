@@ -79,25 +79,24 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   // Fade the quick-chip row's trailing edge, but only while it actually
   // overflows — a static fade would permanently clip the last chip for
   // anyone whose chips happen to fit on one line (e.g. just 2 households).
-  const chipsRef = useRef<HTMLDivElement | null>(null);
+  //
+  // The row element is held in state rather than a ref so this effect re-runs
+  // exactly when the node mounts/unmounts (a ref wouldn't notify us), not on
+  // every render. Chip *content* can change without the box resizing, so the
+  // chip-count inputs are deps too; ResizeObserver covers the rest.
+  const [chipsEl, setChipsEl] = useState<HTMLDivElement | null>(null);
   const [chipsOverflowing, setChipsOverflowing] = useState(false);
-  // Deliberately runs after every render (no deps): the chip row's own mount
-  // state depends on showFilters/activeFilterCount, computed further down
-  // this component — re-checking each render is the simplest way to catch it
-  // appearing without duplicating that derivation up here.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const el = chipsRef.current;
-    if (!el) {
+    if (!chipsEl) {
       setChipsOverflowing(false);
       return;
     }
-    const check = () => setChipsOverflowing(el.scrollWidth > el.clientWidth + 1);
+    const check = () => setChipsOverflowing(chipsEl.scrollWidth > chipsEl.clientWidth + 1);
     check();
     const ro = new ResizeObserver(check);
-    ro.observe(el);
+    ro.observe(chipsEl);
     return () => ro.disconnect();
-  });
+  }, [chipsEl, households.length, labsEnabled]);
 
   const deleteExpense = async (id: string) => {
     if (armedDeleteId !== id) {
@@ -119,18 +118,33 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     onReload();
   };
 
-  const formatDate = (dateString: string) =>
-    parseExpenseDate(dateString).toLocaleDateString(locale, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  // Intl formatter construction is expensive relative to .format(), and both
+  // of these run once per rendered row. Building them per-call meant ~2x
+  // PAGE_SIZE constructions on every keystroke in the search box; hoisting
+  // them out makes typing cost only the formatting itself. Currency varies
+  // per row, so amounts are cached in a per-locale Map keyed by currency
+  // (realistically 1-2 entries) rather than a single formatter.
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }),
+    [locale]
+  );
+  // `locale` looks unused to the linter because the initializer doesn't read
+  // it — but the formatters cached inside are locale-bound, so switching
+  // language must discard them. The dep is the cache-invalidation key.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const amountFormatters = useMemo(() => new Map<string, Intl.NumberFormat>(), [locale]);
 
-  const formatAmount = (amount: number, currency: string) =>
-    new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount);
+  const formatDate = (dateString: string) => dateFormatter.format(parseExpenseDate(dateString));
+
+  const formatAmount = (amount: number, currency: string) => {
+    const code = currency || 'USD';
+    let formatter = amountFormatters.get(code);
+    if (!formatter) {
+      formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: code });
+      amountFormatters.set(code, formatter);
+    }
+    return formatter.format(amount);
+  };
 
   // Derive unique categories from loaded expenses
   const uniqueCategories = useMemo(() => {
@@ -369,7 +383,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
               (chip count is dynamic, so a hard cutoff would look broken). */}
           {showChips && (
             <div
-              ref={chipsRef}
+              ref={setChipsEl}
               className="flex items-center gap-1.5 overflow-x-auto mt-2.5 -mx-0.5 px-0.5"
               style={
                 chipsOverflowing
