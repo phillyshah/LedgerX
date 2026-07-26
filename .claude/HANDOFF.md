@@ -11,6 +11,9 @@ substantial session.
 - **✅ v13.10 is MERGED (PR #90)**, but likely not yet deployed — the SQL
   migration + frontend rebuild below are still owed regardless of merge state.
 - **⚠️ Pending manual steps for v13.10 + v13.11 (v13.11 not yet merged)**:
+  0. **`/opt/ledgerx/venv/bin/pip install python-docx` on the VPS — same venv
+     as PyMuPDF/weasyprint, NOT system pip.** New in v13.11 (see below). Also
+     copy the updated `scripts/poll_email_inbox.py`.
   1. **SQL** — `20260801000000_activity_report_self_inclusion.sql` (v13.10,
      already merged, may not be applied to the live DB yet). No new SQL in
      v13.11.
@@ -77,12 +80,44 @@ substantial session.
   `AutoReconcile.tsx`'s `load()` to build all three RPC results into local
   variables and commit them with `setState` together at the end, so a
   mid-mapping throw can no longer leave `openItems`/`expenses`/`inboxRows` in
-  a combination that never existed together on the server. **Zero new SQL for
-  any of v13.11.** Verified: typecheck/lint/build clean, i18n parity, plus a
-  second independent Postgres re-verification of the v13.10 activity-report
-  migration (30+ assertions, new fixture, adversarial edge cases including
-  multi-household admins and admins removed from all households) — no
-  regressions found there.
+  a combination that never existed together on the server. (4) Found live via
+  a screenshot: a GoDaddy receipt already matched to one line item kept
+  showing up as a selectable candidate for a completely different charge on
+  the SAME statement — `claimedElsewhere` (the cross-statement exclusion) was
+  deliberately scoped to exclude the current statement's own matches, and
+  nothing else covered that case. Fixed by deriving `matchedOnThisStatement`
+  from the already-loaded `lineItems` (no new query) and excluding it
+  alongside `claimedElsewhere` in `combinedPool`. (5) Found live via a
+  screenshot: a **.docx (Word) attachment forwarded as the actual receipt**
+  (a contractor invoice) was silently dropped entirely — it matched no entry
+  in `poll_email_inbox.py`'s `ALLOWED_TYPES`, so `attachments` ended up empty
+  and the poller's own "no real attachment, render the HTML body to PDF"
+  fallback fired on the WRAPPER email text ("Attached please find the
+  receipt...") instead, producing a synthetic PDF of the cover note with none
+  of the actual receipt content. Fixed by recognizing `.docx` (including when
+  a client mislabels it as generic `application/octet-stream` — matched by
+  extension as a fallback) and extracting its real text with `python-docx`
+  (paragraphs + table cells, since a lot of invoice line-items/totals live in
+  a table) directly into `body_text` — no OCR needed at all, since unlike a
+  scanned receipt this content is already machine-readable. This also
+  naturally prevents the wrong-PDF fallback from firing at all once the docx
+  is a real, non-dropped attachment. Old binary `.doc` (not `.docx`) isn't
+  handled — `python-docx` only reads the OOXML format. Two matching frontend
+  fixes: `EmailInboxPanel.tsx`'s generic attachment tile was hardcoded to
+  label everything "PDF"; now derives the label from the real extension.
+  `AddExpense.tsx`'s inbox-attachment preview rendered ANYTHING that wasn't
+  literally `application/pdf` as an `<img>` — a `.docx` would show a broken
+  image icon; inverted to image-first (renders the generic file tile for
+  anything non-image), and the auto-OCR-on-open call is now gated to
+  image/PDF types only so a `.docx` never gets sent into a scan that can't
+  read it. **Zero new SQL for any of v13.11.** Verified: typecheck/lint/build
+  clean, i18n parity, plus a second independent Postgres re-verification of
+  the v13.10 activity-report migration (30+ assertions, new fixture,
+  adversarial edge cases including multi-household admins and admins removed
+  from all households — no regressions), and 16 assertions on the docx
+  extraction path (real generated .docx via python-docx, mislabeled
+  content-type recognition, missing-dependency degradation, corrupt-file
+  handling).
 - **Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
   1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
      pip3/apt.** Confirmed 2026-07-25: cron runs
