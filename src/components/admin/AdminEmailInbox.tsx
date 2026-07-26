@@ -265,6 +265,7 @@ export function AdminEmailInbox({ storageKey }: Props) {
             }}
             onSaved={onExpenseSaved}
             initialData={expenseInitialData}
+            isInboxReview={pendingInboxId !== null}
           />
         )}
         {showInvoiceForm && (

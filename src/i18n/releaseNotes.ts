@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.10',
+    version: 'v13.10',
+    date: '2026-07-26',
+    title: {
+      'en': 'Match a card charge while reviewing a receipt, and a couple of fixes',
+      'pt-BR': 'Associe uma cobrança do cartão ao revisar um recibo, e correções',
+    },
+    body: {
+      'en':
+        "When you're reviewing a forwarded receipt and saving it as a transaction, LedgerX now shows any likely matching credit card charge right there in the form — pick one and it's linked automatically the moment you save, no extra trip to Reconciliation needed. Only shows up for admins and household admins on properties where Reconciliation is turned on.\n\nAlso fixed: household admins can now see and filter by their own activity in the Activity report — it was quietly excluding your own submissions before, showing only your team's. And Auto Reconcile is sturdier: a couple of edge cases that could leave the screen stuck or blank now show a proper message instead, and any unexpected error in the app shows a real \"something went wrong, reload\" screen rather than going blank.",
+      'pt-BR':
+        "Ao revisar um recibo encaminhado e salvá-lo como transação, o LedgerX agora mostra ali mesmo no formulário qualquer cobrança do cartão de crédito que provavelmente corresponda a ele — escolha uma e ela é vinculada automaticamente assim que você salvar, sem precisar ir até a Conciliação. Só aparece para administradores e administradores de residência em propriedades com a Conciliação ativada.\n\nTambém corrigimos: administradores de residência agora conseguem ver e filtrar sua própria atividade no Relatório de Atividade — antes ele excluía silenciosamente os próprios envios, mostrando só os da equipe. E a Conciliação Automática ficou mais robusta: algumas situações que podiam deixar a tela travada ou em branco agora mostram uma mensagem adequada, e qualquer erro inesperado no aplicativo mostra uma tela de \"algo deu errado, recarregar\" em vez de ficar em branco.",
+    },
+  },
+  {
     id: 'v13.9',
     version: 'v13.9',
     date: '2026-07-25',

@@ -15,6 +15,7 @@ import { NPILookupModal, NPIResult, formatNPIInsert } from './NPILookupModal';
 import type { Household, Category, ImageItem } from '../types/expense';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { WorkEvidenceUploader, type WorkEvidencePhoto } from './WorkEvidenceUploader';
+import { StatementMatchPanel } from './labs/StatementMatchPanel';
 
 export interface AddExpenseInitialData {
   vendor?: string;
@@ -29,10 +30,18 @@ interface AddExpenseProps {
   onClose: () => void;
   onSaved: () => void;
   initialData?: AddExpenseInitialData;
+  /**
+   * True when this form was opened to review a pending email-inbox receipt
+   * (as opposed to a fresh manual entry). Gates the inline statement-match
+   * panel below — an explicit flag rather than inferring it from `initialData`
+   * being set, since a future non-inbox path populating `initialData` would
+   * otherwise silently start showing the panel too.
+   */
+  isInboxReview?: boolean;
 }
 
-export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
-  const { user, isContractor, isHouseholdAdmin } = useAuth();
+export function AddExpense({ onClose, onSaved, initialData, isInboxReview = false }: AddExpenseProps) {
+  const { user, isAdmin, isContractor, isHouseholdAdmin } = useAuth();
   const { t } = useT();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,6 +70,9 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
   // on (household, vendor, total, date) tuples that are fully populated;
   // anything earlier in the form's lifecycle is a guaranteed false positive.
   const [duplicateMatches, setDuplicateMatches] = useState<ExpenseDuplicate[]>([]);
+  // Selected candidate from the inline statement-match panel (inbox review
+  // only). Null = save as a plain unmatched expense, same as today.
+  const [selectedLineItemId, setSelectedLineItemId] = useState<string | null>(null);
   // "Save as template" state — only persisted on submit, alongside the
   // expense save. Hidden until the user checks the box.
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -95,7 +107,20 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
     if (formData.household_id) {
       loadHouseholdCategories(formData.household_id).then(setCategories);
     }
+    // The statement-match panel is scoped to whichever household is
+    // currently selected — a candidate picked for a previous household must
+    // not silently carry over and get matched against the wrong one.
+    setSelectedLineItemId(null);
   }, [formData.household_id]);
+
+  // Reconciliation is admin / household-admin only, same rule as everywhere
+  // else in the app (CLAUDE.md). Checked against the SPECIFIC household
+  // currently selected, not "any household the user belongs to" — households
+  // here already carries features_enabled (loadUserHouseholds selects it),
+  // so no separate hook/query is needed.
+  const canMatchStatement =
+    isInboxReview &&
+    (isAdmin || households.find((h) => h.id === formData.household_id)?.features_enabled?.labs_cc_reconciliation === true);
 
   // When opened from the email inbox, hydrate the images list with the
   // forwarded attachments and run OCR on the first one — same shape as a
@@ -401,6 +426,26 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
         setTemplatesRefresh((n) => n + 1);
       }
 
+      // If the user selected a candidate in the statement-match panel, link
+      // it now that a real expense id exists. Deliberately NOT the same RPC
+      // the statement-side flow uses to create-and-match an inbox item in one
+      // step (match_inbox_item_to_line_item) — that RPC builds the expense
+      // from email_inbox.prefilled server-side, which would silently discard
+      // any correction the user just made to the OCR'd vendor/amount/date in
+      // this very form. The expense above was already saved from the user's
+      // actual edited values, so linking it is a second, independent step —
+      // and a non-fatal one: the expense is already safely saved either way.
+      if (selectedLineItemId) {
+        const { error: matchError } = await supabase.rpc('match_statement_line_item', {
+          p_line_item_id: selectedLineItemId,
+          p_expense_id: expenseData.id,
+        });
+        if (matchError) {
+          console.error('Error linking to statement line item:', matchError);
+          alert(t('addExpense.statementMatchFailed'));
+        }
+      }
+
       onSaved();
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
@@ -610,6 +655,17 @@ export function AddExpense({ onClose, onSaved, initialData }: AddExpenseProps) {
               ))}
             </datalist>
           </div>
+
+          {canMatchStatement && (
+            <StatementMatchPanel
+              householdId={formData.household_id}
+              vendor={formData.vendor}
+              total={formData.total}
+              expenseDate={formData.expense_date}
+              selectedId={selectedLineItemId}
+              onSelect={setSelectedLineItemId}
+            />
+          )}
 
           <div>
             <label htmlFor="category" className="block text-sm font-medium text-slate-700 mb-2">

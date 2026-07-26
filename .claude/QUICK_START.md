@@ -78,18 +78,27 @@ The email forwarding feature requires:
 1. **IMAP Mailbox**: Hostinger mailbox for `receipts@90ten.life` (configured once, ongoing)
 2. **VPS Polling Script**: Python script runs every 5 minutes via cron (see `scripts/poll_email_inbox.py`)
 
-Setup on VPS:
+Setup on VPS (actual production layout, confirmed 2026-07 — this drifted from
+an earlier `/usr/bin/python3` draft that was never how it was actually deployed):
+
 ```bash
+# The poller runs inside a venv at /opt/ledgerx/venv, NOT the system python3.
+# That's where weasyprint (HTML->PDF) and PyMuPDF (PDF->PNG for OCR, v13.9)
+# live. Installing either with system pip3/apt will NOT be visible to cron.
+# python3 -m venv /opt/ledgerx/venv   # one-time, if it doesn't exist yet
+/opt/ledgerx/venv/bin/pip install pymupdf weasyprint
+
 # Copy script to VPS
-scp scripts/poll_email_inbox.py root@72.62.174.193:/opt/ledgerx/
+cp scripts/poll_email_inbox.py /opt/ledgerx/poll_email_inbox.py
 
-# Set environment variables in crontab or systemd
-# LEDGERX_IMAP_HOST, LEDGERX_IMAP_PORT, LEDGERX_IMAP_USER, LEDGERX_IMAP_PASSWORD
-# LEDGERX_FUNCTION_URL (should be https://bkxccrbfjoqtxbtekrgw.supabase.co/functions/v1/inbound-email)
-# LEDGERX_INBOUND_SECRET (must match the Supabase function secret INBOUND_EMAIL_SECRET)
+# Env vars live in /opt/ledgerx/env (root-only, 0600), sourced by the cron
+# line itself — NOT set directly in crontab:
+#   LEDGERX_IMAP_HOST, LEDGERX_IMAP_PORT, LEDGERX_IMAP_USER, LEDGERX_IMAP_PASSWORD
+#   LEDGERX_FUNCTION_URL (https://bkxccrbfjoqtxbtekrgw.supabase.co/functions/v1/inbound-email)
+#   LEDGERX_INBOUND_SECRET (must match the Supabase function secret INBOUND_EMAIL_SECRET)
 
-# Add cron job (crontab -e):
-*/5 * * * * /usr/bin/python3 /opt/ledgerx/poll_email_inbox.py >> /var/log/ledgerx_email.log 2>&1
+# Actual crontab entry (sudo crontab -e):
+*/5 * * * * set -a && . /opt/ledgerx/env && set +a && /opt/ledgerx/venv/bin/python3 /opt/ledgerx/poll_email_inbox.py >> /var/log/ledgerx_email.log 2>&1
 ```
 
 ## Testing Changes

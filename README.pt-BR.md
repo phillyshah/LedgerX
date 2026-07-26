@@ -290,6 +290,8 @@ Se não quiser manter algo, toque no **×** no canto superior direito do cartão
 
 > **Dica sobre PDFs:** o OCR funciona em imagens e PDFs (rasterizamos a primeira página do PDF antes de extrair). Se um PDF não puder ser lido, o formulário ainda abre com o arquivo anexado — basta digitar os valores manualmente.
 
+**Associando a uma cobrança do cartão, direto no formulário** (administradores completos e de residência, em propriedades com **Conciliação de Cartão de Crédito** ativada). Ao revisar um recibo encaminhado como transação, com uma residência que tem a Conciliação ativada selecionada, aparece um painel **"Possível cobrança no cartão"** mostrando lançamentos de fatura que parecem corresponder — atualizando ao vivo conforme você corrige o fornecedor, o valor ou a data. Toque em um para selecioná-lo (nada acontece ainda), depois toque em **Salvar** normalmente: a transação é criada com os valores que você editou, e a cobrança selecionada é vinculada a ela na mesma etapa. Se nada for selecionado, nada muda — a transação é salva exatamente como sempre foi.
+
 ---
 
 ## WhatsApp (Converse com o LedgerX)
@@ -728,7 +730,7 @@ Uma linha do tempo de quem fez o quê entre as pessoas que você acompanha. Abra
 
 **Quem vê a atividade de quem:**
 - Admins completos veem a atividade de todos, em todos os domicílios.
-- Admins de propriedade só veem a atividade de prestadores e membros comuns dos domicílios aos quais pertencem. Não veem outros admins, outros admins de propriedade nem a si mesmos.
+- Admins de propriedade veem a própria atividade, além da de prestadores e membros comuns dos domicílios aos quais pertencem. Não veem outros admins nem outros admins de propriedade.
 - Prestadores e usuários comuns não veem o item Atividade no menu.
 
 ### Relatório de Orçamentos

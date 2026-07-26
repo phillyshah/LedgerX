@@ -292,6 +292,8 @@ If you don't want to keep something, tap the **×** in the top-right of the inbo
 
 > **PDF tip:** OCR works on both images and PDFs (we rasterize the first page of the PDF before extracting). If a PDF can't be read, the form still opens with the file attached — just type the values in by hand.
 
+**Matching to a credit card charge, right from the form** (full admins and household admins, on properties with **Credit Card Reconciliation** turned on). When you review a forwarded receipt as a transaction and a household with Reconciliation enabled is selected, a **"Possible card charge"** panel appears showing any statement line items that look like a match — updating live as you correct the vendor, amount, or date. Tap one to select it (nothing happens yet), then hit **Save** as normal: the transaction is created with your edited values, and the selected charge is linked to it in the same step. Nothing selected means nothing changes — the transaction saves exactly like it always has.
+
 ---
 
 ## WhatsApp (Text LedgerX)
@@ -726,7 +728,7 @@ A chronological feed of who's been doing what across the people you oversee. Ope
 
 **Who sees whose activity:**
 - Full admins see activity for every user, across every household.
-- Household admins see activity only for contractors and regular members of households they belong to. They do not see other admins, other household admins, or themselves.
+- Household admins see their own activity, plus contractors and regular members of households they belong to. They do not see other admins or other household admins.
 - Contractors and regular users do not see the Activity menu item.
 
 ### Estimate Report
