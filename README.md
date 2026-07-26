@@ -332,12 +332,15 @@ The **Expense List** shows all transactions for your selected household, newest 
 
 ### Search, sort & filters
 
-For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar, sort control, and filter controls. If you've logged more than 25 transactions, the toolbar shows up automatically.
+For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar, sort control, and filter controls. If you've logged more than 25 transactions, the toolbar shows up automatically. This applies everywhere the transaction list appears — including a contractor's own **My Receipts** and a household admin's own **My Transactions** — so search, sort, and filters are always available once you have enough to need them.
 
 The toolbar gives you:
 - **Search** — vendor, category, notes, or household name (real-time)
 - **Sort** — always-visible dropdown next to the search box: date (newest/oldest), amount (highest/lowest), vendor (A→Z), category (A→Z). Re-orders instantly without a reload, and works on top of any active filters.
-- **Filter panel** (behind the filter button): category, household, date range, amount range
+- **Quick-tap chips** — one property or match-status per tap, no need to open the full filter panel. Tap a household name to jump straight to that property; tap it again to go back to all. If Credit Card Reconciliation is on for one of your households, **Matched** and **Unmatched** chips appear too, so you can jump straight to receipts still waiting to be reconciled. The row scrolls sideways on mobile when there isn't room for every chip.
+- **Filter panel** (tap the filter icon): household, category, match status (when applicable), date range, amount range. Opens as a bottom sheet on phones and a centered dialog on desktop.
+
+Long lists load 20 transactions at a time — tap **Show N more** at the bottom to bring in the next batch. Filtering, sorting, and searching still work across your whole list, not just what's currently loaded.
 
 ### Editing a transaction
 

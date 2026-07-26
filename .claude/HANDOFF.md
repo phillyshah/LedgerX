@@ -6,11 +6,63 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.13`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.14`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **✅ v13.10 (PR #90), v13.11 (PR #91), v13.12 (PR #92), and v13.13 (PR #93)
-  are ALL MERGED**, but likely not yet deployed — the SQL migration +
-  frontend/VPS steps below are still owed regardless of merge state.
+- **✅ v13.10 (PR #90), v13.11 (PR #91), v13.12 (PR #92), v13.13 (PR #93), and
+  the requirements.txt follow-up (PR #95) are ALL MERGED and confirmed
+  deployed** — poller script + deps copied to `/opt/ledgerx/`, and the v13.10
+  Activity Report self-inclusion SQL confirmed live via
+  `SELECT count(*) FROM pg_proc WHERE proname = 'list_team_activity' AND
+  prosrc LIKE '%au.id = auth.uid()%';` returning `1`. **v13.14 (this session's
+  transaction-list filter/sort rework) still needs a PR + frontend rebuild —
+  see below.**
+- **v13.14 in one paragraph**: the user asked for filtering/sorting on the
+  transaction list to be redesigned "world-class" and mobile-first, then
+  discovered along the way that two real call sites
+  (`Dashboard.tsx`'s contractor "My Receipts" and `AdminLayout.tsx`'s
+  household-admin "My Transactions") had `hideFilters` hardcoded — meaning
+  search/sort/filter didn't exist at all for those roles' own-submission
+  views, not even the compact "Filter" chip. Fixed by removing the `hideFilters`
+  prop from `ExpenseList.tsx` entirely (it had exactly one caller each, both
+  now get the same toolbar everyone else does) and simplifying the dead
+  conditionals that referenced it. On top of restoring parity, added: (1) a
+  new **matched/unmatched filter** — only surfaces when
+  `useLabsAccess().hasFlag('labs_cc_reconciliation')` is true, since
+  regular members/contractors never have Labs households and would never see
+  a meaningful matched/unmatched split; (2) **one-tap quick chips** (household
+  + matched/unmatched) rendered inline above the results, so the common case
+  never requires opening the full filter panel — the chip row fades its
+  trailing edge via `mask-image`, but ONLY while it's actually overflowing
+  (checked via `ResizeObserver` comparing `scrollWidth`/`clientWidth`), so a
+  user with just 2 households never sees a permanently-clipped last chip; (3)
+  the filter panel itself moved out of an inline `<div>` into a new
+  `ExpenseFilterSheet.tsx` component, lazy-loaded, styled as a bottom sheet on
+  phones / centered dialog on desktop — the exact same
+  `items-end sm:items-center` + `rounded-t-2xl sm:rounded-2xl` convention
+  `StatementHouseholdsModal.tsx` already established; (4) **"Show N more"
+  pagination** — renders 20 rows at a time via a `visibleCount` state that
+  resets on any filter/sort/search change but deliberately NOT on `expenses`
+  itself changing, so a background poll/reload doesn't yank a scrolled-down
+  user back to page 1. Zero new SQL, zero new RPCs — purely a frontend
+  rework of `ExpenseList.tsx` plus the two call-site prop removals. **Tested
+  without a live Supabase backend** (no `.env` in this container): built a
+  temporary, git-ignored preview harness
+  (`dev-preview.html` / `src/dev-preview-entry.tsx`, both deleted before
+  commit) that mounted three real `<ExpenseList>` instances — admin/35-expense
+  (pagination), contractor-own-submissions/1-household (verifying the
+  previously-broken `hideFilters` view now works), household-admin-own/
+  4-household — each wrapped in its own mocked `AuthContext.Provider` (which
+  required briefly `export`-ing `AuthContext` from `AuthContext.tsx`, then
+  reverting that export before commit — grep confirms it's back to
+  unexported). Drove it with the globally-installed Playwright CLI
+  (`/opt/node22/bin/playwright`, not a project dependency) at both a 1280×900
+  desktop viewport and a 390×844 mobile viewport: search, sort, household
+  chips, matched/unmatched chips, the bottom-sheet filter panel (open/close/
+  "Show N results"), and "Show N more" pagination all verified working via
+  screenshots; separately verified the chip fade-mask appears when chips
+  genuinely overflow (4 households + 2 status chips at 390px) and does NOT
+  appear when they fit (2 households, no Labs). Verified: typecheck, lint,
+  and `npm run build` all clean; i18n key parity (1048/1048 en/pt-BR).
 - **v13.13 in one paragraph**: two independent things, both requested live in
   the same session after v13.12 had already merged. (1) **Word-doc receipts now open
   in a preview instead of only downloading.** v13.12 fixed `.docx` receipts
@@ -68,18 +120,16 @@ substantial session.
   before assuming a push landed anywhere** — a branch name being "the
   designated branch" does not mean every push to it is inside an open PR.
   Those two fixes are now correctly their own version, v13.12, in a fresh PR.
-- **⚠️ Pending manual steps for v13.10 + v13.11 + v13.12 + v13.13**:
-  0. **`/opt/ledgerx/venv/bin/pip install python-docx` on the VPS — same venv
-     as PyMuPDF/weasyprint, NOT system pip.** New in v13.12 (see below). Also
-     copy the updated `scripts/poll_email_inbox.py`. **v13.13 needs no
-     additional install** — its docx-preview-PDF feature reuses weasyprint
-     (already installed) and lands in the same `poll_email_inbox.py` file, so
-     the same one `cp` covers both v13.12 and v13.13's poller changes.
-  1. **SQL** — `20260801000000_activity_report_self_inclusion.sql` (v13.10,
-     already merged, may not be applied to the live DB yet). No new SQL in
-     v13.11.
-  2. **Frontend rebuild** — `deploy-ledgerx` — needed for both the v13.10
-     statement-match panel and everything in v13.11 below.
+- **✅ Manual steps for v13.10 + v13.11 + v13.12 + v13.13 — all confirmed
+  done this session**: poller `cp` + venv pip installs on the VPS, and the
+  v13.10 Activity Report SQL migration confirmed applied in production (see
+  above). Historical detail on what each required is kept below for
+  reference.
+- **⚠️ Pending manual step for v13.14 (this session)**: **frontend rebuild
+  only** — `deploy-ledgerx` (`npm ci && npm run build && rsync dist/ →
+  /var/www/ledger.90ten.life/`). No SQL, no VPS poller changes — this release
+  is 100% frontend (transaction-list filter/sort/pagination rework, see
+  above). Confirm the footer shows `v13.14` after deploying.
 - **v13.10 in one paragraph** (merged): three things landed in the same session. (1) A
   household admin ("onion") reported Auto Reconcile showing a totally blank
   screen even after a hard refresh — traced to **Step 4 of the v13.8 SQL

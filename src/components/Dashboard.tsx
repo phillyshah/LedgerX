@@ -332,7 +332,6 @@ export function Dashboard() {
               loading={loading}
               onReload={reloadExpenses}
               ownSubmissionsOnly
-              hideFilters
               hideHeader
               onAdd={() => setShowAddExpense(true)}
             />

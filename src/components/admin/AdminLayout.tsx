@@ -652,7 +652,6 @@ export function AdminLayout() {
                 loading={expensesLoading}
                 onReload={reloadExpenses}
                 ownSubmissionsOnly
-                hideFilters
                 onAdd={() => setShowAddExpense(true)}
               />
             )}
