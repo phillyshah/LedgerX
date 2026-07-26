@@ -1,17 +1,23 @@
-import { Suspense, lazy, useState, useMemo, useRef } from 'react';
+import { Suspense, lazy, useState, useMemo, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown, CreditCard } from 'lucide-react';
+import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown, CreditCard, ChevronDown } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { parseExpenseDate } from '../lib/dateUtils';
 import { useLabsAccess } from '../hooks/useLabsAccess';
 import { useMatchedCardLabels } from '../hooks/useMatchedCardLabels';
+import type { MatchedFilter } from './ExpenseFilterSheet';
 
 const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
 const MatchToStatementModal = lazy(() => import('./labs/MatchToStatementModal').then((m) => ({ default: m.MatchToStatementModal })));
+const ExpenseFilterSheet = lazy(() => import('./ExpenseFilterSheet').then((m) => ({ default: m.ExpenseFilterSheet })));
 
 type SortKey = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'vendor' | 'category';
+
+// How many rows render before the user has to tap "Load more" — keeps long
+// lists (and mobile scroll performance) in check without full virtualization.
+const PAGE_SIZE = 20;
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -20,8 +26,6 @@ interface ExpenseListProps {
   onReload: () => void;
   /** When true, only shows expenses the current user submitted. Used by contractors. */
   ownSubmissionsOnly?: boolean;
-  /** When true, hides the filter bar entirely (contractor minimal view). */
-  hideFilters?: boolean;
   /** When true, drops the internal h2 — caller is providing a section
    *  header (e.g. CollapsibleSection on the dashboard). */
   hideHeader?: boolean;
@@ -30,7 +34,7 @@ interface ExpenseListProps {
   onAdd?: () => void;
 }
 
-export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideFilters = false, hideHeader = false, onAdd }: ExpenseListProps) {
+export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideHeader = false, onAdd }: ExpenseListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -50,6 +54,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [searchQuery, setSearchQuery] = useState('');
   const [householdFilter, setHouseholdFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [matchedFilter, setMatchedFilter] = useState<MatchedFilter>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [amountMin, setAmountMin] = useState('');
@@ -57,10 +62,42 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [showFilters, setShowFilters] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('date_desc');
 
+  // How many of the filtered/sorted rows are currently rendered ("Load more"
+  // pagination). Resets to the first page whenever a filter/sort/search
+  // input actually changes — but NOT when `expenses` itself changes (a
+  // background reload/poll shouldn't yank a scrolled-down user back to page 1).
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, sortKey]);
+
   // Two-tap delete: first tap arms the row for ~3s, second tap commits.
   // Replaces window.confirm() so the dialog matches the rest of the UI.
   const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
   const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fade the quick-chip row's trailing edge, but only while it actually
+  // overflows — a static fade would permanently clip the last chip for
+  // anyone whose chips happen to fit on one line (e.g. just 2 households).
+  const chipsRef = useRef<HTMLDivElement | null>(null);
+  const [chipsOverflowing, setChipsOverflowing] = useState(false);
+  // Deliberately runs after every render (no deps): the chip row's own mount
+  // state depends on showFilters/activeFilterCount, computed further down
+  // this component — re-checking each render is the simplest way to catch it
+  // appearing without duplicating that derivation up here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const el = chipsRef.current;
+    if (!el) {
+      setChipsOverflowing(false);
+      return;
+    }
+    const check = () => setChipsOverflowing(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   const deleteExpense = async (id: string) => {
     if (armedDeleteId !== id) {
@@ -108,6 +145,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const activeFilterCount = [
     householdFilter !== 'all',
     categoryFilter !== 'all',
+    matchedFilter !== 'all',
     dateFrom !== '',
     dateTo !== '',
     amountMin !== '',
@@ -120,6 +158,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     setSearchQuery('');
     setHouseholdFilter('all');
     setCategoryFilter('all');
+    setMatchedFilter('all');
     setDateFrom('');
     setDateTo('');
     setAmountMin('');
@@ -153,6 +192,12 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
       if (minAmt !== null && e.total < minAmt) return false;
       if (maxAmt !== null && e.total > maxAmt) return false;
 
+      if (labsEnabled && matchedFilter !== 'all') {
+        const isMatched = matchedCardLabels.has(e.id);
+        if (matchedFilter === 'matched' && !isMatched) return false;
+        if (matchedFilter === 'unmatched' && isMatched) return false;
+      }
+
       if (query) {
         const haystack = [e.vendor, e.category, e.notes, e.household_name]
           .filter(Boolean)
@@ -175,7 +220,9 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
       // date_desc: server already returns rows in this order — no resort
     }
     return filtered;
-  }, [expenses, searchQuery, householdFilter, categoryFilter, dateFrom, dateTo, amountMin, amountMax, ownSubmissionsOnly, user?.id, sortKey]);
+  }, [expenses, searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, ownSubmissionsOnly, user?.id, sortKey, labsEnabled, matchedCardLabels]);
+
+  const visibleExpenses = filteredExpenses.slice(0, visibleCount);
 
   if (loading) {
     return (
@@ -220,14 +267,15 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   // either has enough transactions to need it or explicitly opens filters.
   const largeList = expenses.length > 25;
   const filtersUseful = largeList || showFilters || activeFilterCount > 0;
-  const renderHeaderChrome = !hideHeader || (!hideFilters && filtersUseful);
+  const renderHeaderChrome = !hideHeader || filtersUseful;
+  const showChips = households.length > 1 || labsEnabled;
 
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Compact "Filter" chip when the list is short and the parent
             CollapsibleSection is providing the section title. */}
-        {hideHeader && !hideFilters && !filtersUseful && (
+        {hideHeader && !filtersUseful && (
           <div className="flex justify-end px-4 py-2 border-b border-slate-100">
             <button
               onClick={() => setShowFilters(true)}
@@ -247,7 +295,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
               <h2 className="text-lg font-semibold text-slate-900">
                 {ownSubmissionsOnly ? t('dashboard.yourSubmissions') : t('expenses.heading')}
               </h2>
-              {hasAnyFilter && !hideFilters && (
+              {hasAnyFilter && (
                 <button
                   onClick={clearAllFilters}
                   className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
@@ -259,9 +307,6 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             </div>
           )}
 
-          {/* Search bar + filter toggle — hidden in contractor-minimal view */}
-          {!hideFilters && (
-          <>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -318,94 +363,67 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             </button>
           </div>
 
-          {/* Expandable filter panel */}
-          {showFilters && (
-            <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {households.length > 1 && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.household')}</label>
-                  <select
-                    value={householdFilter}
-                    onChange={(e) => setHouseholdFilter(e.target.value)}
-                    className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          {/* Quick one-tap chips — the fast path on mobile, no sheet needed.
+              Tapping the active chip again clears it back to "all". The
+              trailing fade hints there's more to swipe when the row overflows
+              (chip count is dynamic, so a hard cutoff would look broken). */}
+          {showChips && (
+            <div
+              ref={chipsRef}
+              className="flex items-center gap-1.5 overflow-x-auto mt-2.5 -mx-0.5 px-0.5"
+              style={
+                chipsOverflowing
+                  ? { WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)', maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent)' }
+                  : undefined
+              }
+            >
+              {households.length > 1 && households.map((h) => {
+                const active = householdFilter === h.id;
+                return (
+                  <button
+                    key={h.id}
+                    onClick={() => setHouseholdFilter(active ? 'all' : h.id)}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-all ${
+                      active
+                        ? 'bg-slate-900 border-slate-900 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
                   >
-                    <option value="all">{t('expenses.all')}</option>
-                    {households.map((h) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
-                    ))}
-                  </select>
-                </div>
+                    {h.name}
+                  </button>
+                );
+              })}
+              {labsEnabled && (
+                <>
+                  <button
+                    onClick={() => setMatchedFilter(matchedFilter === 'matched' ? 'all' : 'matched')}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-all ${
+                      matchedFilter === 'matched'
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {t('labs.cc.matchedBadge')}
+                  </button>
+                  <button
+                    onClick={() => setMatchedFilter(matchedFilter === 'unmatched' ? 'all' : 'unmatched')}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-all ${
+                      matchedFilter === 'unmatched'
+                        ? 'bg-slate-900 border-slate-900 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {t('expenses.unmatched')}
+                  </button>
+                </>
               )}
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.category')}</label>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="all">{t('expenses.all')}</option>
-                  <option value="__uncategorized__">{t('expenses.uncategorized')}</option>
-                  {uniqueCategories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.fromDate')}</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.toDate')}</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.minAmount')}</label>
-                <input
-                  type="number"
-                  value={amountMin}
-                  onChange={(e) => setAmountMin(e.target.value)}
-                  placeholder="$0"
-                  min="0"
-                  step="0.01"
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('expenses.maxAmount')}</label>
-                <input
-                  type="number"
-                  value={amountMax}
-                  onChange={(e) => setAmountMax(e.target.value)}
-                  placeholder={t('expenses.noLimit')}
-                  min="0"
-                  step="0.01"
-                  className="w-full text-sm bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-              </div>
             </div>
-          )}
-          </>
           )}
         </div>
         )}
 
         {/* Results info bar — only when there's actually a filter applied. */}
-        {hasAnyFilter && !hideFilters && filtersUseful && (
+        {hasAnyFilter && filtersUseful && (
           <div className="px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500">
             {t('expenses.showingOf', { shown: filteredExpenses.length, total: expenses.length })}
           </div>
@@ -417,7 +435,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             <div className="p-8 text-center">
               <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
               <p className="text-sm text-slate-500">
-                {hideFilters && !hasAnyFilter
+                {!hasAnyFilter
                   ? (ownSubmissionsOnly ? t('expenses.noReceiptsYet') : t('expenses.noExpensesYet'))
                   : t('expenses.noMatch')}
               </p>
@@ -431,7 +449,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
               )}
             </div>
           ) : (
-            filteredExpenses.map((expense) => (
+            visibleExpenses.map((expense) => (
               <div key={expense.id} className="p-4 sm:p-5 hover:bg-slate-50 transition-all group">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <h3 className="text-base font-semibold text-slate-900 truncate min-w-0 flex-1">
@@ -522,6 +540,18 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             ))
           )}
         </div>
+
+        {filteredExpenses.length > visibleCount && (
+          <div className="p-3 border-t border-slate-100">
+            <button
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              className="w-full py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all flex items-center justify-center gap-1.5"
+            >
+              <ChevronDown className="w-4 h-4" />
+              {t('expenses.loadMore', { count: Math.min(PAGE_SIZE, filteredExpenses.length - visibleCount) })}
+            </button>
+          </div>
+        )}
       </div>
 
       {editingExpense && (
@@ -539,6 +569,32 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
             expense={matchingExpense}
             onClose={() => setMatchingExpense(null)}
             onMatched={onReload}
+          />
+        </Suspense>
+      )}
+      {showFilters && (
+        <Suspense fallback={null}>
+          <ExpenseFilterSheet
+            households={households}
+            householdFilter={householdFilter}
+            onHouseholdChange={setHouseholdFilter}
+            categories={uniqueCategories}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            showMatchedFilter={labsEnabled}
+            matchedFilter={matchedFilter}
+            onMatchedChange={setMatchedFilter}
+            dateFrom={dateFrom}
+            onDateFromChange={setDateFrom}
+            dateTo={dateTo}
+            onDateToChange={setDateTo}
+            amountMin={amountMin}
+            onAmountMinChange={setAmountMin}
+            amountMax={amountMax}
+            onAmountMaxChange={setAmountMax}
+            resultCount={filteredExpenses.length}
+            onClear={clearAllFilters}
+            onClose={() => setShowFilters(false)}
           />
         </Suspense>
       )}

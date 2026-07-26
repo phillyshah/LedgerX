@@ -330,12 +330,15 @@ A **Lista de Despesas** mostra todas as transações da residência selecionada,
 
 ### Pesquisa, ordenação e filtros
 
-Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente.
+Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente. Isso vale em todos os lugares onde a lista de transações aparece — incluindo **Meus Recibos** de um prestador e **Minhas Transações** de um admin de residência — então busca, ordenação e filtros sempre estão disponíveis assim que a lista cresce o suficiente para precisar deles.
 
 A barra oferece:
 - **Pesquisa** — fornecedor, categoria, observações ou nome da residência (em tempo real)
 - **Ordenação** — menu sempre visível ao lado da busca: data (mais recente/mais antiga), valor (maior/menor), fornecedor (A→Z), categoria (A→Z). Reordena na hora sem recarregar e funciona em cima dos filtros ativos.
-- **Painel de filtros** (atrás do botão de filtro): categoria, residência, período, faixa de valor
+- **Chips de toque rápido** — uma propriedade ou status de correspondência por toque, sem precisar abrir o painel completo. Toque no nome de uma residência para ir direto a ela; toque de novo para voltar a todas. Se a Reconciliação de Cartão de Crédito estiver ativada em alguma das suas residências, os chips **Correspondido** e **Não correspondido** também aparecem, para ir direto aos recibos que ainda esperam reconciliação. A fileira rola de lado no celular quando não há espaço para todos os chips.
+- **Painel de filtros** (toque no ícone de filtro): residência, categoria, status de correspondência (quando aplicável), período, faixa de valor. Abre como uma folha na parte inferior no celular e como uma janela centralizada no computador.
+
+Listas longas carregam 20 transações por vez — toque em **Mostrar mais N** no final para trazer o próximo grupo. A pesquisa, ordenação e filtros continuam funcionando em toda a sua lista, não só no que já foi carregado.
 
 ### Editar uma transação
 

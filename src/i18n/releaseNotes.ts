@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.14',
+    version: 'v13.14',
+    date: '2026-07-26',
+    title: {
+      'en': 'Faster ways to find and filter your transactions',
+      'pt-BR': 'Formas mais rápidas de encontrar e filtrar suas transações',
+    },
+    body: {
+      'en':
+        "Your transaction list now has one-tap chips for jumping straight to a property, or (if Credit Card Reconciliation is on) to just what's Matched or Unmatched — no need to open the filter panel for the quick stuff. The full filter panel got a redesign too: it opens as a proper bottom sheet on your phone instead of a cramped inline box, with the same options — household, category, match status, date range, amount range — laid out clearly. Long lists now load 20 transactions at a time with a \"Show more\" button at the bottom, so a big history stays fast to scroll. And search, sort, and filtering are now available everywhere the transaction list shows up, including a contractor's own My Receipts and a household admin's own My Transactions — previously those views had no way to search or filter at all.",
+      'pt-BR':
+        "Sua lista de transações agora tem chips de toque rápido para ir direto a uma propriedade, ou (se a Reconciliação de Cartão de Crédito estiver ativada) para ver só o que está Correspondido ou Não correspondido — sem precisar abrir o painel de filtros para o básico. O painel de filtros completo também foi redesenhado: agora abre como uma folha na parte inferior no celular, em vez de uma caixa apertada embutida na tela, com as mesmas opções — residência, categoria, status de correspondência, período, faixa de valor — organizadas com clareza. Listas longas agora carregam 20 transações por vez, com um botão \"Mostrar mais\" no final, então um histórico grande continua rápido para rolar. E a busca, ordenação e filtros agora estão disponíveis em todos os lugares onde a lista de transações aparece, incluindo Meus Recibos de um prestador e Minhas Transações de um admin de residência — antes essas telas não tinham nenhuma forma de buscar ou filtrar.",
+    },
+  },
+  {
     id: 'v13.13',
     version: 'v13.13',
     date: '2026-07-26',
