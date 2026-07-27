@@ -19,9 +19,14 @@ substantial session.
   session) needs SQL + a rebuild — see below.**
 - **v13.15 in one paragraph (THIS SESSION — needs SQL + rebuild)**: two tax
   features, specced in `.claude/SPEC-tax-features.md` and built together.
-  (1) **Schedule E classification.** `categories.schedule_e_line` maps each
-  category once to one of the 15 Schedule E Part I expense lines; every
-  expense then classifies itself. Uncategorized expenses fall back through
+  (1) **Schedule E classification.** Two dedicated tables — `schedule_e_lines`
+  (seeded with the 15 IRS lines, fully editable: rename/reorder/hide/add) and
+  `category_schedule_e_map` (category_id -> line_id). **`categories` is left
+  completely untouched** — an early draft hung an enum column off it, which
+  conflated the operational categories contractors pick with the tax lines
+  they roll up to, and made the line list unchangeable without a migration.
+  Map each category once on the new Mapping tab; every expense then
+  classifies itself. Uncategorized expenses fall back through
   the existing `vendor_category_map` (vendor -> category -> line), so the
   auto-categorization the owner asked about is real and deterministic — no
   AI. A `capital_treatment` column on both `expenses` and
@@ -42,18 +47,19 @@ substantial session.
   re-checks `is_admin()`. A leak was caught during the build — the nav item
   initially landed in `haNavItems` (household-admin) as well; removed.
   UI is one `TaxCenter` modal with three tabs sharing a tax-year selector
-  (`src/components/admin/tax/`), plus a Schedule E dropdown per row in
-  `ManageCategories` and a passive year-round "$X YTD · 1099 likely" badge in
-  `ManageUsers` (informational only — nothing to act on in-app). **One real correctness fix worth remembering**:
+  (`src/components/admin/tax/`) — Schedule E, Capital review, 1099-NEC, and
+  Mapping — plus a passive year-round "$X YTD · 1099 likely" badge in
+  `ManageUsers` (informational only). `ManageCategories` is byte-identical to
+  main: all tax concerns live inside the Tax Center. **One real correctness fix worth remembering**:
   `contractor_invoices.paid_at` is `timestamptz`, so a naive
   `extract(year ...)` resolves in UTC and pushes an invoice settled at 8pm ET
   on Dec 31 into the next tax year — exactly when year-end settling
   clusters. `tax_year_of()` anchors it to America/New_York; change that one
-  constant if the LLC's tax home moves. Verified: **45 SQL assertions** on
+  constant if the LLC's tax home moves. Verified: **61 SQL assertions** on
   local Postgres 16 (`supabase/tests/`, incl. the timezone boundary,
   config-driven thresholds, the absence of the whole profile apparatus, and
-  all 7 RPCs refusing a non-admin), **26 unit assertions** on the
-  suggestion/pivot logic, and **84 browser assertions** across desktop +
+  all 12 RPCs refusing a non-admin), **28 unit assertions** on the
+  suggestion/pivot logic, and **120 browser assertions** across desktop +
   mobile including the worksheet CSV contents. Migration re-run is idempotent
   and preserves data.
 - **⚠️ Pending manual steps for v13.15**:
@@ -76,9 +82,11 @@ substantial session.
      browser assertion that the tab renders **zero inputs/selects/textareas**
      — so data entry can't come back without failing a test.
   2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
-  3. **First-use setup**: Manage -> Categories, set a Schedule E line on each
-     category. Until that's done the Schedule E tab shows everything as
-     "unmapped" (by design — nothing is silently dropped).
+  3. **First-use setup**: Tax Center -> **Mapping** tab, pick a tax line for
+     each category (they're listed with usage counts so the ones that matter
+     come first). Until that's done the Schedule E tab shows everything as
+     "unmapped" (by design — nothing is silently dropped). Nothing to do in
+     Manage -> Categories; that screen is untouched by the tax features.
   4. No VPS/poller changes.
 - **v13.14 in one paragraph**: the user asked for filtering/sorting on the
   transaction list to be redesigned "world-class" and mobile-first, then

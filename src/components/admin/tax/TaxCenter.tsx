@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { X, Loader2, FileSpreadsheet, Scale, HardHat, Settings2 } from 'lucide-react';
+import { X, Loader2, FileSpreadsheet, Scale, HardHat, Settings2, Link2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useT } from '../../../hooks/useT';
 import { useEscapeClose } from '../../../hooks/useEscapeClose';
@@ -9,9 +9,10 @@ import type { TaxSettings } from '../../../lib/database.types';
 const ScheduleETab     = lazy(() => import('./ScheduleETab').then((m) => ({ default: m.ScheduleETab })));
 const CapitalReviewTab = lazy(() => import('./CapitalReviewTab').then((m) => ({ default: m.CapitalReviewTab })));
 const Form1099Tab      = lazy(() => import('./Form1099Tab').then((m) => ({ default: m.Form1099Tab })));
+const MappingTab       = lazy(() => import('./MappingTab').then((m) => ({ default: m.MappingTab })));
 const TaxSettingsModal = lazy(() => import('./TaxSettingsModal').then((m) => ({ default: m.TaxSettingsModal })));
 
-type Tab = 'scheduleE' | 'review' | 'f1099';
+type Tab = 'scheduleE' | 'review' | 'f1099' | 'mapping';
 
 interface TaxCenterProps {
   onClose: () => void;
@@ -53,6 +54,7 @@ export function TaxCenter({ onClose }: TaxCenterProps) {
     { key: 'scheduleE', icon: FileSpreadsheet, label: t('tax.tab.scheduleE') },
     { key: 'review',    icon: Scale,           label: t('tax.tab.review') },
     { key: 'f1099',     icon: HardHat,         label: t('tax.tab.f1099') },
+    { key: 'mapping',   icon: Link2,           label: t('tax.tab.mapping') },
   ];
 
   return (
@@ -125,6 +127,7 @@ export function TaxCenter({ onClose }: TaxCenterProps) {
                 <CapitalReviewTab taxYear={taxYear} deMinimis={settings?.de_minimis_threshold ?? 2500} />
               )}
               {tab === 'f1099' && <Form1099Tab taxYear={taxYear} />}
+              {tab === 'mapping' && <MappingTab />}
             </Suspense>
           )}
         </div>

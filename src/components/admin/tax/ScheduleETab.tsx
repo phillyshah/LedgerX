@@ -3,10 +3,7 @@ import { Loader2, Download, AlertTriangle, Building2, Info } from 'lucide-react'
 import { supabase } from '../../../lib/supabase';
 import { useT } from '../../../hooks/useT';
 import { buildCsv, downloadBlob } from '../../../lib/csvExport';
-import {
-  SCHEDULE_E_LINES, scheduleELineKey, pivotScheduleE, householdKey,
-  type ScheduleERow,
-} from '../../../lib/scheduleE';
+import { pivotScheduleE, householdKey, type ScheduleERow } from '../../../lib/scheduleE';
 
 interface ScheduleETabProps {
   taxYear: number;
@@ -25,7 +22,10 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
     supabase.rpc('schedule_e_report', { p_tax_year: taxYear }).then(({ data, error: e }) => {
       if (cancelled) return;
       if (e) { setError(e.message); setLoading(false); return; }
-      setRows(((data ?? []) as ScheduleERow[]).map((r) => ({ ...r, total: Number(r.total), txn_count: Number(r.txn_count) })));
+      setRows(((data ?? []) as unknown as ScheduleERow[]).map((r) => ({
+        ...r, total: Number(r.total), txn_count: Number(r.txn_count),
+        line_sort: r.line_sort === null ? null : Number(r.line_sort),
+      })));
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -37,20 +37,17 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
     [locale]
   );
 
-  // Only render lines that actually have money on them — a 15-row grid of
-  // mostly zeros is noise, especially on a phone.
-  const activeLines = useMemo(
-    () => SCHEDULE_E_LINES.filter((l) => (pivot.lineTotals.get(l) ?? 0) !== 0),
-    [pivot]
-  );
+  // pivotScheduleE only emits lines that actually carry money — a grid of
+  // mostly-zero rows is noise, especially on a phone.
+  const activeLines = pivot.lines;
 
   const exportCsv = () => {
     const csv = buildCsv(
       [t('tax.scheduleE.col.line'), ...pivot.households.map((h) => h.name || t('tax.noHousehold')), t('common.total')],
       activeLines.map((line) => [
-        t(scheduleELineKey(line)),
-        ...pivot.households.map((h) => pivot.cells.get(line)?.get(householdKey(h.id)) ?? 0),
-        pivot.lineTotals.get(line) ?? 0,
+        line.label,
+        ...pivot.households.map((h) => pivot.cells.get(line.id)?.get(householdKey(h.id)) ?? 0),
+        pivot.lineTotals.get(line.id) ?? 0,
       ])
     );
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `schedule-e-${taxYear}.csv`);
@@ -129,10 +126,10 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
             </thead>
             <tbody>
               {activeLines.map((line) => (
-                <tr key={line} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="py-2 pr-3 text-slate-700 sticky left-0 bg-white whitespace-nowrap">{t(scheduleELineKey(line))}</td>
+                <tr key={line.id} className="border-b border-slate-100 hover:bg-slate-50/60">
+                  <td className="py-2 pr-3 text-slate-700 sticky left-0 bg-white whitespace-nowrap">{line.label}</td>
                   {pivot.households.map((h) => {
-                    const v = pivot.cells.get(line)?.get(householdKey(h.id)) ?? 0;
+                    const v = pivot.cells.get(line.id)?.get(householdKey(h.id)) ?? 0;
                     return (
                       <td key={householdKey(h.id)} className={`py-2 px-3 text-right tabular-nums ${v ? 'text-slate-900' : 'text-slate-300'}`}>
                         {v ? money.format(v) : '—'}
@@ -140,7 +137,7 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
                     );
                   })}
                   <td className="py-2 pl-3 text-right font-semibold text-slate-900 tabular-nums">
-                    {money.format(pivot.lineTotals.get(line) ?? 0)}
+                    {money.format(pivot.lineTotals.get(line.id) ?? 0)}
                   </td>
                 </tr>
               ))}

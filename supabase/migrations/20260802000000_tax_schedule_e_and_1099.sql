@@ -15,25 +15,20 @@
 --  * Thresholds live in tax_settings, not in code. The 1099 threshold rose
 --    from $600 to $2,000 for payments after 2025-12-31 and is now indexed
 --    for inflation, so it will keep moving.
+--  * Schedule E lines live in their OWN tables and are fully editable. They
+--    are deliberately NOT a column on `categories` and NOT a Postgres enum:
+--    the operational categories a contractor picks ("Materials",
+--    "Service/labor") are a different concern from the tax lines they roll
+--    up to, and the tax side has to be changeable without a migration.
+--    `categories` is left completely untouched by this migration.
 --  * expenses.category is free text while contractor_invoices.category_id is
---    a real FK. The Schedule E rollup therefore joins expenses by normalized
---    NAME and invoices by ID. Getting this wrong yields two different totals.
+--    a real FK. The rollup therefore resolves expenses by normalized NAME and
+--    invoices by ID. Getting this wrong yields two different totals.
 --  * Cash basis throughout: expenses use expense_date, invoices use paid_at
 --    (not service dates), so work done in December but paid in January lands
 --    in the correct — later — tax year.
 
 -- ── Enums ────────────────────────────────────────────────────────────────
-
--- The 15 expense lines of Schedule E Part I (Form 1040). Form 8825, used by
--- multi-member LLCs, has near-identical lines, so one mapping drives both.
-do $$ begin
-  create type schedule_e_line as enum (
-    'advertising','auto_travel','cleaning_maintenance','commissions',
-    'insurance','legal_professional','management_fees','mortgage_interest',
-    'other_interest','repairs','supplies','taxes','utilities',
-    'depreciation','other'
-  );
-exception when duplicate_object then null; end $$;
 
 -- Currently-deductible repair vs. capitalize-and-depreciate improvement.
 -- NULL means "not yet reviewed" and is what the review queue selects on.
@@ -41,14 +36,109 @@ do $$ begin
   create type capital_treatment as enum ('repair','improvement');
 exception when duplicate_object then null; end $$;
 
--- ── Category → Schedule E line mapping ───────────────────────────────────
+-- ── Teardown of the earlier coupled design ───────────────────────────────
+--
+-- An earlier draft hung a `schedule_e_line` enum column directly off
+-- `categories`, and exposed the lookup as a VIEW named category_schedule_e_map
+-- — the same name the mapping TABLE below uses. This must run first:
+-- `create table if not exists` matches any relation of that name, so a
+-- leftover view would make the table creation silently no-op.
 
-alter table categories
-  add column if not exists schedule_e_line schedule_e_line;
+drop function if exists schedule_e_report(int);
+drop function if exists list_capital_review_queue(int);
+-- `drop view if exists` tolerates absence but NOT a name that now belongs to
+-- a table — it raises "is not a view". On a re-run the table below already
+-- exists under this name, so the drop has to be conditional on relkind.
+do $$ begin
+  if exists (
+    select 1 from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public'
+       and c.relname = 'category_schedule_e_map'
+       and c.relkind = 'v'
+  ) then
+    execute 'drop view category_schedule_e_map';
+  end if;
+end $$;
+alter table categories drop column if exists schedule_e_line;
+drop type if exists schedule_e_line;
 
-comment on column categories.schedule_e_line is
-  'Schedule E Part I / Form 8825 expense line this category rolls up to. '
-  'Mapped once by a full admin; every expense then classifies itself.';
+-- ── Schedule E lines (their own table, editable) ─────────────────────────
+--
+-- Seeded with the 15 expense lines of Schedule E Part I (Form 1040). Form
+-- 8825, used by multi-member LLCs, has near-identical lines, so one list
+-- serves both.
+--
+-- A table rather than an enum because the owner needs to rename, reorder,
+-- deactivate, or add lines without a migration. `code` is the stable key the
+-- suggestion logic matches on; `label` is free display text the admin owns.
+-- Seeded rows are marked is_system: they can be renamed or deactivated but
+-- not deleted, so a rollup can never lose its target by accident.
+
+create table if not exists schedule_e_lines (
+  id         uuid primary key default gen_random_uuid(),
+  code       text not null unique,
+  label      text not null,
+  sort_order int  not null default 0,
+  is_active  boolean not null default true,
+  is_system  boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+comment on table schedule_e_lines is
+  'Schedule E Part I / Form 8825 expense lines. Editable by full admins; '
+  'deliberately separate from the operational `categories` table.';
+
+insert into schedule_e_lines (code, label, sort_order, is_system) values
+  ('advertising',          'Advertising',                        10, true),
+  ('auto_travel',          'Auto and travel',                    20, true),
+  ('cleaning_maintenance', 'Cleaning and maintenance',           30, true),
+  ('commissions',          'Commissions',                        40, true),
+  ('insurance',            'Insurance',                          50, true),
+  ('legal_professional',   'Legal and other professional fees',  60, true),
+  ('management_fees',      'Management fees',                    70, true),
+  ('mortgage_interest',    'Mortgage interest',                  80, true),
+  ('other_interest',       'Other interest',                     90, true),
+  ('repairs',              'Repairs',                           100, true),
+  ('supplies',             'Supplies',                          110, true),
+  ('taxes',                'Taxes',                             120, true),
+  ('utilities',            'Utilities',                         130, true),
+  ('depreciation',         'Depreciation',                      140, true),
+  ('other',                'Other',                             150, true)
+on conflict (code) do nothing;
+
+alter table schedule_e_lines enable row level security;
+drop policy if exists "schedule_e_lines admin all" on schedule_e_lines;
+create policy "schedule_e_lines admin all"
+  on schedule_e_lines for all to authenticated
+  using (is_admin()) with check (is_admin());
+
+-- ── Category → line mapping (its own table) ──────────────────────────────
+--
+-- One row per operational category that has a tax line. Categories with no
+-- row simply don't roll up yet, and surface in the report's "unmapped"
+-- warning. `categories` itself gains no columns — the two concepts stay
+-- independent, and deleting a mapping never touches the category.
+--
+-- on delete restrict for the line: you cannot delete a tax line that
+-- categories still point at.
+
+create table if not exists category_schedule_e_map (
+  category_id        uuid primary key references categories(id) on delete cascade,
+  schedule_e_line_id uuid not null references schedule_e_lines(id) on delete restrict,
+  updated_at         timestamptz not null default now(),
+  updated_by         uuid references auth.users(id) on delete set null
+);
+
+create index if not exists category_schedule_e_map_line_idx
+  on category_schedule_e_map(schedule_e_line_id);
+
+alter table category_schedule_e_map enable row level security;
+drop policy if exists "category_schedule_e_map admin all" on category_schedule_e_map;
+create policy "category_schedule_e_map admin all"
+  on category_schedule_e_map for all to authenticated
+  using (is_admin()) with check (is_admin());
 
 -- ── Per-transaction capital treatment ────────────────────────────────────
 
@@ -151,21 +241,24 @@ $$;
 
 grant execute on function tax_year_of(timestamptz) to authenticated;
 
--- ── Helper: normalized category name → Schedule E line ───────────────────
+-- ── Helper: resolve a category to its tax line ───────────────────────────
 --
--- Categories can be global (household_id IS NULL) or household-scoped, and
--- two rows can share a name. DISTINCT ON with this ORDER BY prefers a row
--- that actually HAS a mapping, then prefers household-scoped over global,
--- so a deliberate per-property override wins over an unmapped duplicate.
+-- categories.name is globally unique, so keying on the normalized name is
+-- safe and lets expenses (free-text category) and invoices (category_id)
+-- resolve through the same place. Inactive lines drop out: deactivating a
+-- line makes everything under it read as unmapped rather than vanishing.
 
-create or replace view category_schedule_e_map as
-  select distinct on (lower(btrim(name)))
-         lower(btrim(name)) as category_key,
-         schedule_e_line
-    from categories
-   order by lower(btrim(name)),
-            (schedule_e_line is null),      -- mapped rows first
-            (household_id is null);         -- then household-scoped over global
+create or replace view category_line_lookup as
+  select c.id                   as category_id,
+         lower(btrim(c.name))   as category_key,
+         l.id                   as line_id,
+         l.code                 as line_code,
+         l.label                as line_label,
+         l.sort_order           as line_sort
+    from categories c
+    join category_schedule_e_map m on m.category_id = c.id
+    join schedule_e_lines l        on l.id = m.schedule_e_line_id
+   where l.is_active;
 
 -- ── Settings RPCs ────────────────────────────────────────────────────────
 
@@ -206,15 +299,18 @@ $$;
 
 -- ── Schedule E rollup ────────────────────────────────────────────────────
 --
--- Returns one row per (household, line, treatment). line IS NULL means the
--- source category has no mapping yet — surfaced so the admin knows what to
--- go map rather than silently dropping the money from the report.
+-- One row per (household, line, treatment). line_id NULL means the source
+-- category has no mapping yet — surfaced so the admin knows what to go map,
+-- rather than silently dropping the money from the report.
 
 create or replace function schedule_e_report(p_tax_year int)
 returns table (
   household_id   uuid,
   household_name text,
-  line           schedule_e_line,
+  line_id        uuid,
+  line_code      text,
+  line_label     text,
+  line_sort      int,
   treatment      capital_treatment,
   total          numeric,
   txn_count      bigint,
@@ -228,32 +324,34 @@ begin
   with expense_rows as (
     select e.household_id,
            -- Layer 1: the expense's own category. Layer 2: fall back to the
-           -- vendor catalog so rows that were never categorized still land
-           -- on a line instead of dropping into "unmapped".
-           coalesce(direct.schedule_e_line, via_vendor.schedule_e_line) as line,
+           -- vendor catalog so rows that were never categorized still land on
+           -- a line instead of dropping into "unmapped".
+           coalesce(direct.line_id,    via_vendor.line_id)    as line_id,
+           coalesce(direct.line_code,  via_vendor.line_code)  as line_code,
+           coalesce(direct.line_label, via_vendor.line_label) as line_label,
+           coalesce(direct.line_sort,  via_vendor.line_sort)  as line_sort,
            e.capital_treatment,
            e.total,
            'expense'::text as source
       from expenses e
-      left join category_schedule_e_map direct
+      left join category_line_lookup direct
              on direct.category_key = lower(btrim(e.category))
       left join vendor_category_map vcm
              on e.category is null
             and lower(btrim(vcm.vendor_name)) = lower(btrim(e.vendor))
             and (vcm.household_id = e.household_id or vcm.household_id is null)
-      left join category_schedule_e_map via_vendor
+      left join category_line_lookup via_vendor
              on via_vendor.category_key = lower(btrim(vcm.category_name))
      where extract(year from e.expense_date) = p_tax_year
   ),
   invoice_rows as (
     select ci.household_id,
-           m.schedule_e_line as line,
+           l.line_id, l.line_code, l.line_label, l.line_sort,
            ci.capital_treatment,
            ci.amount as total,
            'invoice'::text as source
       from contractor_invoices ci
-      left join categories c on c.id = ci.category_id
-      left join category_schedule_e_map m on m.category_key = lower(btrim(c.name))
+      left join category_line_lookup l on l.category_id = ci.category_id
      where ci.status = 'paid'
        and ci.paid_at is not null
        and tax_year_of(ci.paid_at) = p_tax_year
@@ -265,15 +363,19 @@ begin
   )
   select cb.household_id,
          h.name,
-         cb.line,
+         cb.line_id,
+         cb.line_code,
+         cb.line_label,
+         cb.line_sort,
          cb.capital_treatment,
          sum(cb.total)::numeric,
          count(*)::bigint,
          cb.source
     from combined cb
     left join households h on h.id = cb.household_id
-   group by cb.household_id, h.name, cb.line, cb.capital_treatment, cb.source
-   order by h.name nulls last, cb.line nulls last;
+   group by cb.household_id, h.name, cb.line_id, cb.line_code, cb.line_label,
+            cb.line_sort, cb.capital_treatment, cb.source
+   order by h.name nulls last, cb.line_sort nulls last;
 end;
 $$;
 
@@ -294,9 +396,7 @@ returns table (
   vendor         text,
   description    text,
   category       text,
-  -- Lets the client suggester use the category signal ("routine upkeep")
-  -- instead of relying on amount and description keywords alone.
-  line           schedule_e_line,
+  line_code      text,
   amount         numeric,
   currency       text
 )
@@ -316,7 +416,7 @@ begin
   -- moment the select list changes.
   return query
   select q.kind, q.id, q.household_id, q.household_name, q.txn_date,
-         q.vendor, q.description, q.category, q.line, q.amount, q.currency
+         q.vendor, q.description, q.category, q.line_code, q.amount, q.currency
     from (
       select 'expense'::text  as kind,
              e.id             as id,
@@ -326,12 +426,12 @@ begin
              e.vendor         as vendor,
              e.notes          as description,
              e.category       as category,
-             m.schedule_e_line as line,
+             l.line_code      as line_code,
              e.total          as amount,
              e.currency       as currency
         from expenses e
         left join households h on h.id = e.household_id
-        left join category_schedule_e_map m on m.category_key = lower(btrim(e.category))
+        left join category_line_lookup l on l.category_key = lower(btrim(e.category))
        where e.capital_treatment is null
          and e.total >= v_threshold
          and extract(year from e.expense_date) = p_tax_year
@@ -346,13 +446,13 @@ begin
              up.username,
              ci.description,
              c.name,
-             m.schedule_e_line,
+             l.line_code,
              ci.amount,
              ci.currency
         from contractor_invoices ci
         left join households h on h.id = ci.household_id
         left join categories c on c.id = ci.category_id
-        left join category_schedule_e_map m on m.category_key = lower(btrim(c.name))
+        left join category_line_lookup l on l.category_id = ci.category_id
         left join user_profiles up on up.id = ci.created_by
        where ci.capital_treatment is null
          and ci.status = 'paid'
@@ -362,6 +462,145 @@ begin
     ) q
    -- Largest dollars first: biggest tax impact gets reviewed first.
    order by q.amount desc;
+end;
+$$;
+
+-- ── Schedule E line management ───────────────────────────────────────────
+
+create or replace function list_schedule_e_lines(p_include_inactive boolean default false)
+returns setof schedule_e_lines
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if not is_admin() then raise exception 'not authorized'; end if;
+  return query
+    select * from schedule_e_lines l
+     where p_include_inactive or l.is_active
+     order by l.sort_order, l.label;
+end;
+$$;
+
+create or replace function admin_upsert_schedule_e_line(
+  p_id         uuid,
+  p_code       text,
+  p_label      text,
+  p_sort_order int,
+  p_is_active  boolean
+) returns schedule_e_lines
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_row schedule_e_lines;
+begin
+  if not is_admin() then raise exception 'not authorized'; end if;
+  if coalesce(btrim(p_label), '') = '' then
+    raise exception 'label is required';
+  end if;
+
+  if p_id is null then
+    -- New custom line. Codes are lowercase snake so the suggestion logic and
+    -- any future export mapping have a stable key to match on.
+    insert into schedule_e_lines (code, label, sort_order, is_active, is_system)
+    values (
+      coalesce(nullif(btrim(p_code), ''),
+               regexp_replace(lower(btrim(p_label)), '[^a-z0-9]+', '_', 'g')),
+      btrim(p_label), coalesce(p_sort_order, 999), coalesce(p_is_active, true), false
+    )
+    returning * into v_row;
+  else
+    -- Label / order / active are editable on every line, including seeded
+    -- ones. `code` is deliberately immutable: it's the join key.
+    update schedule_e_lines
+       set label      = btrim(p_label),
+           sort_order = coalesce(p_sort_order, sort_order),
+           is_active  = coalesce(p_is_active, is_active),
+           updated_at = now()
+     where id = p_id
+     returning * into v_row;
+
+    if v_row.id is null then raise exception 'line not found'; end if;
+  end if;
+
+  return v_row;
+end;
+$$;
+
+create or replace function admin_delete_schedule_e_line(p_id uuid)
+returns void
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_system boolean; v_used int;
+begin
+  if not is_admin() then raise exception 'not authorized'; end if;
+
+  select is_system into v_system from schedule_e_lines where id = p_id;
+  if v_system is null then raise exception 'line not found'; end if;
+
+  -- Seeded IRS lines stay: deactivate them instead, so historical rollups
+  -- keep resolving and nobody deletes "Repairs" by accident.
+  if v_system then
+    raise exception 'built-in lines cannot be deleted — deactivate instead';
+  end if;
+
+  select count(*) into v_used from category_schedule_e_map where schedule_e_line_id = p_id;
+  if v_used > 0 then
+    raise exception 'line is still mapped to % categor%', v_used,
+      case when v_used = 1 then 'y' else 'ies' end;
+  end if;
+
+  delete from schedule_e_lines where id = p_id;
+end;
+$$;
+
+-- ── Category → line mapping ──────────────────────────────────────────────
+
+-- Every operational category with its current mapping (NULL if unmapped).
+-- Drives the mapping screen; deliberately reads `categories` without
+-- modifying it.
+create or replace function list_category_mappings()
+returns table (
+  category_id   uuid,
+  category_name text,
+  line_id       uuid,
+  line_code     text,
+  line_label    text,
+  txn_count     bigint
+)
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if not is_admin() then raise exception 'not authorized'; end if;
+
+  return query
+  select c.id,
+         c.name,
+         l.id,
+         l.code,
+         l.label,
+         -- How much this category is actually used, so the admin can map the
+         -- ones that matter first instead of working alphabetically.
+         (select count(*) from expenses e where lower(btrim(e.category)) = lower(btrim(c.name)))
+         + (select count(*) from contractor_invoices ci where ci.category_id = c.id)
+    from categories c
+    left join category_schedule_e_map m on m.category_id = c.id
+    left join schedule_e_lines l on l.id = m.schedule_e_line_id
+   order by c.name;
+end;
+$$;
+
+create or replace function admin_set_category_schedule_e_line(
+  p_category_id uuid,
+  p_line_id     uuid
+) returns void
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if not is_admin() then raise exception 'not authorized'; end if;
+
+  if p_line_id is null then
+    delete from category_schedule_e_map where category_id = p_category_id;
+  else
+    insert into category_schedule_e_map (category_id, schedule_e_line_id, updated_at, updated_by)
+    values (p_category_id, p_line_id, now(), auth.uid())
+    on conflict (category_id) do update
+      set schedule_e_line_id = excluded.schedule_e_line_id,
+          updated_at         = now(),
+          updated_by         = auth.uid();
+  end if;
 end;
 $$;
 
@@ -519,6 +758,11 @@ $$;
 grant execute on function get_tax_settings()                    to authenticated;
 grant execute on function admin_update_tax_settings(numeric, numeric) to authenticated;
 grant execute on function schedule_e_report(int)                to authenticated;
+grant execute on function list_schedule_e_lines(boolean)        to authenticated;
+grant execute on function admin_upsert_schedule_e_line(uuid, text, text, int, boolean) to authenticated;
+grant execute on function admin_delete_schedule_e_line(uuid)    to authenticated;
+grant execute on function list_category_mappings()              to authenticated;
+grant execute on function admin_set_category_schedule_e_line(uuid, uuid) to authenticated;
 grant execute on function list_capital_review_queue(int)        to authenticated;
 grant execute on function admin_set_capital_treatment(text, uuid, capital_treatment) to authenticated;
 grant execute on function form_1099_summary(int)                to authenticated;

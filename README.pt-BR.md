@@ -786,11 +786,22 @@ Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX s
 
 Um detalhamento dos gastos do ano por propriedade, organizado por linha de despesa fiscal, pronto para entregar ao contador. Exporte em CSV.
 
-O mapeamento é configurado uma vez e depois funciona sozinho:
+O mapeamento é configurado uma vez na aba **Mapeamento** e depois funciona sozinho:
 
-1. Vá em **Gerenciar → Categorias** e escolha uma linha fiscal para cada categoria (Materiais → Materiais, Serviço/mão de obra → Reparos, e assim por diante).
+1. Abra **Mapeamento** e escolha uma linha fiscal para cada uma das suas categorias (Materiais → Materiais, Serviço/mão de obra → Reparos, e assim por diante). As categorias aparecem com a frequência de uso de cada uma, então dá para começar pelas que mais importam.
 2. Toda transação naquela categoria passa a se classificar sozinha — inclusive as futuras.
-3. O que ainda não estiver mapeado aparece em um aviso âmbar no topo, para que nada suma silenciosamente.
+3. O que ainda não estiver mapeado aparece em um aviso âmbar, para que nada suma silenciosamente.
+
+Suas categorias do dia a dia e suas linhas fiscais são **totalmente separadas**. As categorias que os prestadores escolhem ao enviar são uma coisa; as linhas fiscais para as quais elas se somam são outra. Editar linhas fiscais nunca mexe nas suas categorias, e renomear uma categoria nunca atrapalha sua configuração fiscal.
+
+### Editando as linhas fiscais
+
+As 15 linhas nativas correspondem ao Schedule E Parte I, mas são suas para alterar na mesma aba:
+
+- **Renomeie** qualquer uma para o nome que você usa
+- **Oculte** as que nunca usa — linhas ocultas deixam de ser oferecidas, e o que estava nelas passa a constar como não mapeado em vez de sumir
+- **Adicione as suas** para o que a lista padrão não cobrir
+- As nativas não podem ser excluídas (oculte-as), e uma linha ainda em uso por alguma categoria não pode ser excluída de jeito nenhum
 
 Recibos sem categoria usam o **catálogo de fornecedores** como alternativa — se a Lowe's estiver mapeada para Materiais, um recibo da Lowe's sem categoria ainda cai na linha certa.
 

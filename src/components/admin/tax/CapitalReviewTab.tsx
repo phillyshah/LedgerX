@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useT } from '../../../hooks/useT';
 import { parseExpenseDate } from '../../../lib/dateUtils';
 import { suggestTreatment } from '../../../lib/scheduleE';
-import type { CapitalTreatment, ScheduleELine } from '../../../lib/database.types';
+import type { CapitalTreatment } from '../../../lib/database.types';
 
 interface QueueRow {
   kind: 'expense' | 'invoice';
@@ -15,7 +15,7 @@ interface QueueRow {
   vendor: string | null;
   description: string | null;
   category: string | null;
-  line: ScheduleELine | null;
+  line_code: string | null;
   amount: number;
   currency: string;
 }
@@ -47,7 +47,7 @@ export function CapitalReviewTab({ taxYear, deMinimis }: CapitalReviewTabProps) 
     setError('');
     return supabase.rpc('list_capital_review_queue', { p_tax_year: taxYear }).then(({ data, error: e }) => {
       if (e) { setError(e.message); setLoading(false); return; }
-      setRows(((data ?? []) as QueueRow[]).map((r) => ({ ...r, amount: Number(r.amount) })));
+      setRows(((data ?? []) as unknown as QueueRow[]).map((r) => ({ ...r, amount: Number(r.amount) })));
       setLoading(false);
     });
   }, [taxYear]);
@@ -113,7 +113,7 @@ export function CapitalReviewTab({ taxYear, deMinimis }: CapitalReviewTabProps) 
               const suggestion = suggestTreatment({
                 amount: row.amount,
                 deMinimisThreshold: deMinimis,
-                line: row.line,
+                lineCode: row.line_code,
                 text: [row.description, row.vendor, row.category],
               });
               const busy = savingId === key;

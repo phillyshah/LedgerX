@@ -1,31 +1,22 @@
-import type { ScheduleELine, CapitalTreatment } from './database.types';
+import type { CapitalTreatment } from './database.types';
 
 /**
  * Pure helpers for the tax features. No DB access, no React — everything here
  * is deterministic so it can be reasoned about (and tested) in isolation.
+ *
+ * Schedule E lines are DB rows, not a constant in here: they're editable, so
+ * the list and its labels come from `list_schedule_e_lines`. What stays here
+ * is the small set of stable *codes* the suggestion heuristic keys off.
  */
 
-/** Display order matches Schedule E Part I, lines 5–19. */
-export const SCHEDULE_E_LINES: ScheduleELine[] = [
-  'advertising',
-  'auto_travel',
-  'cleaning_maintenance',
-  'commissions',
-  'insurance',
-  'legal_professional',
-  'management_fees',
-  'mortgage_interest',
-  'other_interest',
-  'repairs',
-  'supplies',
-  'taxes',
-  'utilities',
-  'depreciation',
-  'other',
-];
-
-/** i18n key for a Schedule E line label. */
-export const scheduleELineKey = (line: ScheduleELine) => `tax.line.${line}`;
+export interface ScheduleELineRow {
+  id: string;
+  code: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
+}
 
 export type SuggestionConfidence = 'high' | 'low';
 
@@ -54,8 +45,12 @@ const IMPROVEMENT_PATTERNS = [
   /\bconvert(ed|ing|sion)?\b/i,
 ];
 
-/** Categories whose whole purpose is upkeep — strong "repair" signal. */
-const REPAIR_LINES: ScheduleELine[] = ['repairs', 'cleaning_maintenance', 'supplies'];
+/**
+ * Line codes whose whole purpose is upkeep — a strong "repair" signal.
+ * Matched on `code`, which is immutable, so renaming or reordering a line in
+ * the UI never changes what the heuristic does.
+ */
+const REPAIR_LINE_CODES = ['repairs', 'cleaning_maintenance', 'supplies'];
 
 /**
  * Suggests a capital treatment for one transaction.
@@ -69,10 +64,11 @@ const REPAIR_LINES: ScheduleELine[] = ['repairs', 'cleaning_maintenance', 'suppl
 export function suggestTreatment(params: {
   amount: number;
   deMinimisThreshold: number;
-  line?: ScheduleELine | null;
+  /** Stable line `code`, not the editable label. */
+  lineCode?: string | null;
   text?: (string | null | undefined)[];
 }): TreatmentSuggestion {
-  const { amount, deMinimisThreshold, line, text = [] } = params;
+  const { amount, deMinimisThreshold, lineCode, text = [] } = params;
 
   if (amount <= deMinimisThreshold) {
     return { treatment: 'repair', confidence: 'high', reasonKey: 'tax.reason.deMinimis' };
@@ -83,7 +79,7 @@ export function suggestTreatment(params: {
     return { treatment: 'improvement', confidence: 'low', reasonKey: 'tax.reason.improvementKeyword' };
   }
 
-  if (line && REPAIR_LINES.includes(line)) {
+  if (lineCode && REPAIR_LINE_CODES.includes(lineCode)) {
     return { treatment: 'repair', confidence: 'low', reasonKey: 'tax.reason.maintenanceCategory' };
   }
 
@@ -106,7 +102,10 @@ export function taxYearOptions(now = new Date()): number[] {
 export interface ScheduleERow {
   household_id: string | null;
   household_name: string | null;
-  line: ScheduleELine | null;
+  line_id: string | null;
+  line_code: string | null;
+  line_label: string | null;
+  line_sort: number | null;
   treatment: CapitalTreatment | null;
   total: number;
   txn_count: number;
@@ -115,7 +114,9 @@ export interface ScheduleERow {
 
 export interface ScheduleEPivot {
   households: { id: string | null; name: string }[];
-  /** `cells[line][householdId]` — only currently-deductible amounts. */
+  /** Active lines that actually carry money, in the admin's chosen order. */
+  lines: { id: string; code: string; label: string }[];
+  /** `cells[lineId][householdId]` — only currently-deductible amounts. */
   cells: Map<string, Map<string, number>>;
   lineTotals: Map<string, number>;
   householdTotals: Map<string, number>;
@@ -139,6 +140,7 @@ const HOUSEHOLD_KEY = (id: string | null) => id ?? '__none__';
  */
 export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
   const householdNames = new Map<string, string>();
+  const lineMeta = new Map<string, { id: string; code: string; label: string; sort: number }>();
   const cells = new Map<string, Map<string, number>>();
   const lineTotals = new Map<string, number>();
   const householdTotals = new Map<string, number>();
@@ -154,18 +156,27 @@ export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
       capitalized += r.total;
       continue;
     }
-    if (!r.line) {
+    if (!r.line_id) {
       unmapped += r.total;
       continue;
     }
 
-    let row = cells.get(r.line);
+    if (!lineMeta.has(r.line_id)) {
+      lineMeta.set(r.line_id, {
+        id: r.line_id,
+        code: r.line_code ?? '',
+        label: r.line_label ?? '',
+        sort: r.line_sort ?? 0,
+      });
+    }
+
+    let row = cells.get(r.line_id);
     if (!row) {
       row = new Map<string, number>();
-      cells.set(r.line, row);
+      cells.set(r.line_id, row);
     }
     row.set(hKey, (row.get(hKey) ?? 0) + r.total);
-    lineTotals.set(r.line, (lineTotals.get(r.line) ?? 0) + r.total);
+    lineTotals.set(r.line_id, (lineTotals.get(r.line_id) ?? 0) + r.total);
     householdTotals.set(hKey, (householdTotals.get(hKey) ?? 0) + r.total);
     grandTotal += r.total;
   }
@@ -174,7 +185,13 @@ export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
     .map(([id, name]) => ({ id: id === '__none__' ? null : id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { households, cells, lineTotals, householdTotals, grandTotal, capitalized, unmapped };
+  // Respect the admin's sort_order, then label — the report reads in the
+  // order they arranged the lines, not insertion order.
+  const lines = [...lineMeta.values()]
+    .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
+    .map(({ id, code, label }) => ({ id, code, label }));
+
+  return { households, lines, cells, lineTotals, householdTotals, grandTotal, capitalized, unmapped };
 }
 
 export const householdKey = HOUSEHOLD_KEY;

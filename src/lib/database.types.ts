@@ -986,12 +986,48 @@ export interface Database {
         Returns: Array<{
           household_id: string | null;
           household_name: string | null;
-          line: ScheduleELine | null;
+          line_id: string | null;
+          line_code: string | null;
+          line_label: string | null;
+          line_sort: number | null;
           treatment: CapitalTreatment | null;
           total: number;
           txn_count: number;
           source: 'expense' | 'invoice';
         }>;
+      };
+      list_schedule_e_lines: {
+        Args: { p_include_inactive?: boolean };
+        Returns: Array<ScheduleELine>;
+      };
+      admin_upsert_schedule_e_line: {
+        Args: {
+          p_id: string | null;
+          p_code: string | null;
+          p_label: string;
+          p_sort_order: number | null;
+          p_is_active: boolean;
+        };
+        Returns: ScheduleELine;
+      };
+      admin_delete_schedule_e_line: {
+        Args: { p_id: string };
+        Returns: void;
+      };
+      list_category_mappings: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          category_id: string;
+          category_name: string;
+          line_id: string | null;
+          line_code: string | null;
+          line_label: string | null;
+          txn_count: number;
+        }>;
+      };
+      admin_set_category_schedule_e_line: {
+        Args: { p_category_id: string; p_line_id: string | null };
+        Returns: void;
       };
       list_capital_review_queue: {
         Args: { p_tax_year: number };
@@ -1004,7 +1040,7 @@ export interface Database {
           vendor: string | null;
           description: string | null;
           category: string | null;
-          line: ScheduleELine | null;
+          line_code: string | null;
           amount: number;
           currency: string;
         }>;
@@ -1046,13 +1082,29 @@ export interface Database {
   };
 }
 
-/** The 15 Schedule E Part I expense lines. Form 8825 (multi-member LLC)
- *  uses near-identical lines, so one mapping drives both. */
-export type ScheduleELine =
-  | 'advertising' | 'auto_travel' | 'cleaning_maintenance' | 'commissions'
-  | 'insurance' | 'legal_professional' | 'management_fees' | 'mortgage_interest'
-  | 'other_interest' | 'repairs' | 'supplies' | 'taxes' | 'utilities'
-  | 'depreciation' | 'other';
+/** A Schedule E Part I expense line. Seeded with the 15 IRS lines but stored
+ *  as editable rows, deliberately NOT as an enum and NOT as a column on
+ *  `categories` — operational categories and tax lines are separate concerns.
+ *  `code` is the immutable join key; `label` is admin-owned display text. */
+export interface ScheduleELine {
+  id: string;
+  code: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Maps one operational category to one tax line. Lives in its own table so
+ *  `categories` gains no tax columns. */
+export interface CategoryScheduleEMap {
+  category_id: string;
+  schedule_e_line_id: string;
+  updated_at: string;
+  updated_by: string | null;
+}
 
 /** Currently-deductible repair vs. capitalize-and-depreciate improvement.
  *  null = not yet reviewed, which is what the review queue selects on. */

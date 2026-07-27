@@ -784,11 +784,22 @@ It only works from the email address saved on your profile — that's how Ledger
 
 A property-by-property breakdown of the year's spending, laid out by tax expense line, ready to hand to your accountant. Export it as CSV.
 
-The mapping is set up once and then runs itself:
+The mapping is set up once on the **Mapping** tab and then runs itself:
 
-1. Go to **Manage → Categories** and pick a tax line for each category (Materials → Supplies, Service/labor → Repairs, and so on).
+1. Open **Mapping** and pick a tax line for each of your categories (Materials → Supplies, Service/labor → Repairs, and so on). Categories are listed with how often each is actually used, so you can do the ones that matter first.
 2. Every transaction in that category classifies itself from then on — including future ones.
-3. Anything you haven't mapped yet shows up in an amber warning at the top, so nothing goes missing quietly.
+3. Anything you haven't mapped yet shows up in an amber warning, so nothing goes missing quietly.
+
+Your everyday categories and your tax lines are **kept completely separate**. The categories contractors pick when submitting are one thing; the tax lines they roll up to are another. Editing tax lines never touches your categories, and renaming a category never disturbs your tax setup.
+
+### Editing the tax lines
+
+The 15 built-in lines match Schedule E Part I, but they're yours to change on the same tab:
+
+- **Rename** any of them to whatever you call it
+- **Hide** ones you never use — hidden lines stop being offered, and anything under them reads as unmapped rather than disappearing
+- **Add your own** for anything the standard list doesn't cover
+- Built-ins can't be deleted (hide them instead), and a line still in use by a category can't be deleted at all
 
 Receipts without a category fall back to the **vendor catalog** — if Lowe's is mapped to Materials, an uncategorized Lowe's receipt still lands on the right line.
 

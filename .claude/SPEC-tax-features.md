@@ -39,6 +39,38 @@ improvement that must be capitalized and depreciated over 27.5 years
 ~$2,600 back this year at a 32% marginal rate versus ~$290/year for 27.5
 years. Wrong in the other direction is audit exposure.
 
+### Schedule E lines are their own tables
+
+**Owner's correction, third round of narrowing.** An early draft hung a
+`schedule_e_line` enum column directly off `categories` — which conflated two
+genuinely different things:
+
+- `categories` is **operational**: what a contractor picks when submitting an
+  invoice, what a user picks on a receipt.
+- Schedule E lines are a **tax** concept, reviewed once a year by one person.
+
+Coupling them meant every category edit touched tax config and vice versa, and
+an enum meant the line list couldn't change without a migration.
+
+The final shape is two tables, and `categories` is left **completely
+untouched**:
+
+| Table | Purpose |
+|---|---|
+| `schedule_e_lines` | the line list — seeded with the 15 IRS lines, but renamable, reorderable, hideable, extendable |
+| `category_schedule_e_map` | one row per mapped category; `categories` gains no columns |
+
+`code` is the immutable join key the suggestion heuristic matches on; `label`
+is admin-owned display text. Seeded rows carry `is_system` — renamable and
+hideable but never deletable, so a rollup can't lose its target. A line still
+mapped to a category can't be deleted at all (`on delete restrict`).
+
+A consequence worth stating: because labels are now user data, they are not
+translated — same as `categories.name` today.
+
+Deactivating a line makes everything under it read as **unmapped** rather than
+vanishing, which the report already warns about.
+
 ### Auto-categorization: three layers
 
 The owner specifically asked whether Schedule E categorization can be
@@ -46,7 +78,7 @@ automated. It can, mostly:
 
 | Layer | Mechanism | Coverage |
 |---|---|---|
-| 1. Category → line | `categories.schedule_e_line`, mapped once | ~90% of rows, permanently |
+| 1. Category → line | `category_schedule_e_map`, mapped once on the Mapping tab | ~90% of rows, permanently |
 | 2. Vendor → line fallback | existing `vendor_category_map` → category → line | most of the remainder |
 | 3. Repair vs. improvement | amount threshold + keyword heuristics | **suggestion only** |
 

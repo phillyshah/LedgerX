@@ -35,11 +35,18 @@ insert into households (id, name) values
   ('00000000-0000-0000-0000-0000000000b1','Grant'),
   ('00000000-0000-0000-0000-0000000000b2','Morton');
 
--- Categories: two mapped, one deliberately unmapped
-insert into categories (id, name, household_id, schedule_e_line) values
-  ('00000000-0000-0000-0000-0000000000e1','Materials',     null, 'supplies'),
-  ('00000000-0000-0000-0000-0000000000e2','Service/labor', null, 'repairs'),
-  ('00000000-0000-0000-0000-0000000000e3','Mystery Cat',   null, null);
+-- Operational categories carry NO tax data — that's the whole point of the
+-- split. The mapping lives in its own table below.
+insert into categories (id, name, household_id) values
+  ('00000000-0000-0000-0000-0000000000e1','Materials',     null),
+  ('00000000-0000-0000-0000-0000000000e2','Service/labor', null),
+  ('00000000-0000-0000-0000-0000000000e3','Mystery Cat',   null);
+
+-- Two mapped, one deliberately left unmapped.
+insert into category_schedule_e_map (category_id, schedule_e_line_id)
+select '00000000-0000-0000-0000-0000000000e1', id from schedule_e_lines where code = 'supplies';
+insert into category_schedule_e_map (category_id, schedule_e_line_id)
+select '00000000-0000-0000-0000-0000000000e2', id from schedule_e_lines where code = 'repairs';
 
 -- Vendor catalog, for the Layer-2 fallback
 insert into vendor_category_map (vendor_name, category_name, household_id)
@@ -111,12 +118,12 @@ begin
     'Jan 1 ET is tax year 2027');
 
   raise notice '--- schedule_e_report: category mapping ---';
-  select sum(total) into v_supplies from schedule_e_report(2026) where line = 'supplies';
+  select sum(total) into v_supplies from schedule_e_report(2026) where line_code = 'supplies';
   -- 100 direct + 50 case/space variance + 25 vendor fallback
   perform assert(v_supplies = 175,
     'supplies = 175 (direct + normalized-name + vendor fallback), got ' || coalesce(v_supplies::text,'null'));
 
-  select sum(total) into v_repairs from schedule_e_report(2026) where line = 'repairs';
+  select sum(total) into v_repairs from schedule_e_report(2026) where line_code = 'repairs';
   -- 300 expense + 5000 invoice + 700 NYE invoice
   perform assert(v_repairs = 6000,
     'repairs = 6000 (300 expense + 5000 + 700 invoices), got ' || coalesce(v_repairs::text,'null'));
@@ -124,7 +131,7 @@ begin
   -- A mapped-but-unmapped CATEGORY surfaces as line IS NULL rather than being
   -- dropped, so the admin knows what to go map.
   select sum(total) into v_unmapped from schedule_e_report(2026)
-   where line is null and source = 'expense';
+   where line_code is null and source = 'expense';
   perform assert(v_unmapped = 77,
     'expense with an unmapped category surfaces as line IS NULL, got ' || coalesce(v_unmapped::text,'null'));
 
@@ -132,7 +139,7 @@ begin
   -- correct (nothing is silently dropped) and is what the UI warns about:
   -- 400+300+200+8000+3000+150 = 12050.
   select sum(total) into v_unmapped from schedule_e_report(2026)
-   where line is null and source = 'invoice';
+   where line_code is null and source = 'invoice';
   perform assert(v_unmapped = 12050,
     'uncategorized invoices surface as unmapped, got ' || coalesce(v_unmapped::text,'null'));
 
@@ -142,7 +149,7 @@ begin
     'report is complete and non-double-counting, got ' || coalesce(v_unmapped::text,'null'));
 
   raise notice '--- schedule_e_report: cash basis + status ---';
-  select coalesce(sum(total),0) into v_repairs from schedule_e_report(2027) where line = 'repairs';
+  select coalesce(sum(total),0) into v_repairs from schedule_e_report(2027) where line_code = 'repairs';
   perform assert(v_repairs = 1234, 'Dec-2026 work paid Jan-2027 lands in 2027, got ' || v_repairs);
 
   perform assert(
@@ -169,11 +176,11 @@ begin
   -- can use the "routine upkeep category" signal, not just amount+keywords.
   perform assert(
     exists (select 1 from list_capital_review_queue(2026)
-             where amount = 5000 and line = 'repairs'),
+             where amount = 5000 and line_code = 'repairs'),
     'queue resolves the Schedule E line for a categorized invoice');
   perform assert(
     exists (select 1 from list_capital_review_queue(2026)
-             where amount = 8000 and line is null),
+             where amount = 8000 and line_code is null),
     'uncategorized invoice yields a null line rather than erroring');
 
   raise notice '--- admin_set_capital_treatment ---';
@@ -191,7 +198,7 @@ begin
   -- treatment now flows through to the report
   perform assert(
     exists (select 1 from schedule_e_report(2026)
-             where line = 'repairs' and treatment = 'improvement' and total = 5000),
+             where line_code = 'repairs' and treatment = 'improvement' and total = 5000),
     'reviewed invoice reports under its capital treatment');
 
   begin
@@ -291,6 +298,90 @@ begin
        where table_schema = 'public'
          and column_name ~* '(^|_)(tin|ssn)($|_)'),
     'no TIN/SSN column anywhere in the schema');
+
+  raise notice '--- Schedule E lines are decoupled and editable ---';
+  -- The operational categories table must carry no tax data at all.
+  perform assert(
+    not exists (
+      select 1 from information_schema.columns
+       where table_name = 'categories' and column_name like '%schedule_e%'),
+    'categories carries no schedule_e column — the concepts are separate');
+  perform assert(
+    not exists (select 1 from pg_type where typname = 'schedule_e_line'),
+    'the old schedule_e_line enum is gone — lines are rows, not a type');
+  perform assert(
+    (select relkind from pg_class where relname = 'category_schedule_e_map') = 'r',
+    'category_schedule_e_map is a real table, not the old view');
+  perform assert(
+    (select count(*) from schedule_e_lines) = 15, 'the 15 IRS lines are seeded');
+
+  -- Editable: rename a seeded line and confirm the report follows.
+  perform admin_upsert_schedule_e_line(
+    (select id from schedule_e_lines where code = 'repairs'),
+    null, 'Repairs & upkeep', null, true);
+  perform assert(
+    exists (select 1 from schedule_e_report(2026)
+             where line_code = 'repairs' and line_label = 'Repairs & upkeep'),
+    'renaming a line flows straight through to the report');
+
+  -- Add a custom line, map a category to it, confirm it rolls up.
+  select id into v_rec from schedule_e_lines where code = 'repairs';
+  perform admin_upsert_schedule_e_line(null, null, 'HOA dues', 160, true);
+  perform assert(
+    exists (select 1 from schedule_e_lines where code = 'hoa_dues' and not is_system),
+    'a custom line can be added, with a slugged code');
+
+  perform admin_set_category_schedule_e_line(
+    '00000000-0000-0000-0000-0000000000e3',
+    (select id from schedule_e_lines where code = 'hoa_dues'));
+  perform assert(
+    exists (select 1 from schedule_e_report(2026)
+             where line_code = 'hoa_dues' and total = 77),
+    'mapping the previously-unmapped category routes its 77 to the new line');
+
+  -- Guard rails on deletion.
+  begin
+    perform admin_delete_schedule_e_line((select id from schedule_e_lines where code = 'hoa_dues'));
+    perform assert(false, 'deleting a mapped line should raise');
+  exception when others then
+    perform assert(sqlerrm like '%still mapped%', 'cannot delete a line categories point at');
+  end;
+
+  begin
+    perform admin_delete_schedule_e_line((select id from schedule_e_lines where code = 'repairs'));
+    perform assert(false, 'deleting a built-in line should raise');
+  exception when others then
+    perform assert(sqlerrm like '%built-in%', 'built-in lines cannot be deleted, only deactivated');
+  end;
+
+  -- Unmap, then delete the custom line cleanly.
+  perform admin_set_category_schedule_e_line('00000000-0000-0000-0000-0000000000e3', null);
+  perform admin_delete_schedule_e_line((select id from schedule_e_lines where code = 'hoa_dues'));
+  perform assert(
+    not exists (select 1 from schedule_e_lines where code = 'hoa_dues'),
+    'an unmapped custom line deletes cleanly');
+
+  -- Deactivating a line makes its categories read as unmapped, not vanish.
+  perform admin_upsert_schedule_e_line(
+    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, false);
+  perform assert(
+    not exists (select 1 from schedule_e_report(2026) where line_code = 'supplies'),
+    'a deactivated line stops resolving');
+  perform assert(
+    (select sum(total) from schedule_e_report(2026) where line_code is null) = 12050 + 77 + 175,
+    'its money moves to unmapped rather than disappearing');
+  perform admin_upsert_schedule_e_line(
+    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, true);
+
+  raise notice '--- list_category_mappings (the mapping screen) ---';
+  perform assert(
+    (select count(*) from list_category_mappings()) = 3,
+    'every operational category is listed, mapped or not');
+  select * into v_rec from list_category_mappings() where category_name = 'Materials';
+  perform assert(v_rec.line_code = 'supplies', 'mapped category reports its line');
+  perform assert(v_rec.txn_count = 3, 'usage count helps prioritise, got ' || v_rec.txn_count);
+  select * into v_rec from list_category_mappings() where category_name = 'Mystery Cat';
+  perform assert(v_rec.line_id is null, 'unmapped category reports null line');
 end $$;
 
 -- ── Authorization: every RPC must refuse a non-admin ──────────────────────
@@ -309,8 +400,16 @@ begin
         exception when others then v_n := v_n + 1; end;
   begin perform form_1099_summary(2026);           exception when others then v_n := v_n + 1; end;
   begin perform list_contractor_tax_status(2026);  exception when others then v_n := v_n + 1; end;
+  begin perform list_schedule_e_lines();           exception when others then v_n := v_n + 1; end;
+  begin perform admin_upsert_schedule_e_line(null,'x','X',1,true);
+        exception when others then v_n := v_n + 1; end;
+  begin perform admin_delete_schedule_e_line(gen_random_uuid());
+        exception when others then v_n := v_n + 1; end;
+  begin perform list_category_mappings();          exception when others then v_n := v_n + 1; end;
+  begin perform admin_set_category_schedule_e_line(gen_random_uuid(), null);
+        exception when others then v_n := v_n + 1; end;
 
-  perform assert(v_n = 7, 'all 7 RPCs refuse a non-admin caller, got ' || v_n);
+  perform assert(v_n = 12, 'all 12 RPCs refuse a non-admin caller, got ' || v_n);
 end $$;
 
 update _test_ctx set admin = true;
