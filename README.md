@@ -776,7 +776,7 @@ It only works from the email address saved on your profile — that's how Ledger
 ## Tax Center
 <!-- roles: admin -->
 
-**Full admins only.** Open it from the sidebar or the home screen. Everything below is scoped to one **tax year**, chosen once at the top and shared by all three tabs.
+**Full admins only**, under **Labs** in the sidebar. It's marked Labs on purpose — it's new, and the numbers deserve a check against your own records before you lean on them. Everything below is scoped to one **tax year**, chosen once at the top and shared by all three tabs.
 
 > These tools organize your own records into the shape a return needs. They aren't tax advice — have your accountant sign off on the category mapping and the threshold figures once, and the app applies those decisions consistently from then on.
 
@@ -794,7 +794,7 @@ Your everyday categories and your tax lines are **kept completely separate**. Th
 
 ### Editing the tax lines
 
-The 15 built-in lines match Schedule E Part I, but they're yours to change on the same tab:
+The 15 built-in lines match Schedule E Part I — each shows its **official line number (5–19)** and a short note on what belongs there (e.g. line 12 *Mortgage Interest* — "Interest portion of mortgage payments only"), so the right line is obvious without opening the IRS instructions. They're yours to change on the same tab:
 
 - **Rename** any of them to whatever you call it
 - **Hide** ones you never use — hidden lines stop being offered, and anything under them reads as unmapped rather than disappearing

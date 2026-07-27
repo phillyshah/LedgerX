@@ -989,6 +989,7 @@ export interface Database {
           line_id: string | null;
           line_code: string | null;
           line_label: string | null;
+          line_number: number | null;
           line_sort: number | null;
           treatment: CapitalTreatment | null;
           total: number;
@@ -1007,6 +1008,7 @@ export interface Database {
           p_label: string;
           p_sort_order: number | null;
           p_is_active: boolean;
+          p_description?: string | null;
         };
         Returns: ScheduleELine;
       };
@@ -1090,6 +1092,9 @@ export interface ScheduleELine {
   id: string;
   code: string;
   label: string;
+  /** Official Schedule E Part I line number (5-19); null for custom lines. */
+  line_number: number | null;
+  description: string | null;
   sort_order: number;
   is_active: boolean;
   is_system: boolean;

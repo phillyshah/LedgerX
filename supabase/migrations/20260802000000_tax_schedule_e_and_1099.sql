@@ -76,37 +76,81 @@ drop type if exists schedule_e_line;
 -- not deleted, so a rollup can never lose its target by accident.
 
 create table if not exists schedule_e_lines (
-  id         uuid primary key default gen_random_uuid(),
-  code       text not null unique,
-  label      text not null,
-  sort_order int  not null default 0,
-  is_active  boolean not null default true,
-  is_system  boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  id          uuid primary key default gen_random_uuid(),
+  code        text not null unique,
+  label       text not null,
+  -- Official Schedule E Part I line number (5-19). NULL for custom lines the
+  -- admin adds, which have no IRS counterpart.
+  line_number int,
+  -- Short "what belongs here" hint, shown under the label on the mapping
+  -- screen so the right line is obvious without opening the instructions.
+  description text,
+  sort_order  int  not null default 0,
+  is_active   boolean not null default true,
+  is_system   boolean not null default false,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
 );
+
+-- Added after the first draft, so existing installs pick them up.
+alter table schedule_e_lines
+  add column if not exists line_number int,
+  add column if not exists description text;
 
 comment on table schedule_e_lines is
   'Schedule E Part I / Form 8825 expense lines. Editable by full admins; '
   'deliberately separate from the operational `categories` table.';
 
-insert into schedule_e_lines (code, label, sort_order, is_system) values
-  ('advertising',          'Advertising',                        10, true),
-  ('auto_travel',          'Auto and travel',                    20, true),
-  ('cleaning_maintenance', 'Cleaning and maintenance',           30, true),
-  ('commissions',          'Commissions',                        40, true),
-  ('insurance',            'Insurance',                          50, true),
-  ('legal_professional',   'Legal and other professional fees',  60, true),
-  ('management_fees',      'Management fees',                    70, true),
-  ('mortgage_interest',    'Mortgage interest',                  80, true),
-  ('other_interest',       'Other interest',                     90, true),
-  ('repairs',              'Repairs',                           100, true),
-  ('supplies',             'Supplies',                          110, true),
-  ('taxes',                'Taxes',                             120, true),
-  ('utilities',            'Utilities',                         130, true),
-  ('depreciation',         'Depreciation',                      140, true),
-  ('other',                'Other',                             150, true)
+-- Labels, line numbers and descriptions are the owner's own wording for
+-- their rental portfolio — not generic IRS phrasing — so the mapping screen
+-- reads the way they think about it.
+insert into schedule_e_lines (code, label, line_number, description, sort_order, is_system) values
+  ('advertising',          'Advertising',                5,  'Online listings, yard signs, newspaper ads',                    50,  true),
+  ('auto_travel',          'Auto & Travel',              6,  'Mileage ($0.70/mile in 2025), property visits',                 60,  true),
+  ('cleaning_maintenance', 'Cleaning & Maintenance',     7,  'Lawn care, pest control, routine repairs',                      70,  true),
+  ('commissions',          'Commissions',                8,  'Tenant finder fees, leasing agent fees',                        80,  true),
+  ('insurance',            'Insurance',                  9,  'Property, liability, flood insurance premiums',                 90,  true),
+  ('legal_professional',   'Legal & Professional Fees',  10, 'CPA costs, attorney fees, property management software',        100, true),
+  ('management_fees',      'Management Fees',            11, 'Property manager commissions (typically 8-12%)',                110, true),
+  ('mortgage_interest',    'Mortgage Interest',          12, 'Interest portion of mortgage payments only',                    120, true),
+  ('other_interest',       'Other Interest',             13, 'Credit card interest for property expenses',                    130, true),
+  ('repairs',              'Repairs',                    14, 'Fixing broken items without improving property value',          140, true),
+  ('supplies',             'Supplies',                   15, 'Office supplies, maintenance tools, cleaning materials',        150, true),
+  ('taxes',                'Taxes',                      16, 'Property taxes, occupancy taxes, licensing fees',               160, true),
+  ('utilities',            'Utilities',                  17, 'Gas, electric, water, internet (if landlord-paid)',             170, true),
+  ('depreciation',         'Depreciation',               18, '27.5-year residential property depreciation',                   180, true),
+  ('other',                'Other',                      19, 'HOA fees, association dues, miscellaneous expenses',            190, true)
 on conflict (code) do nothing;
+
+-- Anyone who applied the first draft has the old generic labels and no line
+-- numbers. Backfill them — but ONLY where the label is still the untouched
+-- default, so a deliberate rename is never clobbered by a re-run.
+update schedule_e_lines l set
+  label       = v.label,
+  line_number = v.line_number,
+  description = v.description,
+  sort_order  = v.sort_order,
+  updated_at  = now()
+from (values
+  ('advertising',          'Advertising',               'Advertising',                        5,  'Online listings, yard signs, newspaper ads',             50),
+  ('auto_travel',          'Auto and travel',           'Auto & Travel',                      6,  'Mileage ($0.70/mile in 2025), property visits',          60),
+  ('cleaning_maintenance', 'Cleaning and maintenance',  'Cleaning & Maintenance',             7,  'Lawn care, pest control, routine repairs',               70),
+  ('commissions',          'Commissions',               'Commissions',                        8,  'Tenant finder fees, leasing agent fees',                 80),
+  ('insurance',            'Insurance',                 'Insurance',                          9,  'Property, liability, flood insurance premiums',          90),
+  ('legal_professional',   'Legal and other professional fees', 'Legal & Professional Fees',  10, 'CPA costs, attorney fees, property management software', 100),
+  ('management_fees',      'Management fees',           'Management Fees',                    11, 'Property manager commissions (typically 8-12%)',         110),
+  ('mortgage_interest',    'Mortgage interest',         'Mortgage Interest',                  12, 'Interest portion of mortgage payments only',              120),
+  ('other_interest',       'Other interest',            'Other Interest',                     13, 'Credit card interest for property expenses',              130),
+  ('repairs',              'Repairs',                   'Repairs',                            14, 'Fixing broken items without improving property value',    140),
+  ('supplies',             'Supplies',                  'Supplies',                           15, 'Office supplies, maintenance tools, cleaning materials',  150),
+  ('taxes',                'Taxes',                     'Taxes',                              16, 'Property taxes, occupancy taxes, licensing fees',         160),
+  ('utilities',            'Utilities',                 'Utilities',                          17, 'Gas, electric, water, internet (if landlord-paid)',       170),
+  ('depreciation',         'Depreciation',              'Depreciation',                       18, '27.5-year residential property depreciation',             180),
+  ('other',                'Other',                     'Other',                              19, 'HOA fees, association dues, miscellaneous expenses',      190)
+) as v(code, old_label, label, line_number, description, sort_order)
+where l.code = v.code
+  and l.is_system
+  and l.label = v.old_label;
 
 alter table schedule_e_lines enable row level security;
 drop policy if exists "schedule_e_lines admin all" on schedule_e_lines;
@@ -254,6 +298,7 @@ create or replace view category_line_lookup as
          l.id                   as line_id,
          l.code                 as line_code,
          l.label                as line_label,
+         l.line_number          as line_number,
          l.sort_order           as line_sort
     from categories c
     join category_schedule_e_map m on m.category_id = c.id
@@ -310,6 +355,7 @@ returns table (
   line_id        uuid,
   line_code      text,
   line_label     text,
+  line_number    int,
   line_sort      int,
   treatment      capital_treatment,
   total          numeric,
@@ -328,8 +374,9 @@ begin
            -- a line instead of dropping into "unmapped".
            coalesce(direct.line_id,    via_vendor.line_id)    as line_id,
            coalesce(direct.line_code,  via_vendor.line_code)  as line_code,
-           coalesce(direct.line_label, via_vendor.line_label) as line_label,
-           coalesce(direct.line_sort,  via_vendor.line_sort)  as line_sort,
+           coalesce(direct.line_label,  via_vendor.line_label)  as line_label,
+           coalesce(direct.line_number, via_vendor.line_number) as line_number,
+           coalesce(direct.line_sort,   via_vendor.line_sort)   as line_sort,
            e.capital_treatment,
            e.total,
            'expense'::text as source
@@ -346,7 +393,7 @@ begin
   ),
   invoice_rows as (
     select ci.household_id,
-           l.line_id, l.line_code, l.line_label, l.line_sort,
+           l.line_id, l.line_code, l.line_label, l.line_number, l.line_sort,
            ci.capital_treatment,
            ci.amount as total,
            'invoice'::text as source
@@ -366,6 +413,7 @@ begin
          cb.line_id,
          cb.line_code,
          cb.line_label,
+         cb.line_number,
          cb.line_sort,
          cb.capital_treatment,
          sum(cb.total)::numeric,
@@ -374,7 +422,7 @@ begin
     from combined cb
     left join households h on h.id = cb.household_id
    group by cb.household_id, h.name, cb.line_id, cb.line_code, cb.line_label,
-            cb.line_sort, cb.capital_treatment, cb.source
+            cb.line_number, cb.line_sort, cb.capital_treatment, cb.source
    order by h.name nulls last, cb.line_sort nulls last;
 end;
 $$;
@@ -480,11 +528,12 @@ end;
 $$;
 
 create or replace function admin_upsert_schedule_e_line(
-  p_id         uuid,
-  p_code       text,
-  p_label      text,
-  p_sort_order int,
-  p_is_active  boolean
+  p_id          uuid,
+  p_code        text,
+  p_label       text,
+  p_sort_order  int,
+  p_is_active   boolean,
+  p_description text default null
 ) returns schedule_e_lines
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_row schedule_e_lines;
@@ -497,21 +546,23 @@ begin
   if p_id is null then
     -- New custom line. Codes are lowercase snake so the suggestion logic and
     -- any future export mapping have a stable key to match on.
-    insert into schedule_e_lines (code, label, sort_order, is_active, is_system)
+    insert into schedule_e_lines (code, label, description, sort_order, is_active, is_system)
     values (
       coalesce(nullif(btrim(p_code), ''),
                regexp_replace(lower(btrim(p_label)), '[^a-z0-9]+', '_', 'g')),
-      btrim(p_label), coalesce(p_sort_order, 999), coalesce(p_is_active, true), false
+      btrim(p_label), nullif(btrim(coalesce(p_description, '')), ''),
+      coalesce(p_sort_order, 999), coalesce(p_is_active, true), false
     )
     returning * into v_row;
   else
     -- Label / order / active are editable on every line, including seeded
     -- ones. `code` is deliberately immutable: it's the join key.
     update schedule_e_lines
-       set label      = btrim(p_label),
-           sort_order = coalesce(p_sort_order, sort_order),
-           is_active  = coalesce(p_is_active, is_active),
-           updated_at = now()
+       set label       = btrim(p_label),
+           description = coalesce(nullif(btrim(coalesce(p_description, '')), ''), description),
+           sort_order  = coalesce(p_sort_order, sort_order),
+           is_active   = coalesce(p_is_active, is_active),
+           updated_at  = now()
      where id = p_id
      returning * into v_row;
 
@@ -759,7 +810,8 @@ grant execute on function get_tax_settings()                    to authenticated
 grant execute on function admin_update_tax_settings(numeric, numeric) to authenticated;
 grant execute on function schedule_e_report(int)                to authenticated;
 grant execute on function list_schedule_e_lines(boolean)        to authenticated;
-grant execute on function admin_upsert_schedule_e_line(uuid, text, text, int, boolean) to authenticated;
+grant execute on function admin_upsert_schedule_e_line(uuid, text, text, int, boolean, text) to authenticated;
+drop function if exists admin_upsert_schedule_e_line(uuid, text, text, int, boolean);
 grant execute on function admin_delete_schedule_e_line(uuid)    to authenticated;
 grant execute on function list_category_mappings()              to authenticated;
 grant execute on function admin_set_category_schedule_e_line(uuid, uuid) to authenticated;

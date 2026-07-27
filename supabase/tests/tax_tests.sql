@@ -314,11 +314,27 @@ begin
     'category_schedule_e_map is a real table, not the old view');
   perform assert(
     (select count(*) from schedule_e_lines) = 15, 'the 15 IRS lines are seeded');
+  perform assert(
+    (select label from schedule_e_lines where code = 'auto_travel') = 'Auto & Travel',
+    'seeded with the owner''s own wording, not generic IRS phrasing');
+  perform assert(
+    (select line_number from schedule_e_lines where code = 'other') = 19,
+    'official Schedule E line numbers are stored (Other = 19)');
+  perform assert(
+    (select count(*) from schedule_e_lines where line_number between 5 and 19) = 15,
+    'all 15 carry a line number in the 5-19 range');
+  perform assert(
+    (select description from schedule_e_lines where code = 'depreciation')
+      = '27.5-year residential property depreciation',
+    'descriptions are stored for the mapping screen');
+  perform assert(
+    (select line_number from schedule_e_report(2026) where line_code = 'repairs' limit 1) = 14,
+    'the report carries the line number through');
 
   -- Editable: rename a seeded line and confirm the report follows.
   perform admin_upsert_schedule_e_line(
     (select id from schedule_e_lines where code = 'repairs'),
-    null, 'Repairs & upkeep', null, true);
+    null, 'Repairs & upkeep', null, true, null);
   perform assert(
     exists (select 1 from schedule_e_report(2026)
              where line_code = 'repairs' and line_label = 'Repairs & upkeep'),
@@ -326,10 +342,16 @@ begin
 
   -- Add a custom line, map a category to it, confirm it rolls up.
   select id into v_rec from schedule_e_lines where code = 'repairs';
-  perform admin_upsert_schedule_e_line(null, null, 'HOA dues', 160, true);
+  perform admin_upsert_schedule_e_line(null, null, 'HOA dues', 160, true, 'Association dues');
   perform assert(
     exists (select 1 from schedule_e_lines where code = 'hoa_dues' and not is_system),
     'a custom line can be added, with a slugged code');
+  perform assert(
+    (select line_number is null from schedule_e_lines where code = 'hoa_dues'),
+    'a custom line has no IRS line number');
+  perform assert(
+    (select description from schedule_e_lines where code = 'hoa_dues') = 'Association dues',
+    'a custom line keeps its description');
 
   perform admin_set_category_schedule_e_line(
     '00000000-0000-0000-0000-0000000000e3',
@@ -363,7 +385,7 @@ begin
 
   -- Deactivating a line makes its categories read as unmapped, not vanish.
   perform admin_upsert_schedule_e_line(
-    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, false);
+    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, false, null);
   perform assert(
     not exists (select 1 from schedule_e_report(2026) where line_code = 'supplies'),
     'a deactivated line stops resolving');
@@ -371,7 +393,7 @@ begin
     (select sum(total) from schedule_e_report(2026) where line_code is null) = 12050 + 77 + 175,
     'its money moves to unmapped rather than disappearing');
   perform admin_upsert_schedule_e_line(
-    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, true);
+    (select id from schedule_e_lines where code = 'supplies'), null, 'Supplies', null, true, null);
 
   raise notice '--- list_category_mappings (the mapping screen) ---';
   perform assert(
@@ -401,7 +423,7 @@ begin
   begin perform form_1099_summary(2026);           exception when others then v_n := v_n + 1; end;
   begin perform list_contractor_tax_status(2026);  exception when others then v_n := v_n + 1; end;
   begin perform list_schedule_e_lines();           exception when others then v_n := v_n + 1; end;
-  begin perform admin_upsert_schedule_e_line(null,'x','X',1,true);
+  begin perform admin_upsert_schedule_e_line(null,'x','X',1,true,null);
         exception when others then v_n := v_n + 1; end;
   begin perform admin_delete_schedule_e_line(gen_random_uuid());
         exception when others then v_n := v_n + 1; end;

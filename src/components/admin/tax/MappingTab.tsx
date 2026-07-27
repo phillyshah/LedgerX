@@ -155,7 +155,9 @@ export function MappingTab() {
                 >
                   <option value="">{t('tax.map.notMapped')}</option>
                   {activeLines.map((l) => (
-                    <option key={l.id} value={l.id}>{l.label}</option>
+                    <option key={l.id} value={l.id}>
+                      {l.line_number !== null ? `${l.line_number} · ${l.label}` : l.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -244,6 +246,11 @@ export function MappingTab() {
                   <>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {l.line_number !== null && (
+                          <span className="shrink-0 w-6 text-center text-[10px] font-bold text-slate-400 tabular-nums">
+                            {l.line_number}
+                          </span>
+                        )}
                         <p className="text-sm font-medium text-slate-900 truncate">{l.label}</p>
                         {!l.is_system && (
                           <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-emerald-50 text-emerald-700 rounded">
@@ -256,6 +263,9 @@ export function MappingTab() {
                           </span>
                         )}
                       </div>
+                      {l.description && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{l.description}</p>
+                      )}
                       <p className="text-[11px] text-slate-400">
                         {t(mappedCount === 1 ? 'tax.map.mappedCountOne' : 'tax.map.mappedCount', { count: mappedCount })}
                       </p>

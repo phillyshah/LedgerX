@@ -25,6 +25,7 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
       setRows(((data ?? []) as unknown as ScheduleERow[]).map((r) => ({
         ...r, total: Number(r.total), txn_count: Number(r.txn_count),
         line_sort: r.line_sort === null ? null : Number(r.line_sort),
+        line_number: r.line_number === null ? null : Number(r.line_number),
       })));
       setLoading(false);
     });
@@ -45,7 +46,7 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
     const csv = buildCsv(
       [t('tax.scheduleE.col.line'), ...pivot.households.map((h) => h.name || t('tax.noHousehold')), t('common.total')],
       activeLines.map((line) => [
-        line.label,
+        line.number !== null ? `${line.number} · ${line.label}` : line.label,
         ...pivot.households.map((h) => pivot.cells.get(line.id)?.get(householdKey(h.id)) ?? 0),
         pivot.lineTotals.get(line.id) ?? 0,
       ])
@@ -127,7 +128,12 @@ export function ScheduleETab({ taxYear }: ScheduleETabProps) {
             <tbody>
               {activeLines.map((line) => (
                 <tr key={line.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="py-2 pr-3 text-slate-700 sticky left-0 bg-white whitespace-nowrap">{line.label}</td>
+                  <td className="py-2 pr-3 text-slate-700 sticky left-0 bg-white whitespace-nowrap">
+                    {line.number !== null && (
+                      <span className="text-[10px] font-bold text-slate-400 tabular-nums mr-1.5">{line.number}</span>
+                    )}
+                    {line.label}
+                  </td>
                   {pivot.households.map((h) => {
                     const v = pivot.cells.get(line.id)?.get(householdKey(h.id)) ?? 0;
                     return (

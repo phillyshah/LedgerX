@@ -1151,5 +1151,6 @@
   "tax.map.mappedCount": "{count} categories mapped here",
   "tax.map.linesFootnote": "The 15 built-in lines match Schedule E Part I. Rename or hide any of them; hidden lines stop being offered and anything under them reads as unmapped. Built-ins can't be deleted — hide them instead — and a line still in use can't be deleted at all.",
   "tax.map.usedInOne": "used on {count} transaction",
-  "tax.map.mappedCountOne": "{count} category mapped here"
+  "tax.map.mappedCountOne": "{count} category mapped here",
+  "admin.labs": "Labs"
 }

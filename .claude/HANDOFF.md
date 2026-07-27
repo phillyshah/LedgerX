@@ -46,16 +46,19 @@ substantial session.
   are **full-admin only**: `AdminLayout` gates on `isAdmin` and every RPC
   re-checks `is_admin()`. A leak was caught during the build — the nav item
   initially landed in `haNavItems` (household-admin) as well; removed.
-  UI is one `TaxCenter` modal with three tabs sharing a tax-year selector
+  UI is one `TaxCenter` modal with four tabs sharing a tax-year selector
   (`src/components/admin/tax/`) — Schedule E, Capital review, 1099-NEC, and
-  Mapping — plus a passive year-round "$X YTD · 1099 likely" badge in
+  Mapping. **It is NOT in the main nav**: per the owner, it lives under a
+  restored admin-only **Labs** nav group (the Labs *screen* was deleted in
+  v13.5; this is a collapsible nav group mirroring "Manage", with the same
+  violet Labs badge Auto Reconcile uses). Plus a passive year-round "$X YTD · 1099 likely" badge in
   `ManageUsers` (informational only). `ManageCategories` is byte-identical to
   main: all tax concerns live inside the Tax Center. **One real correctness fix worth remembering**:
   `contractor_invoices.paid_at` is `timestamptz`, so a naive
   `extract(year ...)` resolves in UTC and pushes an invoice settled at 8pm ET
   on Dec 31 into the next tax year — exactly when year-end settling
   clusters. `tax_year_of()` anchors it to America/New_York; change that one
-  constant if the LLC's tax home moves. Verified: **61 SQL assertions** on
+  constant if the LLC's tax home moves. Verified: **68 SQL assertions** on
   local Postgres 16 (`supabase/tests/`, incl. the timezone boundary,
   config-driven thresholds, the absence of the whole profile apparatus, and
   all 12 RPCs refusing a non-admin), **28 unit assertions** on the
@@ -68,6 +71,13 @@ substantial session.
      earlier draft: it drops the `tax-docs` bucket, its objects, its policies,
      the `w9_doc_path`/address columns, and the old 12-arg upsert overload.
      No storage bucket is created.
+  1a. **The 15 Schedule E lines are seeded with the owner's own wording**,
+     supplied directly: official line numbers 5-19, labels like
+     "Auto & Travel" / "Legal & Professional Fees" (not generic IRS phrasing),
+     and a one-line description each. A re-run backfills line numbers and
+     descriptions onto an earlier draft's rows, but **only where the label is
+     still the untouched default** — a deliberate rename is never clobbered.
+     Tested both directions.
   1b. **Owner decisions (two rounds of narrowing), already applied**: first
      "no SSN/TIN in my system" — which killed the W-9 upload, since a signed
      W-9 has the TIN printed on it. Then "still too much friction, just let
@@ -82,7 +92,7 @@ substantial session.
      browser assertion that the tab renders **zero inputs/selects/textareas**
      — so data entry can't come back without failing a test.
   2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
-  3. **First-use setup**: Tax Center -> **Mapping** tab, pick a tax line for
+  3. **First-use setup**: **Labs -> Tax Center -> Mapping** tab, pick a tax line for
      each category (they're listed with usage counts so the ones that matter
      come first). Until that's done the Schedule E tab shows everything as
      "unmapped" (by design — nothing is silently dropped). Nothing to do in

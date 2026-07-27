@@ -778,7 +778,7 @@ Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX s
 ## Central Fiscal
 <!-- roles: admin -->
 
-**Somente administradores completos.** Abra pela barra lateral ou pela tela inicial. Tudo abaixo é filtrado por um **ano fiscal**, escolhido uma vez no topo e compartilhado pelas três abas.
+**Somente administradores completos**, em **Labs** na barra lateral. Está marcado como Labs de propósito — é novo, e vale conferir os números com seus próprios registros antes de confiar neles. Tudo abaixo é filtrado por um **ano fiscal**, escolhido uma vez no topo e compartilhado pelas três abas.
 
 > Estas ferramentas organizam os seus próprios registros no formato que uma declaração exige. Não são consultoria fiscal — peça ao seu contador para validar o mapeamento de categorias e os valores-limite uma vez, e o app aplica essas decisões de forma consistente daí em diante.
 
@@ -796,7 +796,7 @@ Suas categorias do dia a dia e suas linhas fiscais são **totalmente separadas**
 
 ### Editando as linhas fiscais
 
-As 15 linhas nativas correspondem ao Schedule E Parte I, mas são suas para alterar na mesma aba:
+As 15 linhas nativas correspondem ao Schedule E Parte I — cada uma mostra seu **número oficial de linha (5–19)** e uma nota curta sobre o que entra ali (ex.: linha 12 *Mortgage Interest* — "Apenas a parte de juros das prestações"), então a linha certa fica óbvia sem abrir as instruções do IRS. E são suas para alterar na mesma aba:
 
 - **Renomeie** qualquer uma para o nome que você usa
 - **Oculte** as que nunca usa — linhas ocultas deixam de ser oferecidas, e o que estava nelas passa a constar como não mapeado em vez de sumir

@@ -13,6 +13,9 @@ export interface ScheduleELineRow {
   id: string;
   code: string;
   label: string;
+  /** Official Schedule E Part I line number (5-19); null for custom lines. */
+  line_number: number | null;
+  description: string | null;
   sort_order: number;
   is_active: boolean;
   is_system: boolean;
@@ -105,6 +108,7 @@ export interface ScheduleERow {
   line_id: string | null;
   line_code: string | null;
   line_label: string | null;
+  line_number: number | null;
   line_sort: number | null;
   treatment: CapitalTreatment | null;
   total: number;
@@ -115,7 +119,7 @@ export interface ScheduleERow {
 export interface ScheduleEPivot {
   households: { id: string | null; name: string }[];
   /** Active lines that actually carry money, in the admin's chosen order. */
-  lines: { id: string; code: string; label: string }[];
+  lines: { id: string; code: string; label: string; number: number | null }[];
   /** `cells[lineId][householdId]` — only currently-deductible amounts. */
   cells: Map<string, Map<string, number>>;
   lineTotals: Map<string, number>;
@@ -140,7 +144,7 @@ const HOUSEHOLD_KEY = (id: string | null) => id ?? '__none__';
  */
 export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
   const householdNames = new Map<string, string>();
-  const lineMeta = new Map<string, { id: string; code: string; label: string; sort: number }>();
+  const lineMeta = new Map<string, { id: string; code: string; label: string; number: number | null; sort: number }>();
   const cells = new Map<string, Map<string, number>>();
   const lineTotals = new Map<string, number>();
   const householdTotals = new Map<string, number>();
@@ -166,6 +170,7 @@ export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
         id: r.line_id,
         code: r.line_code ?? '',
         label: r.line_label ?? '',
+        number: r.line_number,
         sort: r.line_sort ?? 0,
       });
     }
@@ -189,7 +194,7 @@ export function pivotScheduleE(rows: ScheduleERow[]): ScheduleEPivot {
   // order they arranged the lines, not insertion order.
   const lines = [...lineMeta.values()]
     .sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
-    .map(({ id, code, label }) => ({ id, code, label }));
+    .map(({ id, code, label, number }) => ({ id, code, label, number }));
 
   return { households, lines, cells, lineTotals, householdTotals, grandTotal, capitalized, unmapped };
 }

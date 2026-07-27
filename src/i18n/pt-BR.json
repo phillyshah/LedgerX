@@ -1151,5 +1151,6 @@
   "tax.map.mappedCount": "{count} categorias mapeadas aqui",
   "tax.map.linesFootnote": "As 15 linhas nativas correspondem ao Schedule E Parte I. Renomeie ou oculte qualquer uma delas; linhas ocultas deixam de ser oferecidas e o que estava nelas passa a constar como não mapeado. As nativas não podem ser excluídas — oculte-as — e uma linha ainda em uso não pode ser excluída de jeito nenhum.",
   "tax.map.usedInOne": "usada em {count} transação",
-  "tax.map.mappedCountOne": "{count} categoria mapeada aqui"
+  "tax.map.mappedCountOne": "{count} categoria mapeada aqui",
+  "admin.labs": "Labs"
 }
