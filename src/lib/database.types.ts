@@ -362,18 +362,21 @@ export interface Database {
           name: string;
           household_id: string | null;
           created_at: string;
+          schedule_e_line: ScheduleELine | null;
         };
         Insert: {
           id?: string;
           name: string;
           household_id?: string | null;
           created_at?: string;
+          schedule_e_line?: ScheduleELine | null;
         };
         Update: {
           id?: string;
           name?: string;
           household_id?: string | null;
           created_at?: string;
+          schedule_e_line?: ScheduleELine | null;
         };
         Relationships: [];
       };
@@ -968,6 +971,155 @@ export interface Database {
           matched_at: string | null;
         }>;
       };
+
+      // ── Tax: Schedule E + 1099-NEC (v13.15, full-admin only) ───────────
+      get_tax_settings: {
+        Args: Record<string, never>;
+        Returns: TaxSettings;
+      };
+      admin_update_tax_settings: {
+        Args: { p_de_minimis: number; p_1099: number };
+        Returns: TaxSettings;
+      };
+      schedule_e_report: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          household_id: string | null;
+          household_name: string | null;
+          line_id: string | null;
+          line_code: string | null;
+          line_label: string | null;
+          line_number: number | null;
+          line_sort: number | null;
+          treatment: CapitalTreatment | null;
+          total: number;
+          txn_count: number;
+          source: 'expense' | 'invoice';
+        }>;
+      };
+      list_schedule_e_lines: {
+        Args: { p_include_inactive?: boolean };
+        Returns: Array<ScheduleELine>;
+      };
+      admin_upsert_schedule_e_line: {
+        Args: {
+          p_id: string | null;
+          p_code: string | null;
+          p_label: string;
+          p_sort_order: number | null;
+          p_is_active: boolean;
+          p_description?: string | null;
+        };
+        Returns: ScheduleELine;
+      };
+      admin_delete_schedule_e_line: {
+        Args: { p_id: string };
+        Returns: void;
+      };
+      list_category_mappings: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          category_id: string;
+          category_name: string;
+          line_id: string | null;
+          line_code: string | null;
+          line_label: string | null;
+          txn_count: number;
+        }>;
+      };
+      admin_set_category_schedule_e_line: {
+        Args: { p_category_id: string; p_line_id: string | null };
+        Returns: void;
+      };
+      list_capital_review_queue: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          kind: 'expense' | 'invoice';
+          id: string;
+          household_id: string | null;
+          household_name: string | null;
+          txn_date: string;
+          vendor: string | null;
+          description: string | null;
+          category: string | null;
+          line_code: string | null;
+          amount: number;
+          currency: string;
+        }>;
+      };
+      admin_set_capital_treatment: {
+        Args: {
+          p_kind: 'expense' | 'invoice';
+          p_id: string;
+          p_treatment: CapitalTreatment | null;
+        };
+        Returns: void;
+      };
+      form_1099_summary: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          contractor_id: string;
+          username: string | null;
+          reportable_total: number;
+          excluded_total: number;
+          ambiguous_total: number;
+          unknown_method_total: number;
+          payment_count: number;
+          methods: string | null;
+          threshold: number;
+          crosses_threshold: boolean;
+        }>;
+      };
+      list_contractor_tax_status: {
+        Args: { p_tax_year: number };
+        Returns: Array<{
+          contractor_id: string;
+          username: string | null;
+          paid_ytd: number;
+          threshold: number;
+          crosses_threshold: boolean;
+        }>;
+      };
     };
   };
 }
+
+/** A Schedule E Part I expense line. Seeded with the 15 IRS lines but stored
+ *  as editable rows, deliberately NOT as an enum and NOT as a column on
+ *  `categories` — operational categories and tax lines are separate concerns.
+ *  `code` is the immutable join key; `label` is admin-owned display text. */
+export interface ScheduleELine {
+  id: string;
+  code: string;
+  label: string;
+  /** Official Schedule E Part I line number (5-19); null for custom lines. */
+  line_number: number | null;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Maps one operational category to one tax line. Lives in its own table so
+ *  `categories` gains no tax columns. */
+export interface CategoryScheduleEMap {
+  category_id: string;
+  schedule_e_line_id: string;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+/** Currently-deductible repair vs. capitalize-and-depreciate improvement.
+ *  null = not yet reviewed, which is what the review queue selects on. */
+export type CapitalTreatment = 'repair' | 'improvement';
+
+export interface TaxSettings {
+  id: number;
+  de_minimis_threshold: number;
+  form_1099_threshold: number;
+  updated_at: string;
+  updated_by: string | null;
+}
+

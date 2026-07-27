@@ -24,6 +24,7 @@ Um rastreador de despesas seguro e compartilhado para residências e equipes. Re
 - [Configurações da Conta](#configurações-da-conta)
 - [Gerenciar Residências](#gerenciar-residências)
 - [Recursos de Administrador](#recursos-de-administrador)
+- [Central Fiscal](#central-fiscal)
 - [FAQ e Solução de Problemas](#faq-e-solução-de-problemas)
 
 ---
@@ -771,6 +772,76 @@ Administradores de residência recebem resultados restritos às suas próprias r
 Só funciona a partir do e-mail salvo no seu perfil — é assim que o LedgerX sabe quem é você. Não precisa de anexo; um e-mail *com* anexo continua sendo processado como recibo/nota normalmente.
 
 **Avisos de atividade:** sempre que uma nota ou orçamento tem nova atividade (enviado, aceito/recusado ou marcado como pago), todos naquela propriedade recebem um aviso curto por e-mail para dar uma olhada — sem valores nem detalhes, apenas um lembrete para abrir o app. Prestadores só são avisados sobre as notas e orçamentos que eles mesmos enviaram, e transações comuns nunca disparam esses e-mails.
+
+---
+
+## Central Fiscal
+<!-- roles: admin -->
+
+**Somente administradores completos**, em **Labs** na barra lateral. Está marcado como Labs de propósito — é novo, e vale conferir os números com seus próprios registros antes de confiar neles. Tudo abaixo é filtrado por um **ano fiscal**, escolhido uma vez no topo e compartilhado pelas três abas.
+
+> Estas ferramentas organizam os seus próprios registros no formato que uma declaração exige. Não são consultoria fiscal — peça ao seu contador para validar o mapeamento de categorias e os valores-limite uma vez, e o app aplica essas decisões de forma consistente daí em diante.
+
+### Schedule E
+
+Um detalhamento dos gastos do ano por propriedade, organizado por linha de despesa fiscal, pronto para entregar ao contador. Exporte em CSV.
+
+O mapeamento é configurado uma vez na aba **Mapeamento** e depois funciona sozinho:
+
+1. Abra **Mapeamento** e escolha uma linha fiscal para cada uma das suas categorias (Materiais → Materiais, Serviço/mão de obra → Reparos, e assim por diante). As categorias aparecem com a frequência de uso de cada uma, então dá para começar pelas que mais importam.
+2. Toda transação naquela categoria passa a se classificar sozinha — inclusive as futuras.
+3. O que ainda não estiver mapeado aparece em um aviso âmbar, para que nada suma silenciosamente.
+
+Suas categorias do dia a dia e suas linhas fiscais são **totalmente separadas**. As categorias que os prestadores escolhem ao enviar são uma coisa; as linhas fiscais para as quais elas se somam são outra. Editar linhas fiscais nunca mexe nas suas categorias, e renomear uma categoria nunca atrapalha sua configuração fiscal.
+
+### Editando as linhas fiscais
+
+As 15 linhas nativas correspondem ao Schedule E Parte I — cada uma mostra seu **número oficial de linha (5–19)** e uma nota curta sobre o que entra ali (ex.: linha 12 *Mortgage Interest* — "Apenas a parte de juros das prestações"), então a linha certa fica óbvia sem abrir as instruções do IRS. E são suas para alterar na mesma aba:
+
+- **Renomeie** qualquer uma para o nome que você usa
+- **Oculte** as que nunca usa — linhas ocultas deixam de ser oferecidas, e o que estava nelas passa a constar como não mapeado em vez de sumir
+- **Adicione as suas** para o que a lista padrão não cobrir
+- As nativas não podem ser excluídas (oculte-as), e uma linha ainda em uso por alguma categoria não pode ser excluída de jeito nenhum
+
+Recibos sem categoria usam o **catálogo de fornecedores** como alternativa — se a Lowe's estiver mapeada para Materiais, um recibo da Lowe's sem categoria ainda cai na linha certa.
+
+> **LLC de sócio único?** Os aluguéis vão no Schedule E Parte I. **LLC com vários sócios?** Você entrega o Form 1065 e declara no Form 8825, cujas linhas de despesa são quase idênticas — o mesmo mapeamento serve para os dois.
+
+Valores marcados como melhorias de capital aparecem **separados** do total dedutível, porque pertencem a um cronograma de depreciação, não a uma linha de despesa.
+
+### Revisão de capital
+
+A pergunta reparo-ou-melhoria, um item por vez. Um reparo sai da renda deste ano; uma melhoria entra na base do imóvel e é depreciada em 27,5 anos.
+
+Só aparecem aqui os itens **iguais ou acima do limite de minimis** — os menores já são dedutíveis e não exigem decisão. Cada linha mostra uma resposta sugerida com o motivo ("a descrição parece uma benfeitoria", "a categoria é manutenção de rotina"), pré-selecionada mas nunca aplicada automaticamente. Toque em **Reparo** ou **Melhoria** e o item sai da fila.
+
+Os pagamentos usam a data em que você *pagou*, não a data do serviço — então um trabalho de dezembro pago em janeiro conta para o ano seguinte.
+
+### 1099-NEC
+
+Acompanha quanto cada prestador recebeu no ano e quem vai entrar na planilha. **Não há nada para preencher** — sem perfis de prestador, sem formulários, sem configuração. Todos os números vêm das notas já registradas no sistema.
+
+A aba declara suas suposições em vez de perguntar:
+
+- **Todo mundo acima do limite entra na lista.** Empresas são isentas do 1099-NEC, mas o app não pergunta quem é pessoa jurídica — seu contador tira essas. Listar demais é fácil de corrigir; esquecer alguém não é.
+- **Pagamentos no cartão ficam de fora**, porque a operadora já os declara no 1099-K.
+- **Zelle, cheque e ACH contam** — o Zelle é transferência entre bancos e não emite 1099-K, então continuam sendo sua obrigação.
+- **Venmo é sinalizado, não adivinhado** — pagamentos para perfil comercial são declarados pelo Venmo, os pessoais não.
+- **Os totais usam a data em que você pagou**, não a data do serviço.
+
+### Dois downloads
+
+**Planilha W-9** — uma linha por prestador acima do limite. As colunas da esquerda já vêm preenchidas com o que o LedgerX sabe (quem, quanto, quantos pagamentos, quais formas de pagamento). As colunas da direita são os campos reais do W-9 — nome, nome comercial, classificação fiscal federal, endereço, TIN — deixados **em branco** para seu contador ou o prestador completar. É só entregar.
+
+**Resumo de pagamentos** — todos os prestadores, com a divisão entre declarável / excluído por cartão / ambíguo por Venmo, para conferir com seus próprios registros.
+
+### O que isto deliberadamente *não* guarda
+
+Nada sobre seus prestadores além dos próprios pagamentos. Sem nomes, sem tipos de entidade, sem endereços, sem números de identificação fiscal e sem arquivos de W-9. Um W-9 assinado tem o TIN impresso nele, então não existe envio de arquivo — o app nunca vira um alvo que valha a pena invadir, e você nunca perde tempo digitando dados que seu contador já tem.
+
+### Limites
+
+O ícone de engrenagem guarda os dois valores, porque os dois mudam: o porto seguro de minimis e o limite de declaração do 1099 (que agora é corrigido pela inflação). São configurações e não números fixos exatamente por isso — confirme os valores do ano vigente com seu contador.
 
 ---
 

@@ -24,6 +24,7 @@ A secure, shared expense tracker for households and teams. Log spending, scan re
 - [Account Settings](#account-settings)
 - [Managing Households](#managing-households)
 - [Admin Features](#admin-features)
+- [Tax Center](#tax-center)
 - [Household Admin Role](#household-admin-role)
 - [Contractor Role](#contractor-role)
 - [FAQ & Troubleshooting](#faq--troubleshooting)
@@ -769,6 +770,76 @@ Household admins get results scoped to their own households; full admins see eve
 It only works from the email address saved on your profile — that's how LedgerX knows who you are. No attachment is needed; an email *with* an attachment is still processed as a receipt/invoice as usual.
 
 **Activity nudges:** whenever an invoice or estimate sees new activity (submitted, accepted/rejected, or marked paid), everyone in that property gets a short heads-up email so they can check in — no amounts or details, just a nudge to open the app. Contractors are only nudged about the invoices and estimates they submitted themselves, and ordinary transactions never trigger these emails.
+
+---
+
+## Tax Center
+<!-- roles: admin -->
+
+**Full admins only**, under **Labs** in the sidebar. It's marked Labs on purpose — it's new, and the numbers deserve a check against your own records before you lean on them. Everything below is scoped to one **tax year**, chosen once at the top and shared by all three tabs.
+
+> These tools organize your own records into the shape a return needs. They aren't tax advice — have your accountant sign off on the category mapping and the threshold figures once, and the app applies those decisions consistently from then on.
+
+### Schedule E
+
+A property-by-property breakdown of the year's spending, laid out by tax expense line, ready to hand to your accountant. Export it as CSV.
+
+The mapping is set up once on the **Mapping** tab and then runs itself:
+
+1. Open **Mapping** and pick a tax line for each of your categories (Materials → Supplies, Service/labor → Repairs, and so on). Categories are listed with how often each is actually used, so you can do the ones that matter first.
+2. Every transaction in that category classifies itself from then on — including future ones.
+3. Anything you haven't mapped yet shows up in an amber warning, so nothing goes missing quietly.
+
+Your everyday categories and your tax lines are **kept completely separate**. The categories contractors pick when submitting are one thing; the tax lines they roll up to are another. Editing tax lines never touches your categories, and renaming a category never disturbs your tax setup.
+
+### Editing the tax lines
+
+The 15 built-in lines match Schedule E Part I — each shows its **official line number (5–19)** and a short note on what belongs there (e.g. line 12 *Mortgage Interest* — "Interest portion of mortgage payments only"), so the right line is obvious without opening the IRS instructions. They're yours to change on the same tab:
+
+- **Rename** any of them to whatever you call it
+- **Hide** ones you never use — hidden lines stop being offered, and anything under them reads as unmapped rather than disappearing
+- **Add your own** for anything the standard list doesn't cover
+- Built-ins can't be deleted (hide them instead), and a line still in use by a category can't be deleted at all
+
+Receipts without a category fall back to the **vendor catalog** — if Lowe's is mapped to Materials, an uncategorized Lowe's receipt still lands on the right line.
+
+> **Single-member LLC?** Rentals go on Schedule E Part I. **Multi-member LLC?** You file Form 1065 and report on Form 8825 instead, whose expense lines are nearly identical — the same mapping drives both.
+
+Amounts marked as capital improvements are shown **separately** from the deductible total, because they belong on a depreciation schedule rather than an expense line.
+
+### Capital review
+
+The repair-or-improvement question, one item at a time. A repair comes off this year's income; an improvement is added to the property's basis and written off over 27.5 years.
+
+Only items **at or above the de minimis threshold** appear here — smaller ones are already deductible and don't need a decision. Each row shows a suggested answer with its reasoning ("the description sounds like a betterment", "its category is routine upkeep"), pre-selected but never applied for you. Tap **Repair** or **Improvement** and it leaves the queue.
+
+Payments use the date you *paid*, not the date of the work — so a December job paid in January counts toward the later year.
+
+### 1099-NEC
+
+Tracks what each contractor was paid this year and who will land on the worksheet. **There is nothing to fill in** — no contractor profiles, no forms, no setup. Every number comes from invoices already in the system.
+
+The tab states its assumptions instead of asking you for them:
+
+- **Everyone over the threshold is listed.** Corporations are exempt from 1099-NEC, but the app doesn't ask who's incorporated — your accountant strikes those. Over-listing is easy to fix; missing someone isn't.
+- **Credit card payments are left out**, because the card processor already reports them on a 1099-K.
+- **Zelle, check, and ACH count** — Zelle is bank-to-bank and issues no 1099-K, so those stay your obligation.
+- **Venmo is flagged, not guessed** — business-profile payments get reported by Venmo, personal ones don't.
+- **Totals use the date you paid**, not the date of the work.
+
+### Two downloads
+
+**W-9 worksheet** — one row per contractor over the threshold. The left columns are pre-filled with what LedgerX knows (who, how much, how many payments, which payment methods). The right columns are the actual W-9 fields — name, business name, federal tax classification, address, TIN — left **blank** for your accountant or the contractor to complete. Hand it over and you're done.
+
+**Payment summary** — every contractor, with the reportable / card-excluded / Venmo-ambiguous split, for reconciling against your own records.
+
+### What this deliberately does *not* store
+
+Nothing about your contractors beyond the payments themselves. No names, no entity types, no addresses, no tax ID numbers, and no W-9 files. A signed W-9 has the TIN printed on it, so there's no upload — the app never becomes a place worth breaching, and you never spend time typing in data your accountant already has.
+
+### Thresholds
+
+The gear icon holds both figures, because both change: the de minimis safe harbor and the 1099 reporting threshold (which is now indexed for inflation). They're settings rather than fixed numbers for exactly that reason — confirm the current year's values with your accountant.
 
 ---
 

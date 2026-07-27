@@ -14,6 +14,8 @@ import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, CreditCard, HelpCircle, LogOut,
+  Landmark,
+  FlaskConical,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 // hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
@@ -30,6 +32,7 @@ const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ de
 const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
 const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
 const EstimateReport      = lazy(() => import('./EstimateReport').then((m) => ({ default: m.EstimateReport })));
+const TaxCenter           = lazy(() => import('./tax/TaxCenter').then((m) => ({ default: m.TaxCenter })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
 const EstimateForm        = lazy(() => import('../EstimateForm').then((m) => ({ default: m.EstimateForm })));
@@ -55,7 +58,7 @@ type AdminView =
   | 'my-transactions'
   | 'reconciliation';
 
-type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report';
+type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report' | 'tax';
 
 // ── Home screen (full admin only) ─────────────────────────────────────────────
 
@@ -233,6 +236,8 @@ export function AdminLayout() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showTax, setShowTax] = useState(false);
+  const [labsOpen, setLabsOpen] = useState(false);
   const [showEstimateReport, setShowEstimateReport] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -313,6 +318,8 @@ export function AdminLayout() {
       setShowActivity(true);
     } else if (view === 'estimate-report') {
       setShowEstimateReport(true);
+    } else if (view === 'tax') {
+      setShowTax(true);
     } else {
       setActiveView(view);
     }
@@ -324,6 +331,7 @@ export function AdminLayout() {
     if (key === 'reports') return showReports;
     if (key === 'activity') return showActivity;
     if (key === 'estimate-report') return showEstimateReport;
+    if (key === 'tax') return showTax;
     return activeView === key;
   };
 
@@ -377,6 +385,13 @@ export function AdminLayout() {
     { key: 'reports',         label: t('reports.title'),            icon: FileText },
     { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
     { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
+  ];
+
+  // Labs — full-admin only. Experimental surfaces live here instead of the
+  // main nav until they've earned a permanent home. The dedicated Labs
+  // *screen* was removed in v13.5; this is the nav group that replaces it.
+  const labsSubItems: { key: AdminNavKey; label: string; icon: typeof Home }[] = [
+    { key: 'tax', label: t('tax.navLabel'), icon: Landmark },
   ];
 
   const manageSubItems: { key: AdminNavKey; label: string; icon: typeof Home }[] = [
@@ -476,6 +491,35 @@ export function AdminLayout() {
               </button>
             ))}
 
+            {/* Labs — full admins only. Kept out of the main nav on purpose:
+                these are still being refined, and the violet badge says so. */}
+            {isAdmin && (
+              <>
+                <div className="h-px bg-emerald-800 mx-2 my-1.5" />
+                <button
+                  onClick={() => setLabsOpen(!labsOpen)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
+                >
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {t('admin.labs')}
+                  <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${labsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {labsOpen && (
+                  <div className="pl-3 space-y-0.5">
+                    {labsSubItems.map(({ key, icon: Icon, label }) => (
+                      <button key={key} onClick={() => handleViewChange(key)} className={subItemCls(key)}>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        {label}
+                        <span className="ml-auto px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-violet-500/25 text-violet-200 rounded">
+                          {t('labs.cc.auto.labsBadge')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Account actions — on mobile these live in the drawer (the avatar
                 menu is desktop-only), so there's a single menu button. */}
             <div className="h-px bg-emerald-800 mx-2 my-1.5" />
@@ -536,6 +580,35 @@ export function AdminLayout() {
                 {label}
               </button>
             ))}
+
+            {/* Labs — full admins only. Kept out of the main nav on purpose:
+                these are still being refined, and the violet badge says so. */}
+            {isAdmin && (
+              <>
+                <div className="h-px bg-emerald-800 mx-2 my-1.5" />
+                <button
+                  onClick={() => setLabsOpen(!labsOpen)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-200 hover:text-white hover:bg-emerald-800 transition-all"
+                >
+                  <FlaskConical className="w-4 h-4 shrink-0" />
+                  {t('admin.labs')}
+                  <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${labsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {labsOpen && (
+                  <div className="pl-3 space-y-0.5">
+                    {labsSubItems.map(({ key, icon: Icon, label }) => (
+                      <button key={key} onClick={() => handleViewChange(key)} className={subItemCls(key)}>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        {label}
+                        <span className="ml-auto px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-violet-500/25 text-violet-200 rounded">
+                          {t('labs.cc.auto.labsBadge')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </nav>
         </aside>
 
@@ -665,6 +738,10 @@ export function AdminLayout() {
         {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
         {showReports   && <Reports        onClose={() => setShowReports(false)} />}
         {showActivity  && <ActivityReport onClose={() => setShowActivity(false)} />}
+        {/* Tax Center is full-admin only. Household admins DO get reports
+            generally, so this must gate on isAdmin specifically rather than
+            riding along with the reports group. */}
+        {showTax && isAdmin && <TaxCenter onClose={() => setShowTax(false)} />}
         {showEstimateReport && <EstimateReport onClose={() => setShowEstimateReport(false)} />}
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}
