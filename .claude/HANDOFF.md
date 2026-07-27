@@ -28,12 +28,14 @@ substantial session.
   `contractor_invoices` records repair-vs-improvement, surfaced through a
   review queue that only shows items at/above the de minimis threshold and
   pre-fills a *suggestion* (never auto-applies — the BRA test is a legal
-  judgment). (2) **1099-NEC readiness.** `contractor_tax_profiles` stores
-  **nothing sensitive at all** — see the follow-up note below. Payment
-  method decides reportability: card excluded (processor files a 1099-K),
-  Zelle/check/ACH reportable, Venmo flagged ambiguous, null method
-  reportable-but-warned. Corporations are exempt; **unknown entity type is
-  treated as REQUIRING a 1099**, never silently skipped. Thresholds live in
+  judgment). (2) **1099-NEC readiness.** Zero setup and zero contractor
+  storage — see the follow-up note below. Computed purely from
+  `contractor_invoices`; payment method decides reportability: card excluded
+  (processor files a 1099-K), Zelle/check/ACH reportable, Venmo flagged
+  ambiguous, null method reportable-but-warned. Corporations are exempt in
+  law but the app never asks who's incorporated, so it **lists everyone over
+  the threshold** and the accountant strikes the corporations. Output is a
+  downloadable W-9 worksheet. Thresholds live in
   a `tax_settings` singleton, not code — the 1099 figure went $600 -> $2,000
   for payments after 2025-12-31 and is now inflation-indexed. Both features
   are **full-admin only**: `AdminLayout` gates on `isAdmin` and every RPC
@@ -41,34 +43,38 @@ substantial session.
   initially landed in `haNavItems` (household-admin) as well; removed.
   UI is one `TaxCenter` modal with three tabs sharing a tax-year selector
   (`src/components/admin/tax/`), plus a Schedule E dropdown per row in
-  `ManageCategories` and a year-round "$X YTD · no W-9" badge in
-  `ManageUsers`. **One real correctness fix worth remembering**:
+  `ManageCategories` and a passive year-round "$X YTD · 1099 likely" badge in
+  `ManageUsers` (informational only — nothing to act on in-app). **One real correctness fix worth remembering**:
   `contractor_invoices.paid_at` is `timestamptz`, so a naive
   `extract(year ...)` resolves in UTC and pushes an invoice settled at 8pm ET
   on Dec 31 into the next tax year — exactly when year-end settling
   clusters. `tax_year_of()` anchors it to America/New_York; change that one
-  constant if the LLC's tax home moves. Verified: **49 SQL assertions** on
-  local Postgres 16 (`supabase/tests/`, incl. the timezone boundary, the
-  corporate exemption, config-driven thresholds, and all 8 RPCs refusing a
-  non-admin), **26 unit assertions** on the suggestion/pivot logic, and
-  **48 browser assertions** across desktop + mobile. Migration re-run is
-  idempotent and preserves data.
+  constant if the LLC's tax home moves. Verified: **45 SQL assertions** on
+  local Postgres 16 (`supabase/tests/`, incl. the timezone boundary,
+  config-driven thresholds, the absence of the whole profile apparatus, and
+  all 7 RPCs refusing a non-admin), **26 unit assertions** on the
+  suggestion/pivot logic, and **84 browser assertions** across desktop +
+  mobile including the worksheet CSV contents. Migration re-run is idempotent
+  and preserves data.
 - **⚠️ Pending manual steps for v13.15**:
   1. **SQL** — run `supabase/migrations/20260802000000_tax_schedule_e_and_1099.sql`
      in the Supabase SQL editor. Safe to re-run, and safe to run *over* the
      earlier draft: it drops the `tax-docs` bucket, its objects, its policies,
      the `w9_doc_path`/address columns, and the old 12-arg upsert overload.
      No storage bucket is created.
-  1b. **Owner decision (mid-review), already applied**: the accountant files
-     the 1099s, so the app must hold **no TIN, no SSN, no W-9 file, and no
-     contractor address**. A signed W-9 has the TIN printed on it, so the
-     upload feature was removed outright rather than kept "securely" — the
-     only safe place for that number is not here. `contractor_tax_profiles`
-     is now exactly 8 columns: user_id, legal_name, entity_type,
-     w9_received_at (a *date* meaning "collected, filed elsewhere"),
-     is_exempt_payee, notes, updated_at, updated_by. The SQL suite asserts the
-     absence of every sensitive column/bucket plus an exact column count, so
-     this can't be silently reintroduced.
+  1b. **Owner decisions (two rounds of narrowing), already applied**: first
+     "no SSN/TIN in my system" — which killed the W-9 upload, since a signed
+     W-9 has the TIN printed on it. Then "still too much friction, just let
+     me make those assumptions and output a W-9 worksheet for my accountant"
+     — which killed the profile table outright. **There is now no
+     `contractor_tax_profiles` table, no `tax_entity_type` enum, no write
+     path, and no bucket.** The 1099 tab reads only `contractor_invoices` +
+     `user_profiles.username`, states its assumptions instead of asking, and
+     its deliverable is a downloadable W-9 worksheet: app-known columns
+     pre-filled, W-9 columns blank for the accountant. Guarded by SQL
+     assertions on the absence of every piece of that apparatus, plus a
+     browser assertion that the tab renders **zero inputs/selects/textareas**
+     — so data entry can't come back without failing a test.
   2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
   3. **First-use setup**: Manage -> Categories, set a Schedule E line on each
      category. Until that's done the Schedule E tab shows everything as

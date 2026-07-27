@@ -77,38 +77,50 @@ deductions between years.
 
 ## Feature 2 — 1099-NEC readiness
 
-### Deliberately storing nothing sensitive
+### Zero setup, zero storage
 
-**Owner's decision, confirmed after the first build:** the accountant files
-the 1099s and keeps the paperwork, so the app should hold no identity data at
-all.
+**Owner's decision, after two rounds of narrowing.** The final answer wasn't
+"store the sensitive fields more carefully" — it was that the fields
+shouldn't exist. Two objections landed in sequence:
 
-The first draft already rejected a `tin` column — an SSN in a Postgres column
-is a permanent breach liability. But it still uploaded the signed W-9 to a
-private `tax-docs` bucket, and **a W-9 has the TIN printed on it**, so that
-was storing the number by another route. The bucket, the `w9_doc_path`
-column, and the address fields were all removed.
+1. *"I don't want to keep any SSN or TIN info in my system."* The first draft
+   already refused a `tin` column, but it uploaded the signed W-9 to a private
+   bucket — and a W-9 has the TIN printed on it, so that was storing the
+   number by another route.
+2. *"This is still too much friction. Just let me make those assumptions,
+   don't have me enter them. I can output W-9 compatible worksheets and give
+   my accountant."* Even the reduced profile (legal name, entity type, W-9
+   date) was per-contractor data entry that bought nothing the app could
+   compute.
 
-What remains is four fields plus bookkeeping:
+So `contractor_tax_profiles` is gone entirely, along with the enum, the
+upsert RPC, and the bucket. The 1099 side now reads **only**
+`contractor_invoices` + `user_profiles.username`.
 
-| Field | Why it's needed |
+**Assumptions replace fields.** The tab states what it assumed rather than
+asking:
+
+| Assumption | Why it's safe to assume |
 |---|---|
-| `legal_name` | identifies the payee on the accountant's list |
-| `entity_type` | decides whether a 1099 is required at all (corps exempt) |
-| `w9_received_at` | a **date** — "collected, filed elsewhere" |
-| `is_exempt_payee`, `notes` | manual override + free text |
+| every contractor over the threshold is listed | corporations are exempt, but the accountant knows which are incorporated; over-listing is recoverable, a missed filing isn't |
+| card payments excluded | processor already files a 1099-K |
+| Zelle/check/ACH included | Zelle is bank-to-bank, issues no 1099-K |
+| Venmo flagged, not guessed | depends on business-profile status |
+| cash basis on `paid_at` | the year you paid is the reportable year |
 
-Addresses went too: they're on the W-9 the accountant already holds, and
-nothing in the app consumes them. Keeping a second copy is redundant PII with
-no purpose.
+**The deliverable is a worksheet, not a database.** "Download W-9 worksheet"
+emits one row per over-threshold contractor: left columns pre-filled with
+what the app knows (who, how much, how many payments, which methods), right
+columns the actual W-9 fields — name, business name, federal tax
+classification, address, TIN — deliberately blank for the accountant. The
+sensitive data exists in that file for exactly as long as it takes to hand it
+over, and never in the database.
 
-The migration also tears down the bucket, its policies, its stored objects,
-and the dropped columns, so applying it over the earlier draft converges to
-the same clean state.
-
-The test suite asserts the *absence* of all of this — no TIN/SSN/EIN column,
-no document-reference column, no address columns, no `tax-docs` bucket, and
-an exact column count — so a future change can't quietly reintroduce it.
+The test suite asserts the absence of the whole apparatus — no profile table,
+no entity enum, no write path, no bucket, no TIN/SSN column anywhere in the
+schema — plus a browser assertion that the tab renders **no input, select, or
+textarea at all**. That last one is the real guarantee: it's impossible to
+reintroduce data entry without failing a test.
 
 ### Three rules the app can enforce that people get wrong
 

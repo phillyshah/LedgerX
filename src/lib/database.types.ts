@@ -1022,18 +1022,14 @@ export interface Database {
         Returns: Array<{
           contractor_id: string;
           username: string | null;
-          legal_name: string | null;
-          entity_type: TaxEntityType | null;
           reportable_total: number;
           excluded_total: number;
           ambiguous_total: number;
           unknown_method_total: number;
           payment_count: number;
+          methods: string | null;
           threshold: number;
           crosses_threshold: boolean;
-          w9_on_file: boolean;
-          entity_exempt: boolean;
-          requires_1099: boolean;
         }>;
       };
       list_contractor_tax_status: {
@@ -1041,23 +1037,10 @@ export interface Database {
         Returns: Array<{
           contractor_id: string;
           username: string | null;
-          legal_name: string | null;
-          entity_type: TaxEntityType | null;
           paid_ytd: number;
-          w9_on_file: boolean;
-          needs_w9: boolean;
+          threshold: number;
+          crosses_threshold: boolean;
         }>;
-      };
-      admin_upsert_contractor_tax_profile: {
-        Args: {
-          p_user_id: string;
-          p_legal_name: string | null;
-          p_entity_type: TaxEntityType | null;
-          p_w9_received_at: string | null;
-          p_is_exempt_payee: boolean;
-          p_notes: string | null;
-        };
-        Returns: ContractorTaxProfile;
       };
     };
   };
@@ -1075,10 +1058,6 @@ export type ScheduleELine =
  *  null = not yet reviewed, which is what the review queue selects on. */
 export type CapitalTreatment = 'repair' | 'improvement';
 
-export type TaxEntityType =
-  | 'individual' | 'sole_prop' | 'partnership'
-  | 'c_corp' | 's_corp' | 'llc' | 'other';
-
 export interface TaxSettings {
   id: number;
   de_minimis_threshold: number;
@@ -1087,16 +1066,3 @@ export interface TaxSettings {
   updated_by: string | null;
 }
 
-/** Deliberately minimal: no TIN/SSN/EIN, no address, no document reference.
- *  The accountant files the 1099s and holds the W-9s — this only records
- *  that one was collected. See .claude/SPEC-tax-features.md. */
-export interface ContractorTaxProfile {
-  user_id: string;
-  legal_name: string | null;
-  entity_type: TaxEntityType | null;
-  w9_received_at: string | null;
-  is_exempt_payee: boolean;
-  notes: string | null;
-  updated_at: string;
-  updated_by: string | null;
-}

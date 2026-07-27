@@ -806,20 +806,25 @@ Payments use the date you *paid*, not the date of the work — so a December job
 
 ### 1099-NEC
 
-Tracks what each contractor was paid this year and who will need a 1099.
+Tracks what each contractor was paid this year and who will land on the worksheet. **There is nothing to fill in** — no contractor profiles, no forms, no setup. Every number comes from invoices already in the system.
 
-- **Over the threshold with no W-9** is flagged in red, all year long — not just in January. Asking for a W-9 before the first payment is easy; chasing one after the job ended is not.
-- **Credit card payments are excluded automatically**, because the card processor already reports them. Zelle, check, and ACH payments stay your responsibility.
-- **Venmo is flagged as ambiguous** rather than guessed — business-profile payments get reported by Venmo, personal ones don't.
-- **Corporations are generally exempt**, which is why entity type is worth recording. If you leave it unknown, the app assumes a 1099 *is* required rather than skipping it.
+The tab states its assumptions instead of asking you for them:
 
-Export the whole table as CSV for your accountant.
+- **Everyone over the threshold is listed.** Corporations are exempt from 1099-NEC, but the app doesn't ask who's incorporated — your accountant strikes those. Over-listing is easy to fix; missing someone isn't.
+- **Credit card payments are left out**, because the card processor already reports them on a 1099-K.
+- **Zelle, check, and ACH count** — Zelle is bank-to-bank and issues no 1099-K, so those stay your obligation.
+- **Venmo is flagged, not guessed** — business-profile payments get reported by Venmo, personal ones don't.
+- **Totals use the date you paid**, not the date of the work.
+
+### Two downloads
+
+**W-9 worksheet** — one row per contractor over the threshold. The left columns are pre-filled with what LedgerX knows (who, how much, how many payments, which payment methods). The right columns are the actual W-9 fields — name, business name, federal tax classification, address, TIN — left **blank** for your accountant or the contractor to complete. Hand it over and you're done.
+
+**Payment summary** — every contractor, with the reportable / card-excluded / Venmo-ambiguous split, for reconciling against your own records.
 
 ### What this deliberately does *not* store
 
-Your accountant files the 1099s and keeps the paperwork, so LedgerX holds **no tax ID numbers, no W-9 files, and no contractor addresses**. A signed W-9 has the TIN printed on it — storing the file would be storing the number, so there's no upload at all.
-
-A contractor's tax profile is four things: legal name, entity type (those two decide whether a 1099 is required), the **date** you collected their W-9, and a free-text note. That's enough to tell you who needs a 1099 and who you still owe a W-9 chase, without the app ever becoming a place worth breaching.
+Nothing about your contractors beyond the payments themselves. No names, no entity types, no addresses, no tax ID numbers, and no W-9 files. A signed W-9 has the TIN printed on it, so there's no upload — the app never becomes a place worth breaching, and you never spend time typing in data your accountant already has.
 
 ### Thresholds
 

@@ -94,10 +94,8 @@ insert into contractor_invoices
   ('00000000-0000-0000-0000-0000000000c4','00000000-0000-0000-0000-0000000000b1',
    150,'Small job','paid','2026-05-06 12:00:00-04',null,'check');
 
-insert into contractor_tax_profiles (user_id, legal_name, entity_type, w9_received_at) values
-  ('00000000-0000-0000-0000-0000000000c1','Grosse Home Services LLC','llc','2026-01-15'),
-  ('00000000-0000-0000-0000-0000000000c2','Acme Corp','s_corp','2026-01-20');
--- c3 and c4 deliberately have NO profile
+-- No contractor profile table exists. Everything below is computed from the
+-- payments alone — that's the whole point.
 
 -- ── Tests ────────────────────────────────────────────────────────────────
 
@@ -213,31 +211,28 @@ begin
   perform assert(v_rec.ambiguous_total = 300, 'venmo flagged ambiguous');
   perform assert(v_rec.unknown_method_total = 200, 'null payment method surfaced for review');
   perform assert(v_rec.crosses_threshold,     'c1 crosses the $2,000 threshold');
-  perform assert(v_rec.w9_on_file,            'c1 W-9 recorded');
-  perform assert(v_rec.requires_1099,         'c1 requires a 1099');
-  perform assert(not v_rec.entity_exempt,     'LLC is not entity-exempt');
+  perform assert(v_rec.methods like '%check%', 'methods column lists what was used: ' || v_rec.methods);
+  perform assert(v_rec.methods like '%unrecorded%',
+    'a null payment method surfaces as "unrecorded" on the worksheet');
 
-  raise notice '--- form_1099_summary: corporate exemption ---';
+  raise notice '--- conservative listing: no entity data is consulted ---';
+  -- c2 would be an S-corp in reality and therefore exempt, but the app never
+  -- asks. It lists them and lets the accountant strike corporations —
+  -- over-listing is recoverable, a missed filing is not.
   select * into v_rec from form_1099_summary(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c2';
   perform assert(v_rec.reportable_total = 8000, 'c2 paid 8000');
-  perform assert(v_rec.crosses_threshold,       'c2 crosses threshold');
-  perform assert(v_rec.entity_exempt,           'S-corp is entity-exempt');
-  perform assert(not v_rec.requires_1099,       'S-corp does NOT require a 1099');
+  perform assert(v_rec.crosses_threshold,
+    'every contractor over the threshold is listed, incorporated or not');
 
-  raise notice '--- form_1099_summary: unknown entity is conservative ---';
   select * into v_rec from form_1099_summary(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c3';
-  perform assert(v_rec.entity_type is null,  'c3 has no tax profile');
-  perform assert(not v_rec.w9_on_file,       'c3 has no W-9');
-  perform assert(v_rec.requires_1099,
-    'unknown entity type is treated as REQUIRING a 1099, never silently skipped');
+  perform assert(v_rec.crosses_threshold, 'c3 listed with zero setup required');
 
   raise notice '--- form_1099_summary: under threshold ---';
   select * into v_rec from form_1099_summary(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c4';
-  perform assert(not v_rec.crosses_threshold, 'c4 under $2,000');
-  perform assert(not v_rec.requires_1099,     'c4 needs no 1099');
+  perform assert(not v_rec.crosses_threshold, 'c4 under $2,000, not listed');
 
   raise notice '--- threshold is config-driven, not hard-coded ---';
   -- Drop to the pre-2026 $600 rule; c3 (3000) stays over, c4 (150) stays under,
@@ -246,7 +241,7 @@ begin
   select * into v_rec from form_1099_summary(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c4';
   perform assert(v_rec.threshold = 600, 'threshold is read from tax_settings');
-  perform assert(not v_rec.requires_1099, 'c4 (150) is under $600 too');
+  perform assert(not v_rec.crosses_threshold, 'c4 (150) is under $600 too');
 
   -- Now raise it above c3's 3000 and confirm c3 flips off.
   perform admin_update_tax_settings(2500.00, 5000.00);
@@ -263,68 +258,39 @@ begin
   select * into v_rec from list_contractor_tax_status(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c3';
   perform assert(v_rec.paid_ytd = 3000, 'c3 YTD = 3000');
-  perform assert(v_rec.needs_w9,
-    'c3 is over threshold with no W-9 -> badge must warn');
+  perform assert(v_rec.crosses_threshold, 'c3 badge flags the 1099 threshold');
 
   select * into v_rec from list_contractor_tax_status(2026)
    where contractor_id = '00000000-0000-0000-0000-0000000000c1';
-  perform assert(not v_rec.needs_w9, 'c1 has a W-9 on file -> no warning');
   -- credit-card payments are excluded from the YTD badge too
   perform assert(v_rec.paid_ytd = 6200,
     'badge YTD excludes the 400 card payment (5000+700+300+200), got ' || v_rec.paid_ytd);
 
   select * into v_rec from list_contractor_tax_status(2026)
-   where contractor_id = '00000000-0000-0000-0000-0000000000c2';
-  perform assert(not v_rec.needs_w9, 'S-corp never needs a W-9 chase');
+   where contractor_id = '00000000-0000-0000-0000-0000000000c4';
+  perform assert(not v_rec.crosses_threshold, 'c4 under threshold, no flag');
 
-  raise notice '--- upsert contractor tax profile ---';
-  perform admin_upsert_contractor_tax_profile(
-    '00000000-0000-0000-0000-0000000000c3','Mystery LLC','llc','2026-07-01',false,null);
+  raise notice '--- there is nothing to enter, and nothing stored (by design) ---';
+  -- No profile table at all: no names, no entity types, no W-9 dates, no
+  -- identifiers, no documents. Zero data entry, zero sensitive storage.
   perform assert(
-    (select w9_received_at from contractor_tax_profiles
-      where user_id = '00000000-0000-0000-0000-0000000000c3') = '2026-07-01',
-    'profile inserted');
-
-  perform admin_upsert_contractor_tax_profile(
-    '00000000-0000-0000-0000-0000000000c3','Mystery LLC Renamed','llc','2026-07-01',false,null);
+    to_regclass('public.contractor_tax_profiles') is null,
+    'contractor_tax_profiles table does not exist');
   perform assert(
-    (select legal_name from contractor_tax_profiles
-      where user_id = '00000000-0000-0000-0000-0000000000c3') = 'Mystery LLC Renamed',
-    'other fields still update');
-
-  -- c3 now has a W-9, so the warning clears
-  select * into v_rec from list_contractor_tax_status(2026)
-   where contractor_id = '00000000-0000-0000-0000-0000000000c3';
-  perform assert(not v_rec.needs_w9, 'W-9 recorded -> warning clears');
-
-  raise notice '--- nothing sensitive is stored anywhere (by design) ---';
-  -- The accountant files the 1099s and holds the W-9s. This app must hold
-  -- neither an identifier nor a document that has one printed on it.
+    not exists (select 1 from pg_type where typname = 'tax_entity_type'),
+    'tax_entity_type enum is gone');
   perform assert(
-    not exists (
-      select 1 from information_schema.columns
-       where table_name = 'contractor_tax_profiles'
-         and column_name ~* '(tin|ssn|ein)'),
-    'no TIN/SSN/EIN column');
-  perform assert(
-    not exists (
-      select 1 from information_schema.columns
-       where table_name = 'contractor_tax_profiles'
-         and column_name ~* '(doc|file|path|upload|attach)'),
-    'no document/file reference column — a signed W-9 has the TIN on it');
-  perform assert(
-    not exists (
-      select 1 from information_schema.columns
-       where table_name = 'contractor_tax_profiles'
-         and column_name ~* '(address|city|state|postal|zip)'),
-    'no address columns — redundant PII the accountant already holds');
+    not exists (select 1 from pg_proc where proname = 'admin_upsert_contractor_tax_profile'),
+    'there is no contractor-profile write path at all');
   perform assert(
     not exists (select 1 from storage.buckets where id = 'tax-docs'),
     'the tax-docs bucket does not exist');
   perform assert(
-    (select count(*) from information_schema.columns
-      where table_name = 'contractor_tax_profiles') = 8,
-    'profile table is exactly the 8 non-sensitive columns');
+    not exists (
+      select 1 from information_schema.columns
+       where table_schema = 'public'
+         and column_name ~* '(^|_)(tin|ssn)($|_)'),
+    'no TIN/SSN column anywhere in the schema');
 end $$;
 
 -- ── Authorization: every RPC must refuse a non-admin ──────────────────────
@@ -343,11 +309,8 @@ begin
         exception when others then v_n := v_n + 1; end;
   begin perform form_1099_summary(2026);           exception when others then v_n := v_n + 1; end;
   begin perform list_contractor_tax_status(2026);  exception when others then v_n := v_n + 1; end;
-  begin perform admin_upsert_contractor_tax_profile(
-          gen_random_uuid(),null,null,null,null,null,null,null,null,null,false,null);
-        exception when others then v_n := v_n + 1; end;
 
-  perform assert(v_n = 8, 'all 8 RPCs refuse a non-admin caller, got ' || v_n);
+  perform assert(v_n = 7, 'all 7 RPCs refuse a non-admin caller, got ' || v_n);
 end $$;
 
 update _test_ctx set admin = true;

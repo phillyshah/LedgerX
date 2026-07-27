@@ -808,20 +808,25 @@ Os pagamentos usam a data em que você *pagou*, não a data do serviço — ent�
 
 ### 1099-NEC
 
-Acompanha quanto cada prestador recebeu no ano e quem vai precisar de um 1099.
+Acompanha quanto cada prestador recebeu no ano e quem vai entrar na planilha. **Não há nada para preencher** — sem perfis de prestador, sem formulários, sem configuração. Todos os números vêm das notas já registradas no sistema.
 
-- **Acima do limite e sem W-9** fica sinalizado em vermelho o ano inteiro — não só em janeiro. Pedir o W-9 antes do primeiro pagamento é fácil; correr atrás depois que o serviço acabou, não.
-- **Pagamentos no cartão são excluídos automaticamente**, porque a operadora já os declara. Zelle, cheque e ACH continuam sendo sua responsabilidade.
-- **Venmo é marcado como ambíguo** em vez de adivinhado — pagamentos para perfil comercial são declarados pelo Venmo, os pessoais não.
-- **Empresas geralmente são isentas**, e é por isso que vale registrar o tipo de entidade. Se deixar como desconhecido, o app assume que o 1099 *é* obrigatório em vez de ignorar.
+A aba declara suas suposições em vez de perguntar:
 
-Exporte a tabela inteira em CSV para o seu contador.
+- **Todo mundo acima do limite entra na lista.** Empresas são isentas do 1099-NEC, mas o app não pergunta quem é pessoa jurídica — seu contador tira essas. Listar demais é fácil de corrigir; esquecer alguém não é.
+- **Pagamentos no cartão ficam de fora**, porque a operadora já os declara no 1099-K.
+- **Zelle, cheque e ACH contam** — o Zelle é transferência entre bancos e não emite 1099-K, então continuam sendo sua obrigação.
+- **Venmo é sinalizado, não adivinhado** — pagamentos para perfil comercial são declarados pelo Venmo, os pessoais não.
+- **Os totais usam a data em que você pagou**, não a data do serviço.
+
+### Dois downloads
+
+**Planilha W-9** — uma linha por prestador acima do limite. As colunas da esquerda já vêm preenchidas com o que o LedgerX sabe (quem, quanto, quantos pagamentos, quais formas de pagamento). As colunas da direita são os campos reais do W-9 — nome, nome comercial, classificação fiscal federal, endereço, TIN — deixados **em branco** para seu contador ou o prestador completar. É só entregar.
+
+**Resumo de pagamentos** — todos os prestadores, com a divisão entre declarável / excluído por cartão / ambíguo por Venmo, para conferir com seus próprios registros.
 
 ### O que isto deliberadamente *não* guarda
 
-Seu contador declara os 1099 e fica com a papelada, então o LedgerX não guarda **nenhum número de identificação fiscal, nenhum arquivo de W-9 e nenhum endereço de prestador**. Um W-9 assinado tem o TIN impresso nele — guardar o arquivo seria guardar o número, então não existe envio de arquivo.
-
-O perfil fiscal de um prestador tem quatro coisas: razão social, tipo de entidade (esses dois definem se o 1099 é obrigatório), a **data** em que você coletou o W-9 dele, e uma observação livre. Isso basta para saber quem precisa de 1099 e de quem você ainda tem que cobrar o W-9, sem que o app jamais vire um alvo que valha a pena invadir.
+Nada sobre seus prestadores além dos próprios pagamentos. Sem nomes, sem tipos de entidade, sem endereços, sem números de identificação fiscal e sem arquivos de W-9. Um W-9 assinado tem o TIN impresso nele, então não existe envio de arquivo — o app nunca vira um alvo que valha a pena invadir, e você nunca perde tempo digitando dados que seu contador já tem.
 
 ### Limites
 

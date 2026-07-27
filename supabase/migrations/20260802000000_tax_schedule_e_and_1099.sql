@@ -6,12 +6,12 @@
 -- Design notes that aren't obvious from the DDL — see
 -- .claude/SPEC-tax-features.md for the full rationale:
 --
---  * NOTHING here stores a TIN, an SSN, or any document containing one.
---    The owner's accountant does the actual 1099 filing and holds the W-9s.
---    This app only answers "who crossed the threshold, and have we collected
---    their W-9 yet" — so it keeps a legal name, an entity type (those two
---    decide whether a 1099 is required at all), and a date. No documents, no
---    addresses, no identifiers.
+--  * The 1099 side stores NOTHING about contractors beyond the payments
+--    already in contractor_invoices. No profile table, no legal names, no
+--    entity types, no W-9 dates, no identifiers, no documents. The owner's
+--    accountant collects W-9s and files the 1099s; the app's only job is to
+--    say who was paid what, and to print a worksheet to hand over.
+--    Everything else is a stated assumption, not a data-entry field.
 --  * Thresholds live in tax_settings, not in code. The 1099 threshold rose
 --    from $600 to $2,000 for payments after 2025-12-31 and is now indexed
 --    for inflation, so it will keep moving.
@@ -39,13 +39,6 @@ exception when duplicate_object then null; end $$;
 -- NULL means "not yet reviewed" and is what the review queue selects on.
 do $$ begin
   create type capital_treatment as enum ('repair','improvement');
-exception when duplicate_object then null; end $$;
-
--- Drives 1099 exemption: corporations are generally exempt.
-do $$ begin
-  create type tax_entity_type as enum (
-    'individual','sole_prop','partnership','c_corp','s_corp','llc','other'
-  );
 exception when duplicate_object then null; end $$;
 
 -- ── Category → Schedule E line mapping ───────────────────────────────────
@@ -104,63 +97,33 @@ create policy "tax_settings admin read"
 create policy "tax_settings admin write"
   on tax_settings for update to authenticated using (is_admin()) with check (is_admin());
 
--- ── Contractor tax profiles (1099 status tracking) ───────────────────────
+-- ── No contractor profile data at all ────────────────────────────────────
 --
--- Deliberately minimal. The accountant files the 1099s and holds the W-9s;
--- this table exists only so the app can answer "who crossed the threshold,
--- and have we collected their W-9 yet". It therefore stores:
+-- Earlier drafts kept a contractor_tax_profiles table (legal name, entity
+-- type, W-9 date) and a private bucket for signed W-9 PDFs. Both are gone.
 --
---   legal_name / entity_type  -> decide whether a 1099 is required at all
---   w9_received_at            -> a date, meaning "collected, filed elsewhere"
---   is_exempt_payee / notes   -> manual overrides and free text
+-- The reason is friction, not just privacy: every one of those fields was
+-- something the owner had to type in, and none of it changed what the app
+-- could compute. The accountant already collects W-9s and knows which payees
+-- are corporations. So the app assumes the conservative case — every
+-- contractor may need a 1099 — reports the payment totals it genuinely
+-- knows, and prints a W-9 worksheet for the accountant to complete.
 --
--- It stores NO TIN, NO SSN, NO address, and NO uploaded document. A signed
--- W-9 has the TIN printed on it, so keeping the file would be keeping the
--- number — the whole point is that neither lives here.
+-- Torn down in dependency order: functions first (their signatures reference
+-- the enum), then the table, then the enum.
 
-create table if not exists contractor_tax_profiles (
-  user_id          uuid primary key references auth.users(id) on delete cascade,
-  legal_name       text,
-  entity_type      tax_entity_type,
-  w9_received_at   date,
-  is_exempt_payee  boolean not null default false,
-  notes            text,
-  updated_at       timestamptz not null default now(),
-  updated_by       uuid references auth.users(id) on delete set null
-);
-
-comment on table contractor_tax_profiles is
-  'Per-contractor 1099 status. Stores NO TIN/SSN, no address, and no W-9 '
-  'document — the accountant holds those. See .claude/SPEC-tax-features.md.';
-
--- Cleanup for anyone who applied an earlier draft of this migration, which
--- did create W-9 document storage. Re-running now removes it, so the end
--- state is the same either way and no file with a TIN on it is left behind.
 drop function if exists admin_upsert_contractor_tax_profile(
   uuid, text, tax_entity_type, text, text, text, text, text, date, text, boolean, text);
+drop function if exists admin_upsert_contractor_tax_profile(
+  uuid, text, tax_entity_type, date, boolean, text);
+drop function if exists form_1099_summary(int);
+drop function if exists list_contractor_tax_status(int);
 
-alter table contractor_tax_profiles
-  drop column if exists w9_doc_path,
-  drop column if exists address_line1,
-  drop column if exists address_line2,
-  drop column if exists city,
-  drop column if exists state,
-  drop column if exists postal_code;
+drop table if exists contractor_tax_profiles;
+drop type if exists tax_entity_type;
 
-alter table contractor_tax_profiles enable row level security;
-
-drop policy if exists "contractor_tax_profiles admin all" on contractor_tax_profiles;
-
-create policy "contractor_tax_profiles admin all"
-  on contractor_tax_profiles for all to authenticated
-  using (is_admin()) with check (is_admin());
-
--- ── No document storage, by design ───────────────────────────────────────
---
--- An earlier draft created a private `tax-docs` bucket for signed W-9 PDFs.
--- That was dropped: a W-9 has the TIN printed on it, so storing the file is
--- storing the number. Tear down anything that draft created.
-
+-- Same teardown for the W-9 document bucket an earlier draft created. A
+-- signed W-9 has the TIN printed on it, so the file is the number.
 drop policy if exists "tax-docs admin select" on storage.objects;
 drop policy if exists "tax-docs admin insert" on storage.objects;
 drop policy if exists "tax-docs admin update" on storage.objects;
@@ -431,31 +394,33 @@ $$;
 
 -- ── 1099-NEC summary ─────────────────────────────────────────────────────
 --
+-- Computed entirely from payments already in the system — no contractor
+-- profile data exists, and none is asked for.
+--
 -- Cash basis on paid_at. Payment method decides who files:
 --   credit          -> excluded, the card processor reports it on a 1099-K
 --   venmo           -> ambiguous, depends on business-profile status
 --   zelle/check/ach -> reportable (Zelle is bank-to-bank, issues no 1099-K)
 --   null            -> reportable but counted separately so the UI can warn
 --
--- Corporations are generally exempt. Unknown entity type is treated as
--- REQUIRED and flagged, never silently skipped.
+-- Corporate payees are exempt from 1099-NEC, but the app has no way to know
+-- which contractors are incorporated and deliberately doesn't ask. It
+-- therefore reports the conservative case — everyone over the threshold is
+-- listed — and the accountant strikes the corporations. Over-listing is
+-- recoverable; under-listing is a missed filing.
 
 create or replace function form_1099_summary(p_tax_year int)
 returns table (
   contractor_id        uuid,
   username             text,
-  legal_name           text,
-  entity_type          tax_entity_type,
   reportable_total     numeric,
   excluded_total       numeric,
   ambiguous_total      numeric,
   unknown_method_total numeric,
   payment_count        bigint,
+  methods              text,
   threshold            numeric,
-  crosses_threshold    boolean,
-  w9_on_file           boolean,
-  entity_exempt        boolean,
-  requires_1099        boolean
+  crosses_threshold    boolean
 )
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_threshold numeric;
@@ -469,6 +434,7 @@ begin
   with paid as (
     select ci.created_by as contractor_id,
            ci.amount,
+           coalesce(ci.payment_method, 'unrecorded') as method,
            case
              when ci.payment_method = 'credit' then 'excluded'
              when ci.payment_method = 'venmo'  then 'ambiguous'
@@ -482,84 +448,41 @@ begin
   ),
   totals as (
     select p.contractor_id,
-           sum(p.amount) filter (where p.bucket = 'reportable')     as reportable,
-           sum(p.amount) filter (where p.bucket = 'excluded')       as excluded,
-           sum(p.amount) filter (where p.bucket = 'ambiguous')      as ambiguous,
-           sum(p.amount) filter (where p.method_unknown)            as unknown_method,
-           count(*)                                                 as cnt
+           sum(p.amount) filter (where p.bucket = 'reportable') as reportable,
+           sum(p.amount) filter (where p.bucket = 'excluded')   as excluded,
+           sum(p.amount) filter (where p.bucket = 'ambiguous')  as ambiguous,
+           sum(p.amount) filter (where p.method_unknown)        as unknown_method,
+           count(*)                                             as cnt,
+           -- Distinct methods, for the worksheet the accountant receives.
+           string_agg(distinct p.method, ', ' order by p.method) as methods
       from paid p
      group by p.contractor_id
   )
   select t.contractor_id,
          up.username,
-         ctp.legal_name,
-         ctp.entity_type,
          coalesce(t.reportable, 0)::numeric,
          coalesce(t.excluded, 0)::numeric,
          coalesce(t.ambiguous, 0)::numeric,
          coalesce(t.unknown_method, 0)::numeric,
          t.cnt,
+         t.methods,
          v_threshold,
-         coalesce(t.reportable, 0) >= v_threshold,
-         (ctp.w9_received_at is not null),
-         -- Corporations exempt; explicit exempt-payee flag also honored.
-         (coalesce(ctp.entity_type::text, '') in ('c_corp','s_corp') or coalesce(ctp.is_exempt_payee, false)),
-         (
-           coalesce(t.reportable, 0) >= v_threshold
-           and coalesce(ctp.entity_type::text, '') not in ('c_corp','s_corp')
-           and not coalesce(ctp.is_exempt_payee, false)
-         )
+         coalesce(t.reportable, 0) >= v_threshold
     from totals t
     left join user_profiles up on up.id = t.contractor_id
-    left join contractor_tax_profiles ctp on ctp.user_id = t.contractor_id
    order by coalesce(t.reportable, 0) desc;
 end;
 $$;
 
-create or replace function admin_upsert_contractor_tax_profile(
-  p_user_id         uuid,
-  p_legal_name      text,
-  p_entity_type     tax_entity_type,
-  p_w9_received_at  date,
-  p_is_exempt_payee boolean,
-  p_notes           text
-) returns contractor_tax_profiles
-language plpgsql security definer set search_path = public, pg_temp as $$
-declare v_row contractor_tax_profiles;
-begin
-  if not is_admin() then raise exception 'not authorized'; end if;
-
-  insert into contractor_tax_profiles (
-    user_id, legal_name, entity_type, w9_received_at,
-    is_exempt_payee, notes, updated_at, updated_by
-  ) values (
-    p_user_id, p_legal_name, p_entity_type, p_w9_received_at,
-    coalesce(p_is_exempt_payee, false), p_notes, now(), auth.uid()
-  )
-  on conflict (user_id) do update set
-    legal_name      = excluded.legal_name,
-    entity_type     = excluded.entity_type,
-    w9_received_at  = excluded.w9_received_at,
-    is_exempt_payee = excluded.is_exempt_payee,
-    notes           = excluded.notes,
-    updated_at      = now(),
-    updated_by      = auth.uid()
-  returning * into v_row;
-
-  return v_row;
-end;
-$$;
-
--- Contractor list with YTD paid + W-9 status, for the badge on ManageUsers.
+-- Year-to-date paid per contractor, for the passive badge on ManageUsers.
+-- Excludes card payments for the same 1099-K reason as above.
 create or replace function list_contractor_tax_status(p_tax_year int)
 returns table (
-  contractor_id  uuid,
-  username       text,
-  legal_name     text,
-  entity_type    tax_entity_type,
-  paid_ytd       numeric,
-  w9_on_file     boolean,
-  needs_w9       boolean
+  contractor_id     uuid,
+  username          text,
+  paid_ytd          numeric,
+  threshold         numeric,
+  crosses_threshold boolean
 )
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_threshold numeric;
@@ -572,19 +495,11 @@ begin
   return query
   select ur.user_id,
          up.username,
-         ctp.legal_name,
-         ctp.entity_type,
          coalesce(paid.total, 0)::numeric,
-         (ctp.w9_received_at is not null),
-         (
-           coalesce(paid.total, 0) >= v_threshold
-           and ctp.w9_received_at is null
-           and coalesce(ctp.entity_type::text, '') not in ('c_corp','s_corp')
-           and not coalesce(ctp.is_exempt_payee, false)
-         )
+         v_threshold,
+         coalesce(paid.total, 0) >= v_threshold
     from user_roles ur
     left join user_profiles up on up.id = ur.user_id
-    left join contractor_tax_profiles ctp on ctp.user_id = ur.user_id
     left join lateral (
       select sum(ci.amount) as total
         from contractor_invoices ci
@@ -608,6 +523,3 @@ grant execute on function list_capital_review_queue(int)        to authenticated
 grant execute on function admin_set_capital_treatment(text, uuid, capital_treatment) to authenticated;
 grant execute on function form_1099_summary(int)                to authenticated;
 grant execute on function list_contractor_tax_status(int)       to authenticated;
-grant execute on function admin_upsert_contractor_tax_profile(
-  uuid, text, tax_entity_type, date, boolean, text
-) to authenticated;
