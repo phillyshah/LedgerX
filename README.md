@@ -815,7 +815,11 @@ Tracks what each contractor was paid this year and who will need a 1099.
 
 Export the whole table as CSV for your accountant.
 
-**Tax profiles never store a tax ID number.** Upload the signed W-9 instead — the number stays inside that file, in private storage only full admins can open. Record the legal name and entity type, since those decide whether a 1099 is needed at all.
+### What this deliberately does *not* store
+
+Your accountant files the 1099s and keeps the paperwork, so LedgerX holds **no tax ID numbers, no W-9 files, and no contractor addresses**. A signed W-9 has the TIN printed on it — storing the file would be storing the number, so there's no upload at all.
+
+A contractor's tax profile is four things: legal name, entity type (those two decide whether a 1099 is required), the **date** you collected their W-9, and a free-text note. That's enough to tell you who needs a 1099 and who you still owe a W-9 chase, without the app ever becoming a place worth breaching.
 
 ### Thresholds
 

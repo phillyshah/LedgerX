@@ -1053,13 +1053,7 @@ export interface Database {
           p_user_id: string;
           p_legal_name: string | null;
           p_entity_type: TaxEntityType | null;
-          p_address_line1: string | null;
-          p_address_line2: string | null;
-          p_city: string | null;
-          p_state: string | null;
-          p_postal_code: string | null;
           p_w9_received_at: string | null;
-          p_w9_doc_path: string | null;
           p_is_exempt_payee: boolean;
           p_notes: string | null;
         };
@@ -1093,19 +1087,14 @@ export interface TaxSettings {
   updated_by: string | null;
 }
 
-/** Note the absence of any TIN/SSN/EIN field — deliberate, see
- *  .claude/SPEC-tax-features.md. The TIN lives only inside the W-9 PDF. */
+/** Deliberately minimal: no TIN/SSN/EIN, no address, no document reference.
+ *  The accountant files the 1099s and holds the W-9s — this only records
+ *  that one was collected. See .claude/SPEC-tax-features.md. */
 export interface ContractorTaxProfile {
   user_id: string;
   legal_name: string | null;
   entity_type: TaxEntityType | null;
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
   w9_received_at: string | null;
-  w9_doc_path: string | null;
   is_exempt_payee: boolean;
   notes: string | null;
   updated_at: string;

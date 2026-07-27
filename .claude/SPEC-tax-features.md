@@ -77,20 +77,38 @@ deductions between years.
 
 ## Feature 2 — 1099-NEC readiness
 
-### Deliberately not storing the TIN
+### Deliberately storing nothing sensitive
 
-The obvious design is a `tin` column on the contractor profile. Rejected: an
-SSN in a Postgres column is a permanent breach liability, and it isn't needed
-in-app — the CPA needs it once a year at filing time.
+**Owner's decision, confirmed after the first build:** the accountant files
+the 1099s and keeps the paperwork, so the app should hold no identity data at
+all.
 
-Instead: store **whether** a W-9 is on file, the date, and the signed PDF in a
-private `tax-docs` bucket (same signed-URL discipline as `receipts`). Legal
-name and entity type are stored as plain columns because they drive the "is a
-1099 even required" logic. The TIN stays inside the PDF, reachable only by a
-full admin generating a signed URL.
+The first draft already rejected a `tin` column — an SSN in a Postgres column
+is a permanent breach liability. But it still uploaded the signed W-9 to a
+private `tax-docs` bucket, and **a W-9 has the TIN printed on it**, so that
+was storing the number by another route. The bucket, the `w9_doc_path`
+column, and the address fields were all removed.
 
-If TIN-in-app is ever genuinely needed, do it as `pgcrypto` ciphertext plus a
-`tin_last4` display column — never plaintext.
+What remains is four fields plus bookkeeping:
+
+| Field | Why it's needed |
+|---|---|
+| `legal_name` | identifies the payee on the accountant's list |
+| `entity_type` | decides whether a 1099 is required at all (corps exempt) |
+| `w9_received_at` | a **date** — "collected, filed elsewhere" |
+| `is_exempt_payee`, `notes` | manual override + free text |
+
+Addresses went too: they're on the W-9 the accountant already holds, and
+nothing in the app consumes them. Keeping a second copy is redundant PII with
+no purpose.
+
+The migration also tears down the bucket, its policies, its stored objects,
+and the dropped columns, so applying it over the earlier draft converges to
+the same clean state.
+
+The test suite asserts the *absence* of all of this — no TIN/SSN/EIN column,
+no document-reference column, no address columns, no `tax-docs` bucket, and
+an exact column count — so a future change can't quietly reintroduce it.
 
 ### Three rules the app can enforce that people get wrong
 

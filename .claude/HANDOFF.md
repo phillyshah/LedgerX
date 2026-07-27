@@ -29,8 +29,7 @@ substantial session.
   review queue that only shows items at/above the de minimis threshold and
   pre-fills a *suggestion* (never auto-applies — the BRA test is a legal
   judgment). (2) **1099-NEC readiness.** `contractor_tax_profiles` stores
-  W-9 metadata **with no TIN column, deliberately** — the number lives only
-  inside the uploaded W-9 PDF in a new private `tax-docs` bucket. Payment
+  **nothing sensitive at all** — see the follow-up note below. Payment
   method decides reportability: card excluded (processor files a 1099-K),
   Zelle/check/ACH reportable, Venmo flagged ambiguous, null method
   reportable-but-warned. Corporations are exempt; **unknown entity type is
@@ -56,9 +55,20 @@ substantial session.
   idempotent and preserves data.
 - **⚠️ Pending manual steps for v13.15**:
   1. **SQL** — run `supabase/migrations/20260802000000_tax_schedule_e_and_1099.sql`
-     in the Supabase SQL editor. It creates the `tax-docs` storage bucket
-     itself (`insert into storage.buckets ... on conflict do nothing`), so no
-     dashboard bucket step is needed. Safe to re-run.
+     in the Supabase SQL editor. Safe to re-run, and safe to run *over* the
+     earlier draft: it drops the `tax-docs` bucket, its objects, its policies,
+     the `w9_doc_path`/address columns, and the old 12-arg upsert overload.
+     No storage bucket is created.
+  1b. **Owner decision (mid-review), already applied**: the accountant files
+     the 1099s, so the app must hold **no TIN, no SSN, no W-9 file, and no
+     contractor address**. A signed W-9 has the TIN printed on it, so the
+     upload feature was removed outright rather than kept "securely" — the
+     only safe place for that number is not here. `contractor_tax_profiles`
+     is now exactly 8 columns: user_id, legal_name, entity_type,
+     w9_received_at (a *date* meaning "collected, filed elsewhere"),
+     is_exempt_payee, notes, updated_at, updated_by. The SQL suite asserts the
+     absence of every sensitive column/bucket plus an exact column count, so
+     this can't be silently reintroduced.
   2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
   3. **First-use setup**: Manage -> Categories, set a Schedule E line on each
      category. Until that's done the Schedule E tab shows everything as

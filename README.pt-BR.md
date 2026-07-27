@@ -817,7 +817,11 @@ Acompanha quanto cada prestador recebeu no ano e quem vai precisar de um 1099.
 
 Exporte a tabela inteira em CSV para o seu contador.
 
-**Os perfis fiscais nunca guardam número de identificação fiscal.** Envie o W-9 assinado — o número fica dentro desse arquivo, em armazenamento privado que só administradores completos podem abrir. Registre a razão social e o tipo de entidade, já que são eles que definem se o 1099 é necessário.
+### O que isto deliberadamente *não* guarda
+
+Seu contador declara os 1099 e fica com a papelada, então o LedgerX não guarda **nenhum número de identificação fiscal, nenhum arquivo de W-9 e nenhum endereço de prestador**. Um W-9 assinado tem o TIN impresso nele — guardar o arquivo seria guardar o número, então não existe envio de arquivo.
+
+O perfil fiscal de um prestador tem quatro coisas: razão social, tipo de entidade (esses dois definem se o 1099 é obrigatório), a **data** em que você coletou o W-9 dele, e uma observação livre. Isso basta para saber quem precisa de 1099 e de quem você ainda tem que cobrar o W-9, sem que o app jamais vire um alvo que valha a pena invadir.
 
 ### Limites
 

@@ -279,21 +279,14 @@ begin
 
   raise notice '--- upsert contractor tax profile ---';
   perform admin_upsert_contractor_tax_profile(
-    '00000000-0000-0000-0000-0000000000c3','Mystery LLC','llc',
-    '1 Main St',null,'Philadelphia','PA','19100','2026-07-01','w9/c3.pdf',false,null);
+    '00000000-0000-0000-0000-0000000000c3','Mystery LLC','llc','2026-07-01',false,null);
   perform assert(
     (select w9_received_at from contractor_tax_profiles
       where user_id = '00000000-0000-0000-0000-0000000000c3') = '2026-07-01',
     'profile inserted');
 
-  -- second call omits the doc path; it must NOT be blanked
   perform admin_upsert_contractor_tax_profile(
-    '00000000-0000-0000-0000-0000000000c3','Mystery LLC Renamed','llc',
-    '1 Main St',null,'Philadelphia','PA','19100','2026-07-01',null,false,null);
-  perform assert(
-    (select w9_doc_path from contractor_tax_profiles
-      where user_id = '00000000-0000-0000-0000-0000000000c3') = 'w9/c3.pdf',
-    'existing W-9 path preserved when the caller omits it');
+    '00000000-0000-0000-0000-0000000000c3','Mystery LLC Renamed','llc','2026-07-01',false,null);
   perform assert(
     (select legal_name from contractor_tax_profiles
       where user_id = '00000000-0000-0000-0000-0000000000c3') = 'Mystery LLC Renamed',
@@ -304,13 +297,34 @@ begin
    where contractor_id = '00000000-0000-0000-0000-0000000000c3';
   perform assert(not v_rec.needs_w9, 'W-9 recorded -> warning clears');
 
-  raise notice '--- no TIN column anywhere (by design) ---';
+  raise notice '--- nothing sensitive is stored anywhere (by design) ---';
+  -- The accountant files the 1099s and holds the W-9s. This app must hold
+  -- neither an identifier nor a document that has one printed on it.
   perform assert(
     not exists (
       select 1 from information_schema.columns
        where table_name = 'contractor_tax_profiles'
-         and column_name ~* '(^|_)(tin|ssn|ein)($|_)'),
-    'contractor_tax_profiles stores no TIN/SSN/EIN column');
+         and column_name ~* '(tin|ssn|ein)'),
+    'no TIN/SSN/EIN column');
+  perform assert(
+    not exists (
+      select 1 from information_schema.columns
+       where table_name = 'contractor_tax_profiles'
+         and column_name ~* '(doc|file|path|upload|attach)'),
+    'no document/file reference column — a signed W-9 has the TIN on it');
+  perform assert(
+    not exists (
+      select 1 from information_schema.columns
+       where table_name = 'contractor_tax_profiles'
+         and column_name ~* '(address|city|state|postal|zip)'),
+    'no address columns — redundant PII the accountant already holds');
+  perform assert(
+    not exists (select 1 from storage.buckets where id = 'tax-docs'),
+    'the tax-docs bucket does not exist');
+  perform assert(
+    (select count(*) from information_schema.columns
+      where table_name = 'contractor_tax_profiles') = 8,
+    'profile table is exactly the 8 non-sensitive columns');
 end $$;
 
 -- ── Authorization: every RPC must refuse a non-admin ──────────────────────

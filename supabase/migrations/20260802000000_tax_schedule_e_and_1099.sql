@@ -6,9 +6,12 @@
 -- Design notes that aren't obvious from the DDL — see
 -- .claude/SPEC-tax-features.md for the full rationale:
 --
---  * Contractor TINs are deliberately NOT stored. We keep entity type +
---    legal name (they decide whether a 1099 is required at all) and the
---    signed W-9 PDF in a private bucket. The TIN stays inside that PDF.
+--  * NOTHING here stores a TIN, an SSN, or any document containing one.
+--    The owner's accountant does the actual 1099 filing and holds the W-9s.
+--    This app only answers "who crossed the threshold, and have we collected
+--    their W-9 yet" — so it keeps a legal name, an entity type (those two
+--    decide whether a 1099 is required at all), and a date. No documents, no
+--    addresses, no identifiers.
 --  * Thresholds live in tax_settings, not in code. The 1099 threshold rose
 --    from $600 to $2,000 for payments after 2025-12-31 and is now indexed
 --    for inflation, so it will keep moving.
@@ -101,23 +104,25 @@ create policy "tax_settings admin read"
 create policy "tax_settings admin write"
   on tax_settings for update to authenticated using (is_admin()) with check (is_admin());
 
--- ── Contractor tax profiles (W-9 tracking) ───────────────────────────────
+-- ── Contractor tax profiles (1099 status tracking) ───────────────────────
 --
--- No TIN column, by design. legal_name + entity_type answer "is a 1099
--- required"; the TIN itself lives only inside the W-9 PDF in the private
--- tax-docs bucket, reachable via a short-lived signed URL by a full admin.
+-- Deliberately minimal. The accountant files the 1099s and holds the W-9s;
+-- this table exists only so the app can answer "who crossed the threshold,
+-- and have we collected their W-9 yet". It therefore stores:
+--
+--   legal_name / entity_type  -> decide whether a 1099 is required at all
+--   w9_received_at            -> a date, meaning "collected, filed elsewhere"
+--   is_exempt_payee / notes   -> manual overrides and free text
+--
+-- It stores NO TIN, NO SSN, NO address, and NO uploaded document. A signed
+-- W-9 has the TIN printed on it, so keeping the file would be keeping the
+-- number — the whole point is that neither lives here.
 
 create table if not exists contractor_tax_profiles (
   user_id          uuid primary key references auth.users(id) on delete cascade,
   legal_name       text,
   entity_type      tax_entity_type,
-  address_line1    text,
-  address_line2    text,
-  city             text,
-  state            text,
-  postal_code      text,
   w9_received_at   date,
-  w9_doc_path      text,
   is_exempt_payee  boolean not null default false,
   notes            text,
   updated_at       timestamptz not null default now(),
@@ -125,8 +130,22 @@ create table if not exists contractor_tax_profiles (
 );
 
 comment on table contractor_tax_profiles is
-  'W-9 / 1099 metadata per contractor. Deliberately stores NO TIN — see '
-  '.claude/SPEC-tax-features.md. Full-admin-only via RLS.';
+  'Per-contractor 1099 status. Stores NO TIN/SSN, no address, and no W-9 '
+  'document — the accountant holds those. See .claude/SPEC-tax-features.md.';
+
+-- Cleanup for anyone who applied an earlier draft of this migration, which
+-- did create W-9 document storage. Re-running now removes it, so the end
+-- state is the same either way and no file with a TIN on it is left behind.
+drop function if exists admin_upsert_contractor_tax_profile(
+  uuid, text, tax_entity_type, text, text, text, text, text, date, text, boolean, text);
+
+alter table contractor_tax_profiles
+  drop column if exists w9_doc_path,
+  drop column if exists address_line1,
+  drop column if exists address_line2,
+  drop column if exists city,
+  drop column if exists state,
+  drop column if exists postal_code;
 
 alter table contractor_tax_profiles enable row level security;
 
@@ -136,25 +155,19 @@ create policy "contractor_tax_profiles admin all"
   on contractor_tax_profiles for all to authenticated
   using (is_admin()) with check (is_admin());
 
--- ── Private storage bucket for W-9 documents ─────────────────────────────
-
-insert into storage.buckets (id, name, public)
-values ('tax-docs', 'tax-docs', false)
-on conflict (id) do nothing;
+-- ── No document storage, by design ───────────────────────────────────────
+--
+-- An earlier draft created a private `tax-docs` bucket for signed W-9 PDFs.
+-- That was dropped: a W-9 has the TIN printed on it, so storing the file is
+-- storing the number. Tear down anything that draft created.
 
 drop policy if exists "tax-docs admin select" on storage.objects;
 drop policy if exists "tax-docs admin insert" on storage.objects;
 drop policy if exists "tax-docs admin update" on storage.objects;
 drop policy if exists "tax-docs admin delete" on storage.objects;
 
-create policy "tax-docs admin select" on storage.objects for select to authenticated
-  using (bucket_id = 'tax-docs' and is_admin());
-create policy "tax-docs admin insert" on storage.objects for insert to authenticated
-  with check (bucket_id = 'tax-docs' and is_admin());
-create policy "tax-docs admin update" on storage.objects for update to authenticated
-  using (bucket_id = 'tax-docs' and is_admin());
-create policy "tax-docs admin delete" on storage.objects for delete to authenticated
-  using (bucket_id = 'tax-docs' and is_admin());
+delete from storage.objects where bucket_id = 'tax-docs';
+delete from storage.buckets where id = 'tax-docs';
 
 -- ── Helper: tax year of a payment timestamp ──────────────────────────────
 --
@@ -507,13 +520,7 @@ create or replace function admin_upsert_contractor_tax_profile(
   p_user_id         uuid,
   p_legal_name      text,
   p_entity_type     tax_entity_type,
-  p_address_line1   text,
-  p_address_line2   text,
-  p_city            text,
-  p_state           text,
-  p_postal_code     text,
   p_w9_received_at  date,
-  p_w9_doc_path     text,
   p_is_exempt_payee boolean,
   p_notes           text
 ) returns contractor_tax_profiles
@@ -522,26 +529,17 @@ declare v_row contractor_tax_profiles;
 begin
   if not is_admin() then raise exception 'not authorized'; end if;
 
-  insert into contractor_tax_profiles as ctp (
-    user_id, legal_name, entity_type, address_line1, address_line2,
-    city, state, postal_code, w9_received_at, w9_doc_path,
+  insert into contractor_tax_profiles (
+    user_id, legal_name, entity_type, w9_received_at,
     is_exempt_payee, notes, updated_at, updated_by
   ) values (
-    p_user_id, p_legal_name, p_entity_type, p_address_line1, p_address_line2,
-    p_city, p_state, p_postal_code, p_w9_received_at, p_w9_doc_path,
+    p_user_id, p_legal_name, p_entity_type, p_w9_received_at,
     coalesce(p_is_exempt_payee, false), p_notes, now(), auth.uid()
   )
   on conflict (user_id) do update set
     legal_name      = excluded.legal_name,
     entity_type     = excluded.entity_type,
-    address_line1   = excluded.address_line1,
-    address_line2   = excluded.address_line2,
-    city            = excluded.city,
-    state           = excluded.state,
-    postal_code     = excluded.postal_code,
     w9_received_at  = excluded.w9_received_at,
-    -- Never blank an existing W-9 path just because the caller omitted it.
-    w9_doc_path     = coalesce(excluded.w9_doc_path, ctp.w9_doc_path),
     is_exempt_payee = excluded.is_exempt_payee,
     notes           = excluded.notes,
     updated_at      = now(),
@@ -611,5 +609,5 @@ grant execute on function admin_set_capital_treatment(text, uuid, capital_treatm
 grant execute on function form_1099_summary(int)                to authenticated;
 grant execute on function list_contractor_tax_status(int)       to authenticated;
 grant execute on function admin_upsert_contractor_tax_profile(
-  uuid, text, tax_entity_type, text, text, text, text, text, date, text, boolean, text
+  uuid, text, tax_entity_type, date, boolean, text
 ) to authenticated;
