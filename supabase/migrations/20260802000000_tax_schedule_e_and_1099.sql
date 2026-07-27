@@ -258,13 +258,33 @@ drop type if exists tax_entity_type;
 
 -- Same teardown for the W-9 document bucket an earlier draft created. A
 -- signed W-9 has the TIN printed on it, so the file is the number.
-drop policy if exists "tax-docs admin select" on storage.objects;
-drop policy if exists "tax-docs admin insert" on storage.objects;
-drop policy if exists "tax-docs admin update" on storage.objects;
-drop policy if exists "tax-docs admin delete" on storage.objects;
+--
+-- BEST EFFORT, and it has to be. Supabase installs a storage.protect_delete()
+-- trigger that rejects direct DELETE from storage tables ("Use the Storage
+-- API instead"), and the storage schema is owned by supabase_storage_admin,
+-- so policy drops can hit permission errors too. Neither should abort this
+-- migration: the shipped version never creates that bucket, so for a normal
+-- install this block is a pure no-op. It only matters for someone who ran an
+-- intermediate draft — and for them, a NOTICE plus a manual dashboard delete
+-- is the correct outcome, not a failed migration.
+do $$
+begin
+  begin
+    execute 'drop policy if exists "tax-docs admin select" on storage.objects';
+    execute 'drop policy if exists "tax-docs admin insert" on storage.objects';
+    execute 'drop policy if exists "tax-docs admin update" on storage.objects';
+    execute 'drop policy if exists "tax-docs admin delete" on storage.objects';
+  exception when others then
+    raise notice 'tax-docs policy cleanup skipped (%) — harmless.', sqlerrm;
+  end;
 
-delete from storage.objects where bucket_id = 'tax-docs';
-delete from storage.buckets where id = 'tax-docs';
+  begin
+    delete from storage.objects where bucket_id = 'tax-docs';
+    delete from storage.buckets  where id = 'tax-docs';
+  exception when others then
+    raise notice 'tax-docs bucket cleanup skipped (%). If a "tax-docs" bucket exists in Storage, delete it from the dashboard — nothing in this app reads or writes it.', sqlerrm;
+  end;
+end $$;
 
 -- ── Helper: tax year of a payment timestamp ──────────────────────────────
 --
