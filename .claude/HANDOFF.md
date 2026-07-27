@@ -7,18 +7,18 @@ substantial session.
 ## Current state
 
 - **Version `v13.15`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
-  "v7.8" is stale. **Live site** trails until each deploy lands (see below).
-- **✅ v13.10 (PR #90), v13.11 (PR #91), v13.12 (PR #92), v13.13 (PR #93), and
-  the requirements.txt follow-up (PR #95) are ALL MERGED and confirmed
-  deployed** — poller script + deps copied to `/opt/ledgerx/`, and the v13.10
-  Activity Report self-inclusion SQL confirmed live via
+  "v7.8" is stale.
+- **✅ v13.10 through v13.15 are ALL MERGED AND CONFIRMED DEPLOYED.** Footer at
+  `https://ledger.90ten.life` confirmed reading `v13.15` by the owner directly.
+  v13.10's Activity Report self-inclusion SQL confirmed live via
   `SELECT count(*) FROM pg_proc WHERE proname = 'list_team_activity' AND
-  prosrc LIKE '%au.id = auth.uid()%';` returning `1`. **v13.14 (transaction-list
-  filter/sort rework, PR #96) and its optimization follow-up (PR #97) are also
-  merged, and still need a frontend rebuild. v13.15 (tax features, this
-  session) needs SQL + a rebuild — see below.**
-- **v13.15 in one paragraph (THIS SESSION — needs SQL + rebuild)**: two tax
-  features, specced in `.claude/SPEC-tax-features.md` and built together.
+  prosrc LIKE '%au.id = auth.uid()%';` returning `1`. v13.15's SQL (PR #98)
+  confirmed applied via `SELECT line_number, label, description FROM
+  schedule_e_lines ORDER BY line_number;` returning all 15 seeded rows, and a
+  12-function `pg_proc` count check returning `12`. Poller script + deps on
+  `/opt/ledgerx/` current as of v13.12/v13.13; no VPS/poller changes since.
+- **v13.15 in one paragraph (SHIPPED — one manual step left, see below)**: two
+  tax features, specced in `.claude/SPEC-tax-features.md` and built together.
   (1) **Schedule E classification.** Two dedicated tables — `schedule_e_lines`
   (seeded with the 15 IRS lines, fully editable: rename/reorder/hide/add) and
   `category_schedule_e_map` (category_id -> line_id). **`categories` is left
@@ -65,39 +65,54 @@ substantial session.
   suggestion/pivot logic, and **120 browser assertions** across desktop +
   mobile including the worksheet CSV contents. Migration re-run is idempotent
   and preserves data.
-- **⚠️ Pending manual steps for v13.15**:
-  1. **SQL** — run `supabase/migrations/20260802000000_tax_schedule_e_and_1099.sql`
-     in the Supabase SQL editor. Safe to re-run, and safe to run *over* the
-     earlier draft: it drops the `tax-docs` bucket, its objects, its policies,
-     the `w9_doc_path`/address columns, and the old 12-arg upsert overload.
-     No storage bucket is created.
-  1a. **The 15 Schedule E lines are seeded with the owner's own wording**,
-     supplied directly: official line numbers 5-19, labels like
-     "Auto & Travel" / "Legal & Professional Fees" (not generic IRS phrasing),
-     and a one-line description each. A re-run backfills line numbers and
-     descriptions onto an earlier draft's rows, but **only where the label is
-     still the untouched default** — a deliberate rename is never clobbered.
-     Tested both directions.
-  1b. **Owner decisions (two rounds of narrowing), already applied**: first
-     "no SSN/TIN in my system" — which killed the W-9 upload, since a signed
-     W-9 has the TIN printed on it. Then "still too much friction, just let
-     me make those assumptions and output a W-9 worksheet for my accountant"
-     — which killed the profile table outright. **There is now no
-     `contractor_tax_profiles` table, no `tax_entity_type` enum, no write
-     path, and no bucket.** The 1099 tab reads only `contractor_invoices` +
-     `user_profiles.username`, states its assumptions instead of asking, and
-     its deliverable is a downloadable W-9 worksheet: app-known columns
-     pre-filled, W-9 columns blank for the accountant. Guarded by SQL
-     assertions on the absence of every piece of that apparatus, plus a
-     browser assertion that the tab renders **zero inputs/selects/textareas**
-     — so data entry can't come back without failing a test.
-  2. **Frontend rebuild** — `deploy-ledgerx`. Confirm the footer reads `v13.15`.
-  3. **First-use setup**: **Labs -> Tax Center -> Mapping** tab, pick a tax line for
-     each category (they're listed with usage counts so the ones that matter
-     come first). Until that's done the Schedule E tab shows everything as
-     "unmapped" (by design — nothing is silently dropped). Nothing to do in
-     Manage -> Categories; that screen is untouched by the tax features.
-  4. No VPS/poller changes.
+- **✅ Steps 1 and 2 for v13.15 are DONE.**
+  1. **SQL** (`supabase/migrations/20260802000000_tax_schedule_e_and_1099.sql`)
+     applied and verified live — see the two confirmation queries above.
+  2. **Frontend rebuild** (`deploy-ledgerx`) done — footer confirmed `v13.15`.
+  - **⚠️ One real bug hit during Step 1, already fixed and re-shipped**:
+    first attempt failed with `ERROR 42501: Direct deletion from storage
+    tables is not allowed` from Supabase's `storage.protect_delete()`
+    trigger — the migration's upgrade-path teardown of an earlier draft's
+    `tax-docs` bucket did a direct `DELETE`, which local Postgres allows
+    (no such trigger) but real Supabase rejects, aborting the whole
+    migration before `schedule_e_lines` was ever created. Fixed by wrapping
+    both the policy drops and the bucket/object deletes in nested exception
+    handlers — best-effort cleanup, `NOTICE` instead of a hard failure, safe
+    no-op on a normal install since this bucket is never created by the
+    shipped version. **Lesson for next time a migration touches
+    `storage.*`**: the local test harness has no `protect_delete()` trigger,
+    so this exact failure mode is invisible locally — verify storage DDL
+    against a real Supabase project, or add the trigger to the harness,
+    before calling storage-table teardown "tested."
+  - **⚠️ Pending: Step 3 — first-use setup, not yet done as of this
+    writing**: **Labs -> Tax Center -> Mapping** tab, pick a tax line for
+    each category (listed with usage counts so the ones that matter come
+    first). Until that's done the Schedule E tab shows everything as
+    "unmapped" (by design — nothing is silently dropped). Nothing to do in
+    Manage -> Categories; that screen is untouched by the tax features. The
+    owner has NOT yet supplied their operational category list
+    (`SELECT name FROM categories ORDER BY name;`), so the mapping still
+    needs to be done by hand in the UI, category by category — offered to
+    pre-seed it once that list is in hand, not done yet.
+  - **The 15 Schedule E lines are seeded with the owner's own wording**,
+    supplied directly: official line numbers 5-19, labels like
+    "Auto & Travel" / "Legal & Professional Fees" (not generic IRS phrasing),
+    and a one-line description each — confirmed live via the query above.
+  - **Owner decisions (two rounds of narrowing) on the 1099 side, already
+    applied**: first "no SSN/TIN in my system" — killed the W-9 upload,
+    since a signed W-9 has the TIN printed on it. Then "still too much
+    friction, just let me make those assumptions and output a W-9
+    worksheet for my accountant" — killed the profile table outright.
+    **There is no `contractor_tax_profiles` table, no `tax_entity_type`
+    enum, no write path, and no bucket.** The 1099 tab reads only
+    `contractor_invoices` + `user_profiles.username`, states its
+    assumptions instead of asking, and its deliverable is a downloadable
+    W-9 worksheet: app-known columns pre-filled, W-9 columns blank for the
+    accountant. Guarded by SQL assertions on the absence of every piece of
+    that apparatus, plus a browser assertion that the tab renders **zero
+    inputs/selects/textareas** — so data entry can't come back without
+    failing a test.
+  - No VPS/poller changes in this release.
 - **v13.14 in one paragraph**: the user asked for filtering/sorting on the
   transaction list to be redesigned "world-class" and mobile-first, then
   discovered along the way that two real call sites
