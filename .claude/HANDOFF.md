@@ -8,16 +8,19 @@ substantial session.
 
 - **Version `v13.17`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
-- **⚠️ v13.17 NEEDS ONE MANUAL SQL STEP BEFORE IT WORKS.** Unlike v13.16 (pure
-  frontend), this release adds
-  `supabase/migrations/20260803000000_estimate_completion_and_links.sql`.
-  Paste it into the Supabase SQL editor. Until it runs, Mark Complete fails
-  with `invalid status: completed` and the Matched-spend section errors on a
-  missing RPC. Verify after with:
-  `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='estimates_status_check';`
-  (must list `completed`) and
-  `SELECT count(*) FROM pg_proc WHERE proname IN ('link_estimate_item','unlink_estimate_item','list_estimate_links','list_estimate_link_candidates');`
-  (must return `4`).
+- **✅ v13.17's SQL IS APPLIED AND CONFIRMED LIVE.**
+  `supabase/migrations/20260803000000_estimate_completion_and_links.sql` was
+  run by the owner in the Supabase SQL editor. Verified by:
+  `pg_get_constraintdef` on `estimates_status_check` returning
+  `CHECK ((status = ANY (ARRAY['open','accepted','rejected','completed'])))`;
+  a `pg_proc` count over `link_estimate_item` / `unlink_estimate_item` /
+  `list_estimate_links` / `list_estimate_link_candidates` returning `4`;
+  `estimate_links` present in `information_schema.tables`; and
+  `estimates.amount` present in `information_schema.columns`.
+  **Note the safe ordering used here**: the migration is purely additive (a
+  new status value, a new table, two new nullable columns), so applying it
+  while production still ran v13.15 broke nothing — no deployed code read any
+  of it. Keep that ordering for future additive migrations.
 - **v13.17 in one paragraph**: estimates gained a fourth status `completed`
   (Mark Complete, full-admin only, offered only from `accepted`), a nullable
   `amount`/`currency`, and `estimate_links` — the **first** relationship
