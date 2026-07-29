@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, X, UserPlus, Trash2, Tag, Check, Loader2 } from 'lucide-react';
+import { Plus, X, UserPlus, Tag, Check, Loader2 } from 'lucide-react';
 import { useT } from '../../hooks/useT';
+import { DeleteButton } from '../shared/DeleteButton';
 
 interface Household {
   id: string;
@@ -228,8 +229,6 @@ export function ManageHouseholds() {
   };
 
   const deleteHousehold = async (householdId: string) => {
-    if (!confirm(t('admin.hh.deleteConfirm'))) return;
-
     setDeleteError('');
 
     try {
@@ -340,12 +339,7 @@ export function ManageHouseholds() {
                   {expandedId === household.id ? t('admin.hh.collapse') : t('admin.hh.manage')}
                 </span>
               </button>
-              <button
-                onClick={() => deleteHousehold(household.id)}
-                className="ml-2 p-2 hover:bg-red-50 rounded-lg transition-all"
-              >
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
+              <DeleteButton variant="icon" onDelete={() => deleteHousehold(household.id)} className="ml-2" />
             </div>
 
             {expandedId === household.id && (
@@ -492,12 +486,7 @@ export function ManageHouseholds() {
                           <p className="text-sm font-medium text-slate-900">{member.username}</p>
                           <p className="text-xs text-slate-500 capitalize">{member.role}</p>
                         </div>
-                        <button
-                          onClick={() => removeMember(member.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
+                        <DeleteButton variant="icon" onDelete={() => removeMember(member.id)} />
                       </div>
                     ))}
                   </div>

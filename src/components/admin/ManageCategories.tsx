@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, X, Trash2, Edit2, Check, Home, Globe } from 'lucide-react';
+import { Plus, X, Edit2, Check, Home, Globe } from 'lucide-react';
 import { useT } from '../../hooks/useT';
+import { DeleteButton } from '../shared/DeleteButton';
 
 interface Category {
   id: string;
@@ -116,8 +117,6 @@ export function ManageCategories() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm(t('admin.cat.deleteConfirm'))) return;
-
     await supabase.from('categories').delete().eq('id', id);
     await loadCategories();
   };
@@ -298,12 +297,7 @@ export function ManageCategories() {
                       >
                         <Edit2 className="w-4 h-4 text-slate-600" />
                       </button>
-                      <button
-                        onClick={() => deleteCategory(category.id)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
+                      <DeleteButton variant="icon" onDelete={() => deleteCategory(category.id)} />
                     </div>
                   </>
                 )}

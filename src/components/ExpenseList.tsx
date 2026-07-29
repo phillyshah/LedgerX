@@ -1,6 +1,6 @@
-import { Suspense, lazy, useState, useMemo, useRef, useEffect } from 'react';
+import { Suspense, lazy, useState, useMemo, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, ShoppingBag, Trash2, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown, CreditCard, ChevronDown } from 'lucide-react';
+import { Calendar, ShoppingBag, Edit2, Home, Search, SlidersHorizontal, X, User as UserIcon, Plus, Mail, ArrowUpDown, CreditCard, ChevronDown } from 'lucide-react';
 import type { Expense, Household } from '../types/expense';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { parseExpenseDate } from '../lib/dateUtils';
 import { useLabsAccess } from '../hooks/useLabsAccess';
 import { useMatchedCardLabels } from '../hooks/useMatchedCardLabels';
 import type { MatchedFilter } from './ExpenseFilterSheet';
+import { DeleteButton } from './shared/DeleteButton';
 
 const EditExpense = lazy(() => import('./EditExpense').then((m) => ({ default: m.EditExpense })));
 const MatchToStatementModal = lazy(() => import('./labs/MatchToStatementModal').then((m) => ({ default: m.MatchToStatementModal })));
@@ -71,11 +72,6 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     setVisibleCount(PAGE_SIZE);
   }, [searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, sortKey]);
 
-  // Two-tap delete: first tap arms the row for ~3s, second tap commits.
-  // Replaces window.confirm() so the dialog matches the rest of the UI.
-  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
-  const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Fade the quick-chip row's trailing edge, but only while it actually
   // overflows — a static fade would permanently clip the last chip for
   // anyone whose chips happen to fit on one line (e.g. just 2 households).
@@ -98,15 +94,9 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     return () => ro.disconnect();
   }, [chipsEl, households.length, labsEnabled]);
 
+  // The two-tap confirm now lives in DeleteButton — this only runs on the
+  // second tap.
   const deleteExpense = async (id: string) => {
-    if (armedDeleteId !== id) {
-      setArmedDeleteId(id);
-      if (armTimerRef.current) clearTimeout(armTimerRef.current);
-      armTimerRef.current = setTimeout(() => setArmedDeleteId(null), 3000);
-      return;
-    }
-    if (armTimerRef.current) clearTimeout(armTimerRef.current);
-    setArmedDeleteId(null);
     const { error } = await supabase.from('expenses').delete().eq('id', id);
     if (!error) {
       onReload();
@@ -489,24 +479,11 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                     >
                       <Edit2 className="w-4 h-4 text-slate-500" />
                     </button>
-                    <button
-                      onClick={() => deleteExpense(expense.id)}
-                      className={
-                        armedDeleteId === expense.id
-                          ? 'inline-flex items-center gap-1 px-2 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-all text-xs font-semibold text-white shadow-sm'
-                          : 'p-1.5 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 sm:opacity-0 max-sm:opacity-100'
-                      }
-                      title={armedDeleteId === expense.id ? t('common.tapAgainToConfirm') : t('common.delete')}
-                    >
-                      {armedDeleteId === expense.id ? (
-                        <>
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>{t('common.tapAgainShort')}</span>
-                        </>
-                      ) : (
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      )}
-                    </button>
+                    <DeleteButton
+                      variant="icon"
+                      revealOnHover
+                      onDelete={() => deleteExpense(expense.id)}
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap text-sm text-slate-500">

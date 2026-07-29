@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList, Pencil } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, FileText, Check, MessageCircle, Ban, UserPlus, Loader2, ClipboardList, Pencil } from 'lucide-react';
 import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant, BillingType } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
 import { AttachmentAdder } from '../AttachmentAdder';
+import { DeleteButton } from '../shared/DeleteButton';
 
 interface HouseholdOption { id: string; name: string; }
 
@@ -249,7 +250,6 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
   };
 
   const deleteEstimate = async (est: AdminEstimateRow) => {
-    if (!confirm(t('adminEstimates.confirmDelete'))) return;
     setDeletingId(est.id);
     const { error } = await supabase.from('estimates').delete().eq('id', est.id);
     setDeletingId(null);
@@ -538,14 +538,13 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                     {t('adminEstimates.actionReopen')}
                   </button>
                 )}
-                <button
-                  onClick={() => deleteEstimate(detail)}
+                <DeleteButton
+                  variant="pill"
+                  label={t('adminEstimates.actionDelete')}
                   disabled={deletingId === detail.id}
-                  className="ml-auto px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all inline-flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {deletingId === detail.id ? t('common.deleting') : t('adminEstimates.actionDelete')}
-                </button>
+                  onDelete={() => deleteEstimate(detail)}
+                  className="ml-auto"
+                />
               </div>
             </div>
           </div>

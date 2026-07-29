@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useT } from '../hooks/useT';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, FileText, Tag, Trash2, FileSignature, Plus, Image as ImageIcon } from 'lucide-react';
+import { X, FileText, Tag, FileSignature, Plus, Image as ImageIcon } from 'lucide-react';
 import type { ContractorInvoice, InvoiceStatus, InvoiceImage } from '../types/invoice';
 import { AttachmentAdder } from './AttachmentAdder';
+import { DeleteButton } from './shared/DeleteButton';
 
 interface InvoiceListProps {
   invoices: ContractorInvoice[];
@@ -97,18 +98,11 @@ export function InvoiceList({ invoices, loading, onReload, onAdd, openId, onOpen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, invoices]);
 
-  // Submitter-only delete with two-tap confirm. RLS allows DELETE only when
-  // auth.uid() = created_by (or the user is a full admin), so even if this
-  // button were rendered for someone else, the row wouldn't actually go away.
-  const [armedDelete, setArmedDelete] = useState(false);
-
+  // Submitter-only delete. RLS allows DELETE only when auth.uid() =
+  // created_by (or the user is a full admin), so even if this button were
+  // rendered for someone else, the row wouldn't actually go away. The
+  // two-tap confirm lives in DeleteButton; this runs on the second tap.
   const deleteInvoice = async (inv: ContractorInvoice) => {
-    if (!armedDelete) {
-      setArmedDelete(true);
-      setTimeout(() => setArmedDelete(false), 3000);
-      return;
-    }
-    setArmedDelete(false);
     setDeleting(true);
     const { error } = await supabase.from('contractor_invoices').delete().eq('id', inv.id);
     setDeleting(false);
@@ -354,18 +348,12 @@ export function InvoiceList({ invoices, loading, onReload, onAdd, openId, onOpen
 
               <div className="flex flex-wrap justify-between gap-2 pt-2">
                 {user && detailInvoice.created_by === user.id ? (
-                  <button
-                    onClick={() => deleteInvoice(detailInvoice)}
+                  <DeleteButton
+                    variant="pill"
+                    label={t('invoice.detailDelete')}
                     disabled={deleting}
-                    className={
-                      armedDelete
-                        ? 'inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 shadow-sm'
-                        : 'inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all disabled:opacity-50'
-                    }
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    {deleting ? t('common.deleting') : armedDelete ? t('common.tapAgainToConfirm') : t('invoice.detailDelete')}
-                  </button>
+                    onDelete={() => deleteInvoice(detailInvoice)}
+                  />
                 ) : <span />}
                 <button
                   onClick={() => setDetailInvoice(null)}

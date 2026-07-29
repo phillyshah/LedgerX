@@ -173,6 +173,8 @@ export function AdminEmailInbox({ storageKey }: Props) {
     loading,
     discard,
     accept,
+    actionError,
+    clearActionError,
   } = useEmailInbox(0);
 
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -245,6 +247,8 @@ export function AdminEmailInbox({ storageKey }: Props) {
               onDiscard={discard}
               onOpenExpense={handleOpenExpense}
               onOpenInvoice={handleOpenInvoice}
+              actionError={actionError}
+              onDismissError={clearActionError}
             />
           ) : (
             <p className="text-sm text-slate-500 italic py-1">

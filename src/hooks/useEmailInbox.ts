@@ -35,6 +35,7 @@ export function useEmailInbox(refreshKey?: number) {
   const { user } = useAuth();
   const [items, setItems] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -77,17 +78,33 @@ export function useEmailInbox(refreshKey?: number) {
     };
   }, [user, load]);
 
-  const discard = async (id: string) => {
-    await supabase.from('email_inbox').update({ status: 'discarded' }).eq('id', id);
+  // Both of these used to ignore the returned error and drop the row from
+  // local state regardless. An RLS refusal therefore looked exactly like
+  // success until the next reload silently brought the row back. Only remove
+  // the row once the write actually landed, and surface the failure.
+  const setStatus = async (id: string, status: 'discarded' | 'accepted') => {
+    const { error } = await supabase.from('email_inbox').update({ status }).eq('id', id);
+    if (error) {
+      console.error(`[email_inbox] ${status} failed:`, error);
+      setActionError(error.message);
+      return;
+    }
+    setActionError(null);
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
-  const accept = async (id: string) => {
-    await supabase.from('email_inbox').update({ status: 'accepted' }).eq('id', id);
-    setItems(prev => prev.filter(i => i.id !== id));
-  };
+  const discard = (id: string) => setStatus(id, 'discarded');
+  const accept = (id: string) => setStatus(id, 'accepted');
 
-  return { items, loading, reload: load, discard, accept };
+  return {
+    items,
+    loading,
+    reload: load,
+    discard,
+    accept,
+    actionError,
+    clearActionError: () => setActionError(null),
+  };
 }
 
 export function useSenderEmails(refreshKey?: number) {

@@ -65,7 +65,14 @@ export function Dashboard() {
   // panel's card list. Discarding or accepting an item updates `items`,
   // which immediately re-derives `inboxCount` — fixing the stale badge
   // that lingered when two independent hooks ran side by side.
-  const { items: inboxItems, loading: inboxLoading, discard: inboxDiscard, accept: inboxAccept } = useEmailInbox(0);
+  const {
+    items: inboxItems,
+    loading: inboxLoading,
+    discard: inboxDiscard,
+    accept: inboxAccept,
+    actionError: inboxError,
+    clearActionError: clearInboxError,
+  } = useEmailInbox(0);
   const inboxCount = inboxItems.length;
 
   // Tracks which inbox item (if any) sourced the currently-open form so
@@ -283,6 +290,8 @@ export function Dashboard() {
               items={inboxItems}
               loading={inboxLoading}
               onDiscard={inboxDiscard}
+              actionError={inboxError}
+              onDismissError={clearInboxError}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
@@ -434,6 +443,8 @@ export function Dashboard() {
               items={inboxItems}
               loading={inboxLoading}
               onDiscard={inboxDiscard}
+              actionError={inboxError}
+              onDismissError={clearInboxError}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
