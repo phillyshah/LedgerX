@@ -300,6 +300,7 @@ export function Dashboard() {
           <CollapsibleSection
             storageKey="contractor.invoices"
             title={t('invoice.myInvoices')}
+            subtitle={t('invoice.myInvoicesHint')}
             icon={<FileSignature className="w-4 h-4" />}
             expandSignal={invoicesExpand}
           >
@@ -315,7 +316,8 @@ export function Dashboard() {
 
           <CollapsibleSection
             storageKey="contractor.estimates"
-            title={t('estimate.myEstimates')}
+            title={t('estimate.navTitle')}
+            subtitle={t('estimate.myEstimatesHint')}
             icon={<ClipboardList className="w-4 h-4" />}
             expandSignal={estimatesExpand}
           >
@@ -333,6 +335,7 @@ export function Dashboard() {
             expandSignal={transactionsExpand}
             storageKey="contractor.submissions"
             title={t('dashboard.yourSubmissions')}
+            subtitle={t('expenses.subtitleOwn')}
             icon={<ListChecks className="w-4 h-4" />}
           >
             <ExpenseList
@@ -455,6 +458,7 @@ export function Dashboard() {
             expandSignal={transactionsExpand}
             storageKey="dashboard.transactions"
             title={t('expenses.heading')}
+            subtitle={t('expenses.subtitleOwn')}
             icon={<ListChecks className="w-4 h-4" />}
             meta={expenses.length > 0 ? `${expenses.length}` : undefined}
           >
@@ -471,6 +475,7 @@ export function Dashboard() {
           <CollapsibleSection
             storageKey="dashboard.estimates"
             title={t('estimate.networkEstimates')}
+            subtitle={t('estimate.networkEstimatesHint')}
             icon={<ClipboardList className="w-4 h-4" />}
             meta={estimates.length > 0 ? `${estimates.length}` : undefined}
             expandSignal={estimatesExpand}

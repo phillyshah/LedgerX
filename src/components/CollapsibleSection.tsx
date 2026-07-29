@@ -19,6 +19,10 @@ interface Props {
   storageKey: string;
   /** Section title — shown next to the chevron. */
   title: string;
+  /** One line under the title saying what the section actually contains.
+   *  Worth setting wherever the title alone could be read as covering more
+   *  (or less) than the list really shows. */
+  subtitle?: string;
   /** Optional icon to render to the left of the title. */
   icon?: ReactNode;
   /** Optional small text rendered to the right of the title (e.g. counts). */
@@ -59,6 +63,7 @@ function writeStored(key: string, expanded: boolean): void {
 export function CollapsibleSection({
   storageKey,
   title,
+  subtitle,
   icon,
   meta,
   defaultExpanded = true,
@@ -92,8 +97,15 @@ export function CollapsibleSection({
         aria-expanded={expanded}
       >
         {icon && <span className="flex-shrink-0 text-slate-500">{icon}</span>}
-        <h3 className="text-sm font-semibold text-slate-700 truncate tracking-tight">{title}</h3>
-        {meta && <span className="text-xs font-medium text-slate-400 flex-shrink-0">{meta}</span>}
+        <span className="min-w-0 text-left">
+          <span className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-700 truncate tracking-tight">{title}</h3>
+            {meta && <span className="text-xs font-medium text-slate-400 flex-shrink-0">{meta}</span>}
+          </span>
+          {subtitle && (
+            <span className="block text-xs text-slate-400 truncate font-normal">{subtitle}</span>
+          )}
+        </span>
         <span className="flex-1" />
         <ChevronDown
           className={`w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform ${

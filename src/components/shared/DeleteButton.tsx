@@ -156,14 +156,13 @@ export function DeleteButton({
               : 'w-4 h-4'
         }
       />
-      {/* icon: text only once armed. pill/prominent: always. */}
+      {/* icon: text only once armed. pill/prominent: always.
+          No separate aria-live region — `aria-label` above already flips to
+          the confirm prompt, and the button still has focus after the first
+          tap, so a live region would just say it twice. */}
       {variant === 'icon'
         ? (armed || busy) && <span>{text}</span>
         : <span>{text}</span>}
-      {/* Announce the armed prompt to screen readers without moving focus. */}
-      <span className="sr-only" aria-live="polite">
-        {armed ? t('common.tapAgainToConfirm') : ''}
-      </span>
     </button>
   );
 }

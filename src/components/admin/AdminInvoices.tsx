@@ -306,7 +306,11 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">{t('adminInvoices.title')}</h2>
-          <p className="text-slate-500 mt-1">{t('adminInvoices.subtitle')}</p>
+          {/* Household admins can't mark anything paid (canMutateStatus is
+              isAdmin), so the shared "Review …" line overpromised for them. */}
+          <p className="text-slate-500 mt-1">
+            {t(canMutateStatus ? 'adminInvoices.subtitle' : 'adminInvoices.subtitleHa')}
+          </p>
         </div>
         {onAdd && (
           <button

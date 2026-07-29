@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
+import { CollapsibleSection } from '../CollapsibleSection';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
 import { AppFooter } from '../AppFooter';
@@ -195,11 +196,16 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
         </div>
       </section>
 
-      <section>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
-          {t('admin.configuration')}
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Collapsed by default: these four duplicate the sidebar's "Manage"
+          group exactly, and they're the least-reached part of the landing
+          screen. Nothing is removed — the tiles are one tap away, which
+          matters on mobile where the sidebar lives behind the hamburger. */}
+      <CollapsibleSection
+        storageKey="admin.home.configuration"
+        title={t('admin.configuration')}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
           {(
             [
               { key: 'households' as AdminNavKey, icon: Home,  label: t('admin.manageHouseholds') },
@@ -218,7 +224,7 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
             </button>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }
@@ -232,7 +238,9 @@ export function AdminLayout() {
   const [activeView, setActiveView] = useState<AdminView>(
     isAdmin ? 'home' : 'invoices'
   );
-  const [manageOpen, setManageOpen] = useState(true);
+  // Starts closed: these are configuration screens, not daily-use ones,
+  // and leaving them expanded put 4 extra items above the fold permanently.
+  const [manageOpen, setManageOpen] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -719,14 +727,26 @@ export function AdminLayout() {
             </Suspense>
 
             {activeView === 'my-transactions' && (
-              <ExpenseList
-                expenses={expenses}
-                households={households}
-                loading={expensesLoading}
-                onReload={reloadExpenses}
-                ownSubmissionsOnly
-                onAdd={() => setShowAddExpense(true)}
-              />
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{t('admin.myTransactions')}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{t('expenses.subtitleAll')}</p>
+                </div>
+                {/* The shell already fetches the whole household (useExpenses
+                    with no ownOnly), so this defaults to all of it and lets
+                    the viewer narrow with the "Just mine" chip. It used to be
+                    hard-wired to own-submissions-only, which left admins with
+                    no household-wide transaction list anywhere in the app. */}
+                <ExpenseList
+                  expenses={expenses}
+                  households={households}
+                  loading={expensesLoading}
+                  onReload={reloadExpenses}
+                  allowOwnFilter
+                  hideHeader
+                  onAdd={() => setShowAddExpense(true)}
+                />
+              </div>
             )}
 
             <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />

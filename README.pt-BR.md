@@ -266,7 +266,9 @@ Cada item pendente é mostrado como um cartão com:
 - O endereço do remetente e o assunto
 - Etiquetas pequenas mostrando o que foi extraído automaticamente (fornecedor, valor, data) para você diferenciar os itens rapidamente
 - Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba; arquivos HEIC de encaminhamentos do iPhone aparecem como uma miniatura genérica que abre o original)
-- Um botão pequeno **Revisar ▾** à direita
+- Um botão vermelho **Descartar** à esquerda e um botão **Revisar ▾** à direita
+
+Para jogar um item fora, toque em **Descartar** — ele vira **"Toque novamente para confirmar"** por três segundos, então um toque errado não custa nada. (Isso substituiu um × pequeno no canto superior do cartão que excluía o item no instante em que era tocado.)
 
 **Recibos em PDF são lidos como fotos.** A maioria das lojas envia recibos em
 PDF em vez de imagem, e agora eles são lidos automaticamente igual a uma foto de
@@ -329,9 +331,11 @@ Com o canal definido como **WhatsApp** ou **Ambos**, os avisos que hoje chegam p
 
 A **Lista de Despesas** mostra todas as transações da residência selecionada, das mais recentes para as mais antigas.
 
+Administradores e administradores de grupo abrem essa tela em **Transações** no menu. Ela mostra todas as transações das suas propriedades. Para ver apenas as que você mesmo enviou, toque no marcador **Somente minhas** — o LedgerX lembra dessa escolha neste aparelho. (Membros comuns e prestadores sempre veem só os próprios recibos; para eles não há marcador, e o limite é aplicado no servidor, não apenas escondido no app.)
+
 ### Pesquisa, ordenação e filtros
 
-Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente. Isso vale em todos os lugares onde a lista de transações aparece — incluindo **Meus Recibos** de um prestador e **Minhas Transações** de um admin de residência — então busca, ordenação e filtros sempre estão disponíveis assim que a lista cresce o suficiente para precisar deles.
+Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente. Isso vale em todos os lugares onde a lista de transações aparece — incluindo **Meus Recibos** de um prestador e **Transações** de um administrador — então busca, ordenação e filtros sempre estão disponíveis assim que a lista cresce o suficiente para precisar deles.
 
 A barra oferece:
 - **Pesquisa** — fornecedor, categoria, observações ou nome da residência (em tempo real)
@@ -356,6 +360,10 @@ Listas longas carregam 20 transações por vez — toque em **Mostrar mais N** n
 3. Toque mais uma vez em até 3 segundos para confirmar. Se você não tocar novamente, o botão volta ao normal e nada acontece.
 
 > Exclusões são permanentes — as imagens dos recibos também são removidas.
+
+**É assim que funciona toda exclusão no LedgerX.** Tudo que remove algo definitivamente — uma transação, uma nota fiscal, um orçamento, uma categoria, um grupo, um usuário, um modelo salvo, um vínculo de fornecedor, uma fatura, um e-mail ou telefone vinculado — usa a mesma lixeira vermelha e a mesma confirmação em dois toques. Nada é destruído com um toque só, e não sobrou nenhuma caixinha cinza do navegador no app.
+
+> A única exceção é dispensar uma notificação no sino, que continua instantânea — isso só limpa o aviso, nunca o registro para o qual ele aponta.
 
 ---
 
@@ -643,13 +651,13 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 
 **Tela inicial:** Ao entrar como administrador, você cai em uma tela de comando central com:
 - **Ações Rápidas** — botões Adicionar Transação e Enviar Nota Fiscal
-- **Ir para** — atalhos para Sem categoria, Notas Fiscais, Minhas Transações, Análises e Relatórios
-- **Configuração** — atalhos para Grupos, Categorias, Fornecedores e Usuários
+- **Ir para** — atalhos para Sem categoria, Notas Fiscais, Orçamentos, Transações e Conciliação
+- **Configuração** — atalhos para Grupos, Categorias, Fornecedores e Usuários. Esse grupo começa **recolhido** — toque no título para abrir. São as mesmas quatro telas do grupo **Gerenciar** na barra lateral, então ficam a um toque de distância sem lotar a tela inicial.
 
 **Navegação na barra lateral:**
 - **Início** — retorna à tela de comando de qualquer visualização
-- **Gerenciar** (recolhível) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
-- Sem categoria · Notas Fiscais · Minhas Transações · Análises · Relatórios
+- **Gerenciar** (recolhível, começa fechado) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
+- Sem categoria · Notas Fiscais · Orçamentos · Transações · Conciliação · Análises · Relatórios · Atividade · Relatório de Orçamentos
 
 ### Análises
 
@@ -852,7 +860,7 @@ O Admin de Propriedade é uma versão reduzida do admin. Faz tudo que um prestad
 
 **O que um admin de propriedade pode fazer:**
 - Enviar recibos (Adicionar Transação) e notas fiscais (Enviar Nota Fiscal)
-- Visualizar **Minhas Transações** — lista de todos os recibos que ele mesmo enviou (filtrada para o próprio trabalho)
+- Visualizar **Transações** — todas as transações das suas propriedades, com o marcador **Somente minhas** para restringir aos próprios envios
 - Visualizar **Análises** das propriedades em que é membro (abre como modal sobre a tela)
 - Visualizar a lista de **Notas Fiscais de Prestadores** (somente leitura — sem botão Marcar como Paga)
 - Visualizar **Relatórios**
@@ -928,7 +936,7 @@ Os orçamentos permitem enviar uma cotação ao administrador *antes* de o servi
 
 Os arquivos do seu orçamento ficam registrados até que um administrador os remova — não há botão de exclusão de orçamento para o prestador, então nada que você enviar some sozinho.
 
-**Administradores de Imóvel** também veem os botões **Adicionar Transação**, **Enviar Nota Fiscal** e **Enviar Orçamento** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
+**Administradores de Imóvel** também veem os botões **Adicionar Transação**, **Enviar Nota Fiscal** e **Enviar Orçamento** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Transações** no menu — toque em **Somente minhas** ali para ver só o que você digitou, sem abrir Análises.
 
 ---
 

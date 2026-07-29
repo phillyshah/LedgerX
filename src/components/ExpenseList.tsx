@@ -25,8 +25,14 @@ interface ExpenseListProps {
   households: Household[];
   loading: boolean;
   onReload: () => void;
-  /** When true, only shows expenses the current user submitted. Used by contractors. */
+  /** Only show expenses the current user submitted. For contractors this is
+   *  fixed; with `allowOwnFilter` it's just the starting position. */
   ownSubmissionsOnly?: boolean;
+  /** Let the viewer toggle own-only on and off via a "Just mine" chip.
+   *  Admin shells only — contractors and members are scoped own-only at the
+   *  *query* level (useExpenses' `ownOnly`), which a client-side chip must
+   *  never be able to widen. */
+  allowOwnFilter?: boolean;
   /** When true, drops the internal h2 — caller is providing a section
    *  header (e.g. CollapsibleSection on the dashboard). */
   hideHeader?: boolean;
@@ -35,7 +41,11 @@ interface ExpenseListProps {
   onAdd?: () => void;
 }
 
-export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, hideHeader = false, onAdd }: ExpenseListProps) {
+/** Per-device viewing preference, same spirit as CollapsibleSection's
+ *  `ledgerx:collapse:` keys. */
+const OWN_ONLY_KEY = 'ledgerx:txnOwnOnly';
+
+export function ExpenseList({ expenses, households, loading, onReload, ownSubmissionsOnly = false, allowOwnFilter = false, hideHeader = false, onAdd }: ExpenseListProps) {
   const { t, locale } = useT();
   const { user } = useAuth();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -63,6 +73,27 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [showFilters, setShowFilters] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('date_desc');
 
+  // Own-only is a fixed prop for callers that don't opt into the chip, and a
+  // remembered preference for those that do.
+  const [ownOnly, setOwnOnly] = useState<boolean>(() => {
+    if (!allowOwnFilter) return ownSubmissionsOnly;
+    try {
+      const raw = window.localStorage.getItem(OWN_ONLY_KEY);
+      if (raw !== null) return raw === '1';
+    } catch {
+      /* no-op */
+    }
+    return ownSubmissionsOnly;
+  });
+  useEffect(() => {
+    if (!allowOwnFilter) return;
+    try {
+      window.localStorage.setItem(OWN_ONLY_KEY, ownOnly ? '1' : '0');
+    } catch {
+      /* no-op */
+    }
+  }, [allowOwnFilter, ownOnly]);
+
   // How many of the filtered/sorted rows are currently rendered ("Load more"
   // pagination). Resets to the first page whenever a filter/sort/search
   // input actually changes — but NOT when `expenses` itself changes (a
@@ -70,7 +101,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, sortKey]);
+  }, [searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, sortKey, ownOnly]);
 
   // Fade the quick-chip row's trailing edge, but only while it actually
   // overflows — a static fade would permanently clip the last chip for
@@ -92,7 +123,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     const ro = new ResizeObserver(check);
     ro.observe(chipsEl);
     return () => ro.disconnect();
-  }, [chipsEl, households.length, labsEnabled]);
+  }, [chipsEl, households.length, labsEnabled, allowOwnFilter]);
 
   // The two-tap confirm now lives in DeleteButton — this only runs on the
   // second tap.
@@ -147,6 +178,8 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
 
   // Count active filters (excluding search, which is always visible)
   const activeFilterCount = [
+    // Only counts as a *filter* where the user can actually turn it off.
+    allowOwnFilter && ownOnly,
     householdFilter !== 'all',
     categoryFilter !== 'all',
     matchedFilter !== 'all',
@@ -159,6 +192,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
   const hasAnyFilter = activeFilterCount > 0 || searchQuery !== '';
 
   const clearAllFilters = () => {
+    if (allowOwnFilter) setOwnOnly(false);
     setSearchQuery('');
     setHouseholdFilter('all');
     setCategoryFilter('all');
@@ -169,6 +203,17 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     setAmountMax('');
   };
 
+  // The population this screen is *about*, before any search/filter narrowing.
+  // Counts and empty states must both be drawn from this, not from the raw
+  // `expenses` prop: the admin shell fetches the whole household but may be
+  // showing only the viewer's own rows, and comparing the two produced
+  // "Showing 3 of 87 transactions" — which reads as 84 of yours being hidden.
+  const scopedExpenses = useMemo(() => {
+    const userId = user?.id;
+    if (!ownOnly || !userId) return expenses;
+    return expenses.filter((e) => e.created_by === userId);
+  }, [expenses, ownOnly, user?.id]);
+
   // Apply filters and sort in a single pass — one memo, one array
   // allocation. The server already orders by expense_date DESC, so the
   // default `date_desc` branch skips re-sorting.
@@ -176,10 +221,8 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     const query = searchQuery.toLowerCase().trim();
     const minAmt = amountMin ? parseFloat(amountMin) : null;
     const maxAmt = amountMax ? parseFloat(amountMax) : null;
-    const userId = user?.id;
 
-    const filtered = expenses.filter((e) => {
-      if (ownSubmissionsOnly && userId && e.created_by !== userId) return false;
+    const filtered = scopedExpenses.filter((e) => {
       if (householdFilter !== 'all' && e.household_id !== householdFilter) return false;
 
       if (categoryFilter !== 'all') {
@@ -224,7 +267,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
       // date_desc: server already returns rows in this order — no resort
     }
     return filtered;
-  }, [expenses, searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, ownSubmissionsOnly, user?.id, sortKey, labsEnabled, matchedCardLabels]);
+  }, [scopedExpenses, searchQuery, householdFilter, categoryFilter, matchedFilter, dateFrom, dateTo, amountMin, amountMax, sortKey, labsEnabled, matchedCardLabels]);
 
   const visibleExpenses = filteredExpenses.slice(0, visibleCount);
 
@@ -240,7 +283,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
     );
   }
 
-  if (expenses.length === 0) {
+  if (scopedExpenses.length === 0) {
     return (
       <div className="bg-white rounded-2xl p-10 sm:p-12 shadow-sm border border-slate-200 text-center">
         <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-1 ring-emerald-200/50">
@@ -269,10 +312,13 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
 
   // Filter chrome adds clutter for short lists; hide it until the user
   // either has enough transactions to need it or explicitly opens filters.
-  const largeList = expenses.length > 25;
-  const filtersUseful = largeList || showFilters || activeFilterCount > 0;
+  const largeList = scopedExpenses.length > 25;
+  // `allowOwnFilter` forces the chrome on: the "Just mine" chip lives in the
+  // chip row, and hiding the row until a list got long would leave the admin
+  // shell's only mine/everyone toggle unreachable.
+  const filtersUseful = largeList || showFilters || activeFilterCount > 0 || allowOwnFilter;
   const renderHeaderChrome = !hideHeader || filtersUseful;
-  const showChips = households.length > 1 || labsEnabled;
+  const showChips = allowOwnFilter || households.length > 1 || labsEnabled;
 
   return (
     <>
@@ -297,7 +343,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
           {!hideHeader && (
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-slate-900">
-                {ownSubmissionsOnly ? t('dashboard.yourSubmissions') : t('expenses.heading')}
+                {ownSubmissionsOnly && !allowOwnFilter ? t('dashboard.yourSubmissions') : t('expenses.heading')}
               </h2>
               {hasAnyFilter && (
                 <button
@@ -381,6 +427,18 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
                   : undefined
               }
             >
+              {allowOwnFilter && (
+                <button
+                  onClick={() => setOwnOnly((v) => !v)}
+                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-all ${
+                    ownOnly
+                      ? 'bg-slate-900 border-slate-900 text-white'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {t('expenses.justMine')}
+                </button>
+              )}
               {households.length > 1 && households.map((h) => {
                 const active = householdFilter === h.id;
                 return (
@@ -429,7 +487,7 @@ export function ExpenseList({ expenses, households, loading, onReload, ownSubmis
         {/* Results info bar — only when there's actually a filter applied. */}
         {hasAnyFilter && filtersUseful && (
           <div className="px-5 py-2 bg-slate-50 border-b border-slate-200 text-xs text-slate-500">
-            {t('expenses.showingOf', { shown: filteredExpenses.length, total: expenses.length })}
+            {t('expenses.showingOf', { shown: filteredExpenses.length, total: scopedExpenses.length })}
           </div>
         )}
 

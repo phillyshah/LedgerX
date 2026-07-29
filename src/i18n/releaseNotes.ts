@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.16',
+    version: 'v13.16',
+    date: '2026-07-29',
+    title: {
+      'en': 'A proper delete button, and a Transactions screen that says what it shows',
+      'pt-BR': 'Um bot\u00e3o de excluir de verdade e uma tela de Transa\u00e7\u00f5es que diz o que mostra',
+    },
+    body: {
+      'en':
+        "Deleting things is clearer everywhere. The tiny grey \u00d7 in the corner of an inbox message \u2014 the one that was easy to miss and deleted the moment you touched it \u2014 is now a proper red trashcan labelled Discard, sitting next to Review where you'd expect it, and about half again as big. It also asks before it acts: the first tap turns it into \"Tap again to confirm\" for three seconds, and if you don't, nothing happens. Every delete button in LedgerX now works this way, including the ones that used to pop up a grey browser box and the handful that deleted instantly with no warning at all. Dismissing a notification is the one thing still instant, since that only clears the alert, never the record.\n\nThe Transactions screen has been straightened out. It used to be called My Transactions in the menu but say My Receipts once you opened it, and it only ever showed the receipts you'd personally filed \u2014 even though the count underneath was quietly counting the whole property (\"Showing 3 of 87\"). It's now simply Transactions, and it shows everything across your properties. Want just yours? Tap the new Just mine chip, and it remembers your choice next time.\n\nWe also went through the descriptions under each section heading and fixed the ones that weren't quite true \u2014 Invoices now says something different if you're a household admin who can't mark things paid, and a contractor's estimates list no longer calls itself \"My estimates\" when it also includes ones you were invited into. And the admin home screen's Configuration tiles now start tucked away, since they're the same four things already sitting in the Manage menu.",
+      'pt-BR':
+        "Excluir ficou mais claro em todo lugar. O \u00d7 cinza min\u00fasculo no canto de uma mensagem da caixa de entrada \u2014 aquele f\u00e1cil de n\u00e3o ver e que exclu\u00eda no instante em que voc\u00ea encostava \u2014 agora \u00e9 uma lixeira vermelha de verdade escrita Descartar, ao lado de Revisar, onde voc\u00ea espera encontr\u00e1-la, e quase metade maior. Ela tamb\u00e9m pergunta antes de agir: o primeiro toque a transforma em \"Toque novamente para confirmar\" por tr\u00eas segundos e, se voc\u00ea n\u00e3o tocar, nada acontece. Todos os bot\u00f5es de excluir do LedgerX funcionam assim agora, inclusive os que abriam uma caixinha cinza do navegador e os poucos que exclu\u00edam na hora, sem aviso nenhum. Dispensar uma notifica\u00e7\u00e3o continua instant\u00e2neo, porque isso s\u00f3 limpa o aviso, nunca o registro.\n\nA tela de Transa\u00e7\u00f5es foi acertada. Ela se chamava Minhas Transa\u00e7\u00f5es no menu mas dizia Meus Recibos ao abrir, e s\u00f3 mostrava os recibos que voc\u00ea mesmo tinha enviado \u2014 embora a contagem embaixo estivesse contando a propriedade inteira (\"Exibindo 3 de 87\"). Agora \u00e9 simplesmente Transa\u00e7\u00f5es e mostra tudo das suas propriedades. Quer ver s\u00f3 as suas? Toque no novo marcador Somente minhas \u2014 e ele lembra da sua escolha na pr\u00f3xima vez.\n\nTamb\u00e9m revisamos as descri\u00e7\u00f5es abaixo de cada t\u00edtulo de se\u00e7\u00e3o e corrigimos as que n\u00e3o eram bem verdade \u2014 Notas Fiscais agora diz algo diferente para o administrador de grupo que n\u00e3o pode marcar como pago, e a lista de or\u00e7amentos do prestador n\u00e3o se chama mais \"Meus or\u00e7amentos\" quando tamb\u00e9m inclui os que voc\u00ea foi convidado a acompanhar. E os blocos de Configura\u00e7\u00e3o na tela inicial do administrador come\u00e7am recolhidos, j\u00e1 que s\u00e3o os mesmos quatro itens que j\u00e1 est\u00e3o no menu Gerenciar.",
+    },
+  },
+  {
     id: 'v13.15',
     version: 'v13.15',
     date: '2026-07-26',
