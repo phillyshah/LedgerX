@@ -22,17 +22,19 @@ interface EstimateListProps {
 
 export function EstimateStatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => string }) {
   const styles: Record<EstimateStatus, string> = {
-    open:     'bg-amber-500 text-white ring-1 ring-amber-600/20',
-    accepted: 'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
-    rejected: 'bg-slate-400 text-white ring-1 ring-slate-500/20',
+    open:      'bg-amber-500 text-white ring-1 ring-amber-600/20',
+    accepted:  'bg-emerald-600 text-white ring-1 ring-emerald-700/20',
+    completed: 'bg-blue-600 text-white ring-1 ring-blue-700/20',
+    rejected:  'bg-slate-400 text-white ring-1 ring-slate-500/20',
   };
   const dots: Record<EstimateStatus, string> = {
-    open: 'bg-amber-200', accepted: 'bg-emerald-200', rejected: 'bg-slate-200',
+    open: 'bg-amber-200', accepted: 'bg-emerald-200', completed: 'bg-blue-200', rejected: 'bg-slate-200',
   };
   const labels: Record<EstimateStatus, string> = {
-    open: t('estimate.statusOpen'),
-    accepted: t('estimate.statusAccepted'),
-    rejected: t('estimate.statusRejected'),
+    open:      t('estimate.statusOpen'),
+    accepted:  t('estimate.statusAccepted'),
+    completed: t('estimate.statusCompleted'),
+    rejected:  t('estimate.statusRejected'),
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${styles[status]}`}>
@@ -207,6 +209,9 @@ export function EstimateList({ estimates, loading, onReload, onAdd, openId, onOp
                   { label: t('estimate.detailProperty'), value: detail.household_name ?? '—' },
                   { label: t('estimate.detailStatus'), value: <EstimateStatusBadge status={detail.status} t={t} /> },
                   { label: t('estimate.detailBillingType'), value: detail.billing_type === 'labor_only' ? t('estimate.billingLaborOnly') : t('estimate.billingTotal') },
+                  ...(detail.amount != null
+                    ? [{ label: t('estimate.amountLabel'), value: new Intl.NumberFormat(locale, { style: 'currency', currency: detail.currency || 'USD' }).format(detail.amount) }]
+                    : []),
                   { label: t('estimate.detailSubmitted'), value: fmtDate(detail.created_at.split('T')[0]) },
                 ].map(({ label, value }) => (
                   <div key={label}>

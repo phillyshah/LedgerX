@@ -6,11 +6,45 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.16`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.17`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **⚠️ v13.17 NEEDS ONE MANUAL SQL STEP BEFORE IT WORKS.** Unlike v13.16 (pure
+  frontend), this release adds
+  `supabase/migrations/20260803000000_estimate_completion_and_links.sql`.
+  Paste it into the Supabase SQL editor. Until it runs, Mark Complete fails
+  with `invalid status: completed` and the Matched-spend section errors on a
+  missing RPC. Verify after with:
+  `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='estimates_status_check';`
+  (must list `completed`) and
+  `SELECT count(*) FROM pg_proc WHERE proname IN ('link_estimate_item','unlink_estimate_item','list_estimate_links','list_estimate_link_candidates');`
+  (must return `4`).
+- **v13.17 in one paragraph**: estimates gained a fourth status `completed`
+  (Mark Complete, full-admin only, offered only from `accepted`), a nullable
+  `amount`/`currency`, and `estimate_links` — the **first** relationship
+  between estimates and actual spend. One estimate takes many receipts and/or
+  invoices; **partial unique indexes on `expense_id` and `invoice_id` are what
+  guarantee** a receipt belongs to at most one estimate, so the matched total
+  can't double-count. RLS follows the reconciliation convention: SELECT for
+  `is_admin()`, **no client INSERT/UPDATE/DELETE policy at all** — mutation is
+  RPC-only. **Do not reuse `scoreCandidate` from `lib/statementMatching.ts`
+  here**: it hard-gates on the amount matching within $0.50, so a $5,000 quote
+  satisfied by an invoice plus several small receipts would score every
+  candidate `null`. The picker is unranked by design. Verified with **13
+  SQL assertion blocks** (`supabase/tests/estimate_{harness,tests}.sql`,
+  incl. double-link rejection, cascade behaviour, and every RPC refusing a
+  non-admin), plus **23 browser assertions** on the quoted-vs-actual
+  arithmetic (over / under / exact / no-quote / nothing-linked) and
+  **13 more** on the button hierarchy.
+- **Also in v13.17 (frontend only)**: the household-admin quick-action row's
+  solid button now tracks `activeView` (`PRIMARY_ACTION_FOR_VIEW` in
+  `AdminLayout.tsx`) — Invoices promotes Submit Invoice, Estimates promotes
+  Submit Estimate. Users were clicking the always-green Add Transaction while
+  reviewing invoices and believing they'd uploaded one. Add Transaction's icon
+  went `Plus` → `ReceiptText` (not plain `Receipt` — that already means the
+  Transactions nav item in the same file).
 - **v13.16 (UX feedback round) — frontend only, NO SQL, NO edge function.**
   Merging to `main` auto-deploys via `.github/workflows/deploy.yml`; there is
-  nothing to run by hand. Three owner-reported issues:
+  nothing to run by hand for that part. Three owner-reported issues:
   1. **One delete control app-wide.** New
      `src/components/shared/DeleteButton.tsx` (variants `icon` / `pill` /
      `prominent`) replaces three separate conventions: a two-tap confirm

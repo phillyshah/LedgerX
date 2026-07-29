@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.17',
+    version: 'v13.17',
+    date: '2026-07-29',
+    title: {
+      'en': 'Close out an estimate, and tie the real spend back to the quote',
+      'pt-BR': 'Encerre um or\u00e7amento e ligue o gasto real ao valor cotado',
+    },
+    body: {
+      'en':
+        "Estimates can now be finished. Once you've accepted one and the work is done, open it and tap \u201cMark Complete\u201d \u2014 it gets its own blue status, drops out of your live list, and there's a Completed filter if you want to look back. Reopen still works if you close one too early.\n\nYou can also now attach the actual spend to a quote. Open an accepted estimate and use \u201cLink item\u201d to pick the contractor's invoice and any receipts that belong to that job. LedgerX adds them up and shows you the comparison in one line \u2014 \u201cQuoted $5,000 \u00b7 matched $5,240 \u00b7 $240 over\u201d \u2014 so you can see at a glance whether a job came in over or under. Anything already attached to another estimate is left out of the list, so nothing gets counted twice. Unlink any row to take it back off.\n\nTo make that comparison possible, estimates now have a quoted amount. Contractors can fill it in when they submit (it's optional), and a full admin can set or correct it from Edit. Estimates from before today simply show the matched total with no comparison until someone fills the number in.\n\nOne small fix in the same release: the big green button at the top of the screen now follows what you're looking at. On the Invoices screen the loud button is \u201cSubmit Invoice\u201d; on Estimates it's \u201cSubmit Estimate\u201d. People were reaching for the green \u201cAdd Transaction\u201d while reviewing invoices and assuming that's how you upload one. Nothing moved \u2014 only the emphasis \u2014 and Add Transaction now carries a receipt icon to match its neighbours.",
+      'pt-BR':
+        "Agora d\u00e1 para encerrar um or\u00e7amento. Depois de aceitar e o servi\u00e7o estar pronto, abra-o e toque em \u201cMarcar como conclu\u00eddo\u201d \u2014 ele ganha um status azul pr\u00f3prio, sai da sua lista ativa e h\u00e1 um filtro Conclu\u00eddo para revisitar depois. Reabrir continua funcionando se voc\u00ea encerrar cedo demais.\n\nVoc\u00ea tamb\u00e9m pode anexar o gasto real ao or\u00e7amento. Abra um or\u00e7amento aceito e use \u201cVincular item\u201d para escolher a nota fiscal do prestador e os recibos daquele servi\u00e7o. O LedgerX soma tudo e mostra a compara\u00e7\u00e3o em uma linha \u2014 \u201cOr\u00e7ado $5.000 \u00b7 vinculado $5.240 \u00b7 $240 acima\u201d \u2014 para voc\u00ea ver na hora se o servi\u00e7o passou ou ficou abaixo do previsto. O que j\u00e1 estiver vinculado a outro or\u00e7amento fica fora da lista, ent\u00e3o nada \u00e9 contado duas vezes. Desvincule qualquer linha para remov\u00ea-la.\n\nPara tornar essa compara\u00e7\u00e3o poss\u00edvel, os or\u00e7amentos agora t\u00eam um valor cotado. Os prestadores podem preencher ao enviar (\u00e9 opcional) e um administrador geral pode definir ou corrigir em Editar. Or\u00e7amentos anteriores a hoje simplesmente mostram o total vinculado, sem compara\u00e7\u00e3o, at\u00e9 algu\u00e9m preencher o valor.\n\nUm ajuste pequeno na mesma vers\u00e3o: o bot\u00e3o verde grande no topo da tela agora acompanha o que voc\u00ea est\u00e1 vendo. Na tela de Notas Fiscais o bot\u00e3o em destaque \u00e9 \u201cEnviar Nota Fiscal\u201d; em Or\u00e7amentos \u00e9 \u201cEnviar Or\u00e7amento\u201d. As pessoas estavam clicando no verde \u201cAdicionar Transa\u00e7\u00e3o\u201d enquanto revisavam notas, achando que era assim que se envia uma. Nada mudou de lugar \u2014 s\u00f3 o destaque \u2014 e Adicionar Transa\u00e7\u00e3o agora tem um \u00edcone de recibo, combinando com os vizinhos.",
+    },
+  },
+  {
     id: 'v13.16',
     version: 'v13.16',
     date: '2026-07-29',

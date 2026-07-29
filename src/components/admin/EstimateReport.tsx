@@ -8,11 +8,12 @@ import {
   X, ClipboardList, PieChart, Clock, Home, Calendar, TrendingUp,
 } from 'lucide-react';
 import type { Household } from '../../types/expense';
+import type { EstimateStatus } from '../../types/estimate';
 
 interface EstimateReportRow {
   estimate_id: string;
   title: string;
-  status: 'open' | 'accepted' | 'rejected';
+  status: EstimateStatus;
   billing_type: 'total' | 'labor_only';
   household_id: string | null;
   household_name: string | null;
@@ -121,7 +122,10 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
 
   const summary = useMemo(() => {
     const submitted = inRange.length;
-    const accepted = inRange.filter((r) => r.status === 'accepted').length;
+    // 'completed' is an accepted estimate that finished, so it counts as
+    // accepted everywhere acceptance is measured — otherwise closing a job
+    // out would quietly drag the acceptance rate down.
+    const accepted = inRange.filter((r) => r.status === 'accepted' || r.status === 'completed').length;
     const rejected = inRange.filter((r) => r.status === 'rejected').length;
     const open = inRange.filter((r) => r.status === 'open').length;
 
@@ -149,7 +153,7 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
       const existing = map.get(r.submitter_username)
         ?? { username: r.submitter_username, submitted: 0, accepted: 0, rejected: 0 };
       existing.submitted += 1;
-      if (r.status === 'accepted') existing.accepted += 1;
+      if (r.status === 'accepted' || r.status === 'completed') existing.accepted += 1;
       if (r.status === 'rejected') existing.rejected += 1;
       map.set(r.submitter_username, existing);
     }

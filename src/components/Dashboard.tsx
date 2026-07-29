@@ -11,7 +11,7 @@ import type { AddExpenseInitialData } from './AddExpense';
 import type { InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
 import { EstimateList } from './EstimateList';
-import { Plus, Download, FileText, ClipboardList } from 'lucide-react';
+import { Download, FileText, ClipboardList, ReceiptText } from 'lucide-react';
 import { LogoText } from './LogoText';
 import { UserMenu } from './UserMenu';
 import { AppFooter } from './AppFooter';
@@ -243,7 +243,7 @@ export function Dashboard() {
               className="group flex flex-col items-start gap-3 p-5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
             >
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                <Plus className="w-5 h-5" />
+                <ReceiptText className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-semibold text-base leading-tight">{t('dashboard.addTransaction')}</div>
@@ -408,7 +408,7 @@ export function Dashboard() {
               className="group w-full sm:w-auto sm:min-w-[280px] flex items-center gap-3 p-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
             >
               <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors shrink-0">
-                <Plus className="w-5 h-5" />
+                <ReceiptText className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-semibold text-base leading-tight">{t('dashboard.addTransaction')}</div>

@@ -718,14 +718,24 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 Os prestadores podem enviar **orçamentos** (cotações) para você revisar e discutir antes que qualquer serviço vire nota fiscal. Abra a seção **Orçamentos** pelo menu (ou pelo bloco Orçamentos na home do admin).
 
 - Veja todos os orçamentos enviados pelos prestadores, com um selo vermelho mostrando mensagens não lidas
-- Filtre por status (Aberto / Aceito / Recusado) e propriedade; ordene por data
+- Filtre por status (Aberto / Aceito / Concluído / Recusado) e propriedade; ordene por data
 - Clique em um orçamento para abri-lo: os arquivos JPEG/PDF enviados (PDFs abrem em nova aba), a descrição do prestador e a **conversa**
 - **Converse** — responda dentro do próprio orçamento; o prestador vê e pode responder
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
+- **Marcar como concluído** (apenas admins completos) — quando um serviço aceito termina e é faturado, encerre-o. Orçamentos concluídos ganham um status azul próprio e uma opção **Concluído** no filtro, para que o trabalho ativo não dispute atenção com o já finalizado. **Reabrir** continua funcionando se você encerrar cedo demais. Esse botão só aparece em um orçamento *aceito* — concluir algo que nunca foi aceito pularia a decisão que o status existe para registrar.
 - **Editar** (apenas admins completos) — corrija o título, a descrição, o tipo de cobrança, a propriedade ou as notas do admin a partir do detalhe.
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
 
 **Adicione fotos a qualquer momento:** abra qualquer orçamento que você possa ver e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens depois do envio — qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade com muito menos armazenamento; PDFs são mantidos como estão.
+
+**Valor orçado:** os orçamentos têm um **valor orçado** opcional. Os prestadores podem preencher ao enviar, e um admin completo pode definir ou corrigir em **Editar**. Orçamentos criados antes da v13.17 não têm valor até alguém editar — eles mostram o total vinculado, sem comparação, em vez de inventar uma.
+
+**Gastos vinculados (ligar o custo real ao orçamento):** abra qualquer orçamento e use **Vincular item** em **Gastos vinculados** para anexar a nota fiscal do prestador e os recibos daquele serviço. Os dois tipos aparecem em uma lista só, e o cabeçalho mostra a comparação em uma linha: *Orçado $5.000 · vinculado $5.240 · 1 nota(s), 1 recibo(s) · $240,00 acima*. Acima do previsto aparece em vermelho, abaixo em verde, e um valor exato não mostra selo nenhum.
+
+- Uma transação ou nota fiscal pertence a **no máximo um orçamento** — o que já estiver vinculado em outro lugar fica fora do seletor, então o custo de um serviço não é contado duas vezes.
+- O seletor é restrito à propriedade do orçamento, do mais recente ao mais antigo, com campo de busca. Ele deliberadamente não é ordenado por valor como na Conciliação de Cartão: um orçamento é coberto por uma nota **mais** vários recibos menores, então casar por valor descartaria todos os candidatos.
+- **Desvincule** qualquer linha (lixeira vermelha, toque duas vezes) para removê-la; os totais recalculam na hora e o item volta ao seletor.
+- Apenas admins completos, e a seção fica na tela administrativa de orçamentos — prestadores não veem seus outros gastos no serviço deles.
 
 **Tipo de cobrança:** cada orçamento agora inclui um tipo de cobrança — **Valor total** ou **Somente mão de obra (materiais à parte)**. Isso aparece como um selo em cada cartão de orçamento para que você saiba de relance se os materiais estão incluídos.
 

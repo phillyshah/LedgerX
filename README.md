@@ -716,14 +716,24 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 Contractors can submit **estimates** (quotes) for you to review and discuss before any work is invoiced. Open the **Estimates** section from the nav (or the Estimates tile on the admin home).
 
 - See every estimate submitted by contractors, with a red badge showing unread messages
-- Filter by status (Open / Accepted / Rejected) and property; sort by date
+- Filter by status (Open / Accepted / Completed / Rejected) and property; sort by date
 - Click an estimate to open it: the submitted JPEG/PDF files (PDFs open in a new tab), the contractor's description, and the **conversation thread**
 - **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
+- **Mark Complete** (full admins only) — once an accepted job is finished and billed, close it out. Completed estimates get their own blue status and a **Completed** entry in the status filter, so live work stops competing for attention with finished work. **Reopen** still works if you close one too early. This button only appears on an *accepted* estimate — completing something that was never accepted would skip the decision the status exists to record.
 - **Edit** (full admins only) — fix the estimate's title, description, billing type, property, or admin notes from the detail view.
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
 
 **Add photos any time:** open any estimate you can see and use the **Add photos** button under the attachments to add more pictures after it was submitted — anyone on the property can contribute, not just the submitter. Images are automatically shrunk to a sharp, readable size (roughly 1600px, ~0.6MB) before saving, so they stay legible while using far less storage; PDFs are kept exactly as-is.
+
+**Quoted amount:** estimates carry an optional **quoted amount**. Contractors can fill it in when submitting, and a full admin can set or correct it from **Edit**. Estimates created before v13.17 have no amount until someone edits them — they show the matched total with no comparison rather than inventing one.
+
+**Matched spend (linking actual cost to a quote):** open any estimate and use **Link item** under **Matched spend** to attach the contractor's invoice and any receipts that belong to that job. Both kinds appear in one list, and the header shows the comparison in a line: *Quoted $5,000 · matched $5,240 · 1 invoice(s), 1 receipt(s) · $240.00 over*. Over-budget shows red, under-budget green, and an exact match shows no chip at all.
+
+- A transaction or invoice belongs to **at most one estimate** — anything already linked elsewhere is left out of the picker, so a job's cost can't be double-counted across two quotes.
+- The picker is scoped to the estimate's property, newest first, with a search box. It deliberately isn't ranked by amount the way Credit Card Reconciliation is: one quote is satisfied by an invoice *plus* several smaller receipts, so amount-matching would rule out every candidate.
+- **Unlink** any row (red trashcan, tap twice) to take it back off; the totals recompute immediately and the item returns to the picker.
+- Full admins only, and the section is on the admin estimate screen — contractors don't see your other spending on their job.
 
 **Billing type:** every estimate now includes a billing type — **Total bill** or **Labor only (materials separate)**. This shows as a badge on each estimate card so you know at a glance whether materials are included in the quoted price.
 
