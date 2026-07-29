@@ -26,7 +26,10 @@ interface EstimateReportRow {
 type Tab = 'summary' | 'aging';
 
 interface EstimateReportProps {
-  onClose: () => void;
+  // Rendered bare (no overlay, no header, no close button) when `onClose` is
+  // omitted — that's how ReportsHub embeds this as a tab. Mirrors the
+  // convention AdminAnalytics already used.
+  onClose?: () => void;
 }
 
 // Default the summary window to the last 90 days.
@@ -47,9 +50,10 @@ interface ContractorStat {
 }
 
 export function EstimateReport({ onClose }: EstimateReportProps) {
+  const embedded = !onClose;
   const { t, locale } = useT();
   const { isAdmin, user } = useAuth();
-  useEscapeClose(onClose);
+  useEscapeClose(onClose ?? (() => {}), !embedded);
 
   const initial = defaultDateRange();
   const [tab, setTab] = useState<Tab>('summary');
@@ -176,10 +180,11 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-6xl sm:max-h-[90vh] sm:my-4 overflow-hidden flex flex-col">
+    <div className={embedded ? '' : 'fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 z-50 overflow-y-auto'}>
+      <div className={embedded ? 'flex flex-col' : 'bg-white rounded-none sm:rounded-2xl shadow-xl w-full max-w-6xl sm:max-h-[90vh] sm:my-4 overflow-hidden flex flex-col'}>
 
         {/* Header */}
+        {!embedded && (
         <div className="sticky top-0 bg-white border-b border-slate-200 px-5 sm:px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -196,6 +201,7 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
+        )}
 
         {/* Tabs */}
         <div className="px-5 sm:px-6 pt-4 border-b border-slate-200 shrink-0">

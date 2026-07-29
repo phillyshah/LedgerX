@@ -12,6 +12,7 @@ import { useExpenses } from '../../hooks/useExpenses';
 import { useLabsAccess } from '../../hooks/useLabsAccess';
 import type { AppNotification } from '../../types/notification';
 import { useInitialDeepLink } from '../../hooks/useInitialDeepLink';
+import type { ReportsTab } from './ReportsHub';
 import {
   BarChart3, Home, Tag, FileText, AlertCircle, Users, Menu, X,
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, CreditCard, HelpCircle, LogOut,
@@ -25,15 +26,12 @@ import { APP_VERSION } from '../../version';
 const ManageHouseholds    = lazy(() => import('./ManageHouseholds').then((m) => ({ default: m.ManageHouseholds })));
 const ManageCategories    = lazy(() => import('./ManageCategories').then((m) => ({ default: m.ManageCategories })));
 const ManageVendors       = lazy(() => import('./ManageVendors').then((m) => ({ default: m.ManageVendors })));
-const AdminAnalytics      = lazy(() => import('./AdminAnalytics').then((m) => ({ default: m.AdminAnalytics })));
 const UncategorizedTransactions = lazy(() => import('./UncategorizedTransactions').then((m) => ({ default: m.UncategorizedTransactions })));
 const ManageUsers         = lazy(() => import('./ManageUsers').then((m) => ({ default: m.ManageUsers })));
 const AdminInvoices       = lazy(() => import('./AdminInvoices').then((m) => ({ default: m.AdminInvoices })));
 const AdminEstimates      = lazy(() => import('./AdminEstimates').then((m) => ({ default: m.AdminEstimates })));
 const HAEstimates         = lazy(() => import('./HAEstimates').then((m) => ({ default: m.HAEstimates })));
-const Reports             = lazy(() => import('../Reports').then((m) => ({ default: m.Reports })));
-const ActivityReport      = lazy(() => import('./ActivityReport').then((m) => ({ default: m.ActivityReport })));
-const EstimateReport      = lazy(() => import('./EstimateReport').then((m) => ({ default: m.EstimateReport })));
+const ReportsHub          = lazy(() => import('./ReportsHub').then((m) => ({ default: m.ReportsHub })));
 const TaxCenter           = lazy(() => import('./tax/TaxCenter').then((m) => ({ default: m.TaxCenter })));
 const AddExpense          = lazy(() => import('../AddExpense').then((m) => ({ default: m.AddExpense })));
 const InvoiceForm         = lazy(() => import('../InvoiceForm').then((m) => ({ default: m.InvoiceForm })));
@@ -60,7 +58,7 @@ type AdminView =
   | 'my-transactions'
   | 'reconciliation';
 
-type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report' | 'tax';
+type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report' | 'tax' | 'reports-hub';
 
 // ── Household-admin quick-action row ──────────────────────────────────────────
 //
@@ -294,12 +292,15 @@ export function AdminLayout() {
   // Starts closed: these are configuration screens, not daily-use ones,
   // and leaving them expanded put 4 extra items above the fold permanently.
   const [manageOpen, setManageOpen] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showReports, setShowReports] = useState(false);
-  const [showActivity, setShowActivity] = useState(false);
+  // Analytics / Reports / Activity / Estimates are one destination now
+  // (ReportsHub). This doubles as "is the hub open" and "which tab": null is
+  // closed, a tab name forces that tab (home tiles, which promise a
+  // destination by name), and 'remember' lets the hub restore whichever tab
+  // you were last on (the generic sidebar entry, which promises nothing).
+  const [reportsTab, setReportsTab] = useState<ReportsTab | 'remember' | null>(null);
   const [showTax, setShowTax] = useState(false);
   const [labsOpen, setLabsOpen] = useState(false);
-  const [showEstimateReport, setShowEstimateReport] = useState(false);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -357,10 +358,7 @@ export function AdminLayout() {
   // landing is the invoices list (mirrors the initial activeView above).
   const goHome = () => {
     setActiveView(isAdmin ? 'home' : 'invoices');
-    setShowAnalytics(false);
-    setShowReports(false);
-    setShowActivity(false);
-    setShowEstimateReport(false);
+    setReportsTab(null);
     setShowHelp(false);
     setShowWhatsNew(false);
     setShowSettings(false);
@@ -372,14 +370,18 @@ export function AdminLayout() {
   };
 
   const handleViewChange = (view: AdminNavKey) => {
-    if (view === 'analytics') {
-      setShowAnalytics(true);
+    // The four old keys still resolve — a home tile or a deep link that
+    // said "Activity" lands on the Activity tab, not on a generic hub.
+    if (view === 'reports-hub') {
+      setReportsTab('remember');
+    } else if (view === 'analytics') {
+      setReportsTab('analytics');
     } else if (view === 'reports') {
-      setShowReports(true);
+      setReportsTab('reports');
     } else if (view === 'activity') {
-      setShowActivity(true);
+      setReportsTab('activity');
     } else if (view === 'estimate-report') {
-      setShowEstimateReport(true);
+      setReportsTab('estimates');
     } else if (view === 'tax') {
       setShowTax(true);
     } else {
@@ -389,10 +391,7 @@ export function AdminLayout() {
   };
 
   const isItemActive = (key: AdminNavKey) => {
-    if (key === 'analytics') return showAnalytics;
-    if (key === 'reports') return showReports;
-    if (key === 'activity') return showActivity;
-    if (key === 'estimate-report') return showEstimateReport;
+    if (key === 'reports-hub') return reportsTab !== null;
     if (key === 'tax') return showTax;
     return activeView === key;
   };
@@ -430,10 +429,7 @@ export function AdminLayout() {
     { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     ...(canReconcile ? [reconItem] : []),
-    { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
-    { key: 'reports',         label: t('reports.title'),            icon: FileText },
-    { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
-    { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
+    { key: 'reports-hub',     label: t('reportsHub.navLabel'),      icon: BarChart3 },
   ];
 
   // Admin daily-use items (below the Manage group)
@@ -443,10 +439,7 @@ export function AdminLayout() {
     { key: 'estimates',       label: t('adminEstimates.navLabel'),  icon: ClipboardList },
     { key: 'my-transactions', label: t('admin.myTransactions'),     icon: Receipt },
     ...(canReconcile ? [reconItem] : []),
-    { key: 'analytics',       label: t('admin.analytics'),          icon: BarChart3 },
-    { key: 'reports',         label: t('reports.title'),            icon: FileText },
-    { key: 'activity',        label: t('activityReport.title'),     icon: Activity },
-    { key: 'estimate-report', label: t('estimateReport.navLabel'),  icon: PieChart },
+    { key: 'reports-hub',     label: t('reportsHub.navLabel'),      icon: BarChart3 },
   ];
 
   // Labs — full-admin only. Experimental surfaces live here instead of the
@@ -796,14 +789,17 @@ export function AdminLayout() {
       </div>
 
       <Suspense fallback={null}>
-        {showAnalytics && <AdminAnalytics onClose={() => setShowAnalytics(false)} />}
-        {showReports   && <Reports        onClose={() => setShowReports(false)} />}
-        {showActivity  && <ActivityReport onClose={() => setShowActivity(false)} />}
+        {reportsTab && (
+          <ReportsHub
+            initialTab={reportsTab === 'remember' ? undefined : reportsTab}
+            onClose={() => setReportsTab(null)}
+          />
+        )}
         {/* Tax Center is full-admin only. Household admins DO get reports
             generally, so this must gate on isAdmin specifically rather than
             riding along with the reports group. */}
         {showTax && isAdmin && <TaxCenter onClose={() => setShowTax(false)} />}
-        {showEstimateReport && <EstimateReport onClose={() => setShowEstimateReport(false)} />}
+
         {showHelp      && <HelpModal      onClose={() => setShowHelp(false)} />}
         {showWhatsNew  && <WhatsNewModal  onClose={() => setShowWhatsNew(false)} />}
         {showSettings  && <UserSettings   onClose={() => setShowSettings(false)} />}

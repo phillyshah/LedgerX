@@ -66,10 +66,21 @@ the names which one to open, and the honest answer is "either".
 tabs.** That takes the full-admin sidebar from ~15 to ~12 and, more
 importantly, replaces four ambiguous names with one obvious one.
 
-**Not shipped in v13.16.** This is a *relocation*: four things people
-currently find by name would move behind a tab, and anyone with muscle memory
-would have to relearn it. That is exactly what the "wait for sign-off"
-instruction was meant to cover. Flagged here for the owner to approve.
+**✅ APPROVED BY THE OWNER AND SHIPPED IN v13.18.** `ReportsHub.tsx`. Measured
+result: the full-admin sidebar went from **12 items to 9**.
+
+The relocation risk was mitigated rather than accepted: the four **Insights
+tiles on the admin home keep their own names** (Analytics / Reports /
+Activity / Estimate Report) and each opens the hub *directly on its own tab*,
+so anyone navigating by tile sees no change at all. Only the sidebar
+consolidated. The hub also remembers the last tab per device, so the generic
+sidebar entry returns you where you were.
+
+Implementation note worth keeping: the four components were **not rewritten**.
+Each now renders bare — no overlay, no header, no close button — when
+`onClose` is omitted, which is the convention `AdminAnalytics` already used
+for exactly this purpose. Their internal state, filters and exports are
+untouched.
 
 ---
 
@@ -126,16 +137,17 @@ member-facing dashboard section could carry one at all.
 
 | Change | Why it's deferred |
 |---|---|
-| Merge Analytics + Reports + Activity + Estimate report into one tabbed hub | Biggest single win (15 → 12) but relocates four named destinations |
+| ~~Merge Analytics + Reports + Activity + Estimate report into one tabbed hub~~ | **Done in v13.18** — see §2 |
 | Remove the home screen's Review and Insights tiles as sidebar duplicates | **Considered and rejected as a "safe win."** On mobile the sidebar is behind the hamburger, so those tiles are the *primary* navigation, not a duplicate. Removing them would make the phone experience worse, not simpler. |
 | Reorder or rename remaining sidebar items | Pure muscle-memory cost with no correctness argument |
 | A per-user "Simple / Advanced" mode | Real option, but it's a new concept to learn and would need its own design pass |
 
 ---
 
-## 6. Open question worth the owner's judgement
+## 6. Resolved
 
-Household admins see **Analytics**, **Reports**, **Activity**, and **Estimate
+Household admins saw **Analytics**, **Reports**, **Activity** and **Estimate
 report** — four reporting destinations for a role whose day job is submitting
-and reviewing their own properties' work. If the tabbed-hub merge above is
-approved, household admins benefit from it more than full admins do.
+and reviewing their own properties' work. The v13.18 hub applies to them too:
+their sidebar went from **8 items to 5**, which is proportionally the bigger
+win.

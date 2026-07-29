@@ -6,8 +6,27 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.17`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.18`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **✅ v13.16 and v13.17 ARE MERGED to `main` (PR #100) and auto-deployed.**
+  `main` reads `v13.17`. **v13.18 is the only thing still outstanding** — it
+  was pushed to the branch after #100 merged, so it needs its own PR. When
+  reviving this branch, note PR #100 is closed: a merged PR can't track new
+  work, so the branch was restarted from `origin/main` and the v13.18 commit
+  rebased on top rather than stacked on merged history.
+- **v13.18 — frontend only, no SQL.** `ReportsHub.tsx` collapses Analytics /
+  Reports / Activity / Estimate Report into one tabbed destination; the
+  full-admin sidebar goes **12 → 9** and the household-admin sidebar **8 → 5**.
+  This was the item the UX audit had deferred pending sign-off; the owner
+  approved it. **The four components were not rewritten** — each now renders
+  bare (no overlay, no header, no close button) when `onClose` is omitted,
+  which is the convention `AdminAnalytics` already used. If you touch any of
+  them, keep that branch working or the hub renders a modal inside a modal.
+  The home Insights tiles deliberately keep their four names and each opens
+  the hub on its own tab, so tile navigation is unchanged — that's what made
+  the relocation safe. `reportsTab` state in `AdminLayout` is
+  `ReportsTab | 'remember' | null`: `'remember'` is the generic sidebar entry
+  (restores your last tab), a tab name is a tile (forces that tab).
 - **✅ v13.17's SQL IS APPLIED AND CONFIRMED LIVE.**
   `supabase/migrations/20260803000000_estimate_completion_and_links.sql` was
   run by the owner in the Supabase SQL editor. Verified by:
