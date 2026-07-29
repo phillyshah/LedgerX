@@ -8,6 +8,12 @@ substantial session.
 
 - **Version `v13.18`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **✅ v13.16 and v13.17 ARE MERGED to `main` (PR #100) and auto-deployed.**
+  `main` reads `v13.17`. **v13.18 is the only thing still outstanding** — it
+  was pushed to the branch after #100 merged, so it needs its own PR. When
+  reviving this branch, note PR #100 is closed: a merged PR can't track new
+  work, so the branch was restarted from `origin/main` and the v13.18 commit
+  rebased on top rather than stacked on merged history.
 - **v13.18 — frontend only, no SQL.** `ReportsHub.tsx` collapses Analytics /
   Reports / Activity / Estimate Report into one tabbed destination; the
   full-admin sidebar goes **12 → 9** and the household-admin sidebar **8 → 5**.
