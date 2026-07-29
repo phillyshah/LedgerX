@@ -266,7 +266,9 @@ Cada item pendente é mostrado como um cartão com:
 - O endereço do remetente e o assunto
 - Etiquetas pequenas mostrando o que foi extraído automaticamente (fornecedor, valor, data) para você diferenciar os itens rapidamente
 - Miniaturas clicáveis dos anexos (imagem ou PDF — abre em tamanho original em uma nova aba; arquivos HEIC de encaminhamentos do iPhone aparecem como uma miniatura genérica que abre o original)
-- Um botão pequeno **Revisar ▾** à direita
+- Um botão vermelho **Descartar** à esquerda e um botão **Revisar ▾** à direita
+
+Para jogar um item fora, toque em **Descartar** — ele vira **"Toque novamente para confirmar"** por três segundos, então um toque errado não custa nada. (Isso substituiu um × pequeno no canto superior do cartão que excluía o item no instante em que era tocado.)
 
 **Recibos em PDF são lidos como fotos.** A maioria das lojas envia recibos em
 PDF em vez de imagem, e agora eles são lidos automaticamente igual a uma foto de
@@ -329,9 +331,11 @@ Com o canal definido como **WhatsApp** ou **Ambos**, os avisos que hoje chegam p
 
 A **Lista de Despesas** mostra todas as transações da residência selecionada, das mais recentes para as mais antigas.
 
+Administradores e administradores de grupo abrem essa tela em **Transações** no menu. Ela mostra todas as transações das suas propriedades. Para ver apenas as que você mesmo enviou, toque no marcador **Somente minhas** — o LedgerX lembra dessa escolha neste aparelho. (Membros comuns e prestadores sempre veem só os próprios recibos; para eles não há marcador, e o limite é aplicado no servidor, não apenas escondido no app.)
+
 ### Pesquisa, ordenação e filtros
 
-Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente. Isso vale em todos os lugares onde a lista de transações aparece — incluindo **Meus Recibos** de um prestador e **Minhas Transações** de um admin de residência — então busca, ordenação e filtros sempre estão disponíveis assim que a lista cresce o suficiente para precisar deles.
+Para listas curtas de transações, o botão **Filtrar** fica discreto no canto superior direito da seção, mantendo a página limpa. Toque nele para revelar a barra de pesquisa, o controle de ordenação e os filtros. Se você já registrou mais de 25 transações, a barra de ferramentas aparece automaticamente. Isso vale em todos os lugares onde a lista de transações aparece — incluindo **Meus Recibos** de um prestador e **Transações** de um administrador — então busca, ordenação e filtros sempre estão disponíveis assim que a lista cresce o suficiente para precisar deles.
 
 A barra oferece:
 - **Pesquisa** — fornecedor, categoria, observações ou nome da residência (em tempo real)
@@ -356,6 +360,10 @@ Listas longas carregam 20 transações por vez — toque em **Mostrar mais N** n
 3. Toque mais uma vez em até 3 segundos para confirmar. Se você não tocar novamente, o botão volta ao normal e nada acontece.
 
 > Exclusões são permanentes — as imagens dos recibos também são removidas.
+
+**É assim que funciona toda exclusão no LedgerX.** Tudo que remove algo definitivamente — uma transação, uma nota fiscal, um orçamento, uma categoria, um grupo, um usuário, um modelo salvo, um vínculo de fornecedor, uma fatura, um e-mail ou telefone vinculado — usa a mesma lixeira vermelha e a mesma confirmação em dois toques. Nada é destruído com um toque só, e não sobrou nenhuma caixinha cinza do navegador no app.
+
+> A única exceção é dispensar uma notificação no sino, que continua instantânea — isso só limpa o aviso, nunca o registro para o qual ele aponta.
 
 ---
 
@@ -643,13 +651,13 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 
 **Tela inicial:** Ao entrar como administrador, você cai em uma tela de comando central com:
 - **Ações Rápidas** — botões Adicionar Transação e Enviar Nota Fiscal
-- **Ir para** — atalhos para Sem categoria, Notas Fiscais, Minhas Transações, Análises e Relatórios
-- **Configuração** — atalhos para Grupos, Categorias, Fornecedores e Usuários
+- **Ir para** — atalhos para Sem categoria, Notas Fiscais, Orçamentos, Transações e Conciliação
+- **Configuração** — atalhos para Grupos, Categorias, Fornecedores e Usuários. Esse grupo começa **recolhido** — toque no título para abrir. São as mesmas quatro telas do grupo **Gerenciar** na barra lateral, então ficam a um toque de distância sem lotar a tela inicial.
 
 **Navegação na barra lateral:**
 - **Início** — retorna à tela de comando de qualquer visualização
-- **Gerenciar** (recolhível) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
-- Sem categoria · Notas Fiscais · Minhas Transações · Análises · Relatórios
+- **Gerenciar** (recolhível, começa fechado) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
+- Sem categoria · Notas Fiscais · Orçamentos · Transações · Conciliação · Análises · Relatórios · Atividade · Relatório de Orçamentos
 
 ### Análises
 
@@ -710,14 +718,24 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 Os prestadores podem enviar **orçamentos** (cotações) para você revisar e discutir antes que qualquer serviço vire nota fiscal. Abra a seção **Orçamentos** pelo menu (ou pelo bloco Orçamentos na home do admin).
 
 - Veja todos os orçamentos enviados pelos prestadores, com um selo vermelho mostrando mensagens não lidas
-- Filtre por status (Aberto / Aceito / Recusado) e propriedade; ordene por data
+- Filtre por status (Aberto / Aceito / Concluído / Recusado) e propriedade; ordene por data
 - Clique em um orçamento para abri-lo: os arquivos JPEG/PDF enviados (PDFs abrem em nova aba), a descrição do prestador e a **conversa**
 - **Converse** — responda dentro do próprio orçamento; o prestador vê e pode responder
 - **Aceite** ou **Recuse** o orçamento (ou **Reabra** um já decidido) — o status fica visível para o prestador
+- **Marcar como concluído** (apenas admins completos) — quando um serviço aceito termina e é faturado, encerre-o. Orçamentos concluídos ganham um status azul próprio e uma opção **Concluído** no filtro, para que o trabalho ativo não dispute atenção com o já finalizado. **Reabrir** continua funcionando se você encerrar cedo demais. Esse botão só aparece em um orçamento *aceito* — concluir algo que nunca foi aceito pularia a decisão que o status existe para registrar.
 - **Editar** (apenas admins completos) — corrija o título, a descrição, o tipo de cobrança, a propriedade ou as notas do admin a partir do detalhe.
 - **Excluir** remove o orçamento junto com seus arquivos e mensagens. Os arquivos ficam guardados até você excluí-los — nada é removido automaticamente.
 
 **Adicione fotos a qualquer momento:** abra qualquer orçamento que você possa ver e use o botão **Adicionar fotos** abaixo dos anexos para adicionar mais imagens depois do envio — qualquer pessoa da propriedade pode contribuir, não apenas o remetente. As imagens são reduzidas automaticamente para um tamanho nítido e legível (~1600px, ~0,6MB) antes de salvar, mantendo a legibilidade com muito menos armazenamento; PDFs são mantidos como estão.
+
+**Valor orçado:** os orçamentos têm um **valor orçado** opcional. Os prestadores podem preencher ao enviar, e um admin completo pode definir ou corrigir em **Editar**. Orçamentos criados antes da v13.17 não têm valor até alguém editar — eles mostram o total vinculado, sem comparação, em vez de inventar uma.
+
+**Gastos vinculados (ligar o custo real ao orçamento):** abra qualquer orçamento e use **Vincular item** em **Gastos vinculados** para anexar a nota fiscal do prestador e os recibos daquele serviço. Os dois tipos aparecem em uma lista só, e o cabeçalho mostra a comparação em uma linha: *Orçado $5.000 · vinculado $5.240 · 1 nota(s), 1 recibo(s) · $240,00 acima*. Acima do previsto aparece em vermelho, abaixo em verde, e um valor exato não mostra selo nenhum.
+
+- Uma transação ou nota fiscal pertence a **no máximo um orçamento** — o que já estiver vinculado em outro lugar fica fora do seletor, então o custo de um serviço não é contado duas vezes.
+- O seletor é restrito à propriedade do orçamento, do mais recente ao mais antigo, com campo de busca. Ele deliberadamente não é ordenado por valor como na Conciliação de Cartão: um orçamento é coberto por uma nota **mais** vários recibos menores, então casar por valor descartaria todos os candidatos.
+- **Desvincule** qualquer linha (lixeira vermelha, toque duas vezes) para removê-la; os totais recalculam na hora e o item volta ao seletor.
+- Apenas admins completos, e a seção fica na tela administrativa de orçamentos — prestadores não veem seus outros gastos no serviço deles.
 
 **Tipo de cobrança:** cada orçamento agora inclui um tipo de cobrança — **Valor total** ou **Somente mão de obra (materiais à parte)**. Isso aparece como um selo em cada cartão de orçamento para que você saiba de relance se os materiais estão incluídos.
 
@@ -852,7 +870,7 @@ O Admin de Propriedade é uma versão reduzida do admin. Faz tudo que um prestad
 
 **O que um admin de propriedade pode fazer:**
 - Enviar recibos (Adicionar Transação) e notas fiscais (Enviar Nota Fiscal)
-- Visualizar **Minhas Transações** — lista de todos os recibos que ele mesmo enviou (filtrada para o próprio trabalho)
+- Visualizar **Transações** — todas as transações das suas propriedades, com o marcador **Somente minhas** para restringir aos próprios envios
 - Visualizar **Análises** das propriedades em que é membro (abre como modal sobre a tela)
 - Visualizar a lista de **Notas Fiscais de Prestadores** (somente leitura — sem botão Marcar como Paga)
 - Visualizar **Relatórios**
@@ -928,7 +946,7 @@ Os orçamentos permitem enviar uma cotação ao administrador *antes* de o servi
 
 Os arquivos do seu orçamento ficam registrados até que um administrador os remova — não há botão de exclusão de orçamento para o prestador, então nada que você enviar some sozinho.
 
-**Administradores de Imóvel** também veem os botões **Adicionar Transação**, **Enviar Nota Fiscal** e **Enviar Orçamento** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Minhas Transações** no menu, para revisar o que você mesmo digitou sem abrir Análises.
+**Administradores de Imóvel** também veem os botões **Adicionar Transação**, **Enviar Nota Fiscal** e **Enviar Orçamento** no topo do painel administrativo — supervisão e envio lado a lado, sem precisar trocar de conta para registrar o próprio trabalho. Os recibos enviados aparecem em **Transações** no menu — toque em **Somente minhas** ali para ver só o que você digitou, sem abrir Análises.
 
 ---
 

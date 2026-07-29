@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { ExpenseList } from '../ExpenseList';
+import { CollapsibleSection } from '../CollapsibleSection';
 import { UserMenu } from '../UserMenu';
 import { LogoText } from '../LogoText';
 import { AppFooter } from '../AppFooter';
@@ -16,6 +17,7 @@ import {
   HardHat, Plus, Receipt, Store, Settings, ChevronDown, Activity, ClipboardList, PieChart, CreditCard, HelpCircle, LogOut,
   Landmark,
   FlaskConical,
+  ReceiptText,
 } from 'lucide-react';
 import { APP_VERSION } from '../../version';
 // hasUnreadReleases / LAST_SEEN_KEY removed — AppFooter owns all unread tracking internally
@@ -59,6 +61,58 @@ type AdminView =
   | 'reconciliation';
 
 type AdminNavKey = AdminView | 'analytics' | 'activity' | 'estimate-report' | 'tax';
+
+// ── Household-admin quick-action row ──────────────────────────────────────────
+//
+// The solid-filled button follows the section you're looking at. Previously
+// "Add Transaction" was always the loud green one, so people reviewing
+// Contractor Invoices clicked it and believed they'd uploaded an invoice.
+// Nothing moves — only the emphasis changes — so muscle memory for position
+// still works.
+
+type QuickAction = 'expense' | 'invoice' | 'estimate';
+
+const PRIMARY_ACTION_FOR_VIEW: Partial<Record<AdminView, QuickAction>> = {
+  invoices: 'invoice',
+  estimates: 'estimate',
+};
+
+const QA_BASE =
+  'group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]';
+const QA_SOLID = 'bg-emerald-900 hover:bg-emerald-800 text-white';
+const QA_OUTLINE = 'bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200';
+const QA_CHIP_BASE =
+  'w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none flex items-center justify-center transition-colors';
+const QA_CHIP_SOLID = 'bg-white/15 lg:bg-transparent group-hover:bg-white/20 lg:group-hover:bg-transparent';
+const QA_CHIP_OUTLINE = 'bg-emerald-100 lg:bg-transparent group-hover:bg-emerald-200 lg:group-hover:bg-transparent';
+
+function QuickActionButton({
+  primary,
+  icon: Icon,
+  label,
+  hint,
+  onClick,
+}: {
+  primary: boolean;
+  icon: typeof Plus;
+  label: string;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className={`${QA_BASE} ${primary ? QA_SOLID : QA_OUTLINE}`}>
+      <div className={`${QA_CHIP_BASE} ${primary ? QA_CHIP_SOLID : QA_CHIP_OUTLINE}`}>
+        <Icon className="w-5 h-5 lg:w-4 lg:h-4" />
+      </div>
+      <div className="lg:contents">
+        <div className="font-semibold text-sm leading-tight">{label}</div>
+        <div className={`lg:hidden text-xs mt-1 ${primary ? 'text-emerald-100/80' : 'text-emerald-700/70'}`}>
+          {hint}
+        </div>
+      </div>
+    </button>
+  );
+}
 
 // ── Home screen (full admin only) ─────────────────────────────────────────────
 
@@ -117,7 +171,7 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
             className="group flex items-center gap-3 p-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
           >
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors shrink-0">
-              <Plus className="w-5 h-5" />
+              <ReceiptText className="w-5 h-5" />
             </div>
             <div>
               <div className="font-semibold text-sm leading-tight">{t('dashboard.addTransaction')}</div>
@@ -195,11 +249,16 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
         </div>
       </section>
 
-      <section>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">
-          {t('admin.configuration')}
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Collapsed by default: these four duplicate the sidebar's "Manage"
+          group exactly, and they're the least-reached part of the landing
+          screen. Nothing is removed — the tiles are one tap away, which
+          matters on mobile where the sidebar lives behind the hamburger. */}
+      <CollapsibleSection
+        storageKey="admin.home.configuration"
+        title={t('admin.configuration')}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
           {(
             [
               { key: 'households' as AdminNavKey, icon: Home,  label: t('admin.manageHouseholds') },
@@ -218,7 +277,7 @@ function AdminHomeView({ username, canReconcile, onNavigate, onAddExpense, onSub
             </button>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }
@@ -232,7 +291,9 @@ export function AdminLayout() {
   const [activeView, setActiveView] = useState<AdminView>(
     isAdmin ? 'home' : 'invoices'
   );
-  const [manageOpen, setManageOpen] = useState(true);
+  // Starts closed: these are configuration screens, not daily-use ones,
+  // and leaving them expanded put 4 extra items above the fold permanently.
+  const [manageOpen, setManageOpen] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showReports, setShowReports] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
@@ -284,6 +345,7 @@ export function AdminLayout() {
   const { expenses, households, loading: expensesLoading, reloadExpenses } = useExpenses();
   const { hasFlag } = useLabsAccess();
   const canReconcile = hasFlag('labs_cc_reconciliation');
+  const primaryQuickAction: QuickAction = PRIMARY_ACTION_FOR_VIEW[activeView] ?? 'expense';
 
   const username = user?.email?.split('@')[0] ?? 'admin';
 
@@ -626,45 +688,32 @@ export function AdminLayout() {
               </div>
             )}
 
-            {/* Action buttons for household admins only (full admins use the home screen) */}
+            {/* Action buttons for household admins only (full admins use the
+                home screen). The solid one tracks activeView — see
+                PRIMARY_ACTION_FOR_VIEW. */}
             {isHouseholdAdmin && !isAdmin && (
               <div className="grid grid-cols-2 gap-3 mb-6 lg:flex lg:flex-wrap lg:gap-2">
-                <button
+                <QuickActionButton
+                  primary={primaryQuickAction === 'expense'}
+                  icon={ReceiptText}
+                  label={t('dashboard.addTransaction')}
+                  hint={t('dashboard.addTransactionHint')}
                   onClick={() => setShowAddExpense(true)}
-                  className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
-                >
-                  <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-white/15 lg:bg-transparent flex items-center justify-center group-hover:bg-white/20 lg:group-hover:bg-transparent transition-colors">
-                    <Plus className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </div>
-                  <div className="lg:contents">
-                    <div className="font-semibold text-sm leading-tight">{t('dashboard.addTransaction')}</div>
-                    <div className="lg:hidden text-xs text-emerald-100/80 mt-1">{t('dashboard.addTransactionHint')}</div>
-                  </div>
-                </button>
-                <button
+                />
+                <QuickActionButton
+                  primary={primaryQuickAction === 'invoice'}
+                  icon={FileText}
+                  label={t('invoice.submitInvoice')}
+                  hint={t('invoice.submitInvoiceHint')}
                   onClick={() => setShowInvoiceForm(true)}
-                  className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
-                >
-                  <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-emerald-100 lg:bg-transparent flex items-center justify-center group-hover:bg-emerald-200 lg:group-hover:bg-transparent transition-colors">
-                    <FileText className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </div>
-                  <div className="lg:contents">
-                    <div className="font-semibold text-sm leading-tight">{t('invoice.submitInvoice')}</div>
-                    <div className="lg:hidden text-xs text-emerald-700/70 mt-1">{t('invoice.submitInvoiceHint')}</div>
-                  </div>
-                </button>
-                <button
+                />
+                <QuickActionButton
+                  primary={primaryQuickAction === 'estimate'}
+                  icon={ClipboardList}
+                  label={t('estimate.submitEstimate')}
+                  hint={t('estimate.submitEstimateHint')}
                   onClick={() => setShowEstimateForm(true)}
-                  className="group flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:gap-2 p-4 lg:px-4 lg:py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-2xl lg:rounded-xl transition-all shadow-sm text-left active:scale-[0.99]"
-                >
-                  <div className="w-10 h-10 lg:w-auto lg:h-auto rounded-xl lg:rounded-none bg-emerald-100 lg:bg-transparent flex items-center justify-center group-hover:bg-emerald-200 lg:group-hover:bg-transparent transition-colors">
-                    <ClipboardList className="w-5 h-5 lg:w-4 lg:h-4" />
-                  </div>
-                  <div className="lg:contents">
-                    <div className="font-semibold text-sm leading-tight">{t('estimate.submitEstimate')}</div>
-                    <div className="lg:hidden text-xs text-emerald-700/70 mt-1">{t('estimate.submitEstimateHint')}</div>
-                  </div>
-                </button>
+                />
               </div>
             )}
 
@@ -719,14 +768,26 @@ export function AdminLayout() {
             </Suspense>
 
             {activeView === 'my-transactions' && (
-              <ExpenseList
-                expenses={expenses}
-                households={households}
-                loading={expensesLoading}
-                onReload={reloadExpenses}
-                ownSubmissionsOnly
-                onAdd={() => setShowAddExpense(true)}
-              />
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">{t('admin.myTransactions')}</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">{t('expenses.subtitleAll')}</p>
+                </div>
+                {/* The shell already fetches the whole household (useExpenses
+                    with no ownOnly), so this defaults to all of it and lets
+                    the viewer narrow with the "Just mine" chip. It used to be
+                    hard-wired to own-submissions-only, which left admins with
+                    no household-wide transaction list anywhere in the app. */}
+                <ExpenseList
+                  expenses={expenses}
+                  households={households}
+                  loading={expensesLoading}
+                  onReload={reloadExpenses}
+                  allowOwnFilter
+                  hideHeader
+                  onAdd={() => setShowAddExpense(true)}
+                />
+              </div>
             )}
 
             <AppFooter onWhatsNew={() => setShowWhatsNew(true)} />

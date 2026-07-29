@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
-import { CreditCard, Plus, Trash2, Edit2, Check, X, FileBarChart, Building2, Wand2 } from 'lucide-react';
+import { useState } from 'react';
+import { CreditCard, Plus, Edit2, Check, X, FileBarChart, Building2, Wand2 } from 'lucide-react';
 import { useT } from '../../hooks/useT';
 import type { Household } from '../../types/expense';
 import { StatementHouseholdsModal } from './StatementHouseholdsModal';
+import { DeleteButton } from '../shared/DeleteButton';
 
 // A ring around the card icon showing match completion at a glance, so the
 // list scans without reading each "X of Y matched" line individually. Colored
@@ -79,32 +80,20 @@ interface StatementListProps {
 
 export function StatementList({ statements, isAdmin, allHouseholds, onUpload, onReconcile, onDelete, onRename, onEditHouseholds, onAutoReconcile, onOpenReport }: StatementListProps) {
   const { t, locale } = useT();
-  const [armedDeleteId, setArmedDeleteId] = useState<string | null>(null);
-  const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped to force any armed DeleteButton back to its idle state — see
+  // startEdit below.
+  const [disarmSignal, setDisarmSignal] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const [saving, setSaving] = useState(false);
   const [householdsFor, setHouseholdsFor] = useState<StatementSummary | null>(null);
 
-  const handleDelete = (id: string) => {
-    if (armedDeleteId !== id) {
-      setArmedDeleteId(id);
-      if (armTimerRef.current) clearTimeout(armTimerRef.current);
-      armTimerRef.current = setTimeout(() => setArmedDeleteId(null), 3000);
-      return;
-    }
-    if (armTimerRef.current) clearTimeout(armTimerRef.current);
-    setArmedDeleteId(null);
-    onDelete(id);
-  };
-
   const startEdit = (s: StatementSummary) => {
     // Clear any armed two-tap delete on this row — otherwise canceling out
-    // of edit mode can leave Trash2 already armed for an unintended
+    // of edit mode can leave the trash already armed for an unintended
     // one-tap delete on the next click.
-    if (armTimerRef.current) clearTimeout(armTimerRef.current);
-    setArmedDeleteId(null);
+    setDisarmSignal((n) => n + 1);
     setRenameError('');
     setEditingId(s.id);
     setEditValue(s.card_label);
@@ -274,15 +263,12 @@ export function StatementList({ statements, isAdmin, allHouseholds, onUpload, on
                       >
                         <Edit2 className="w-4 h-4 text-slate-500" />
                       </button>
-                      <button
-                        onClick={() => handleDelete(s.id)}
-                        className={`p-2 rounded-lg transition-all shrink-0 ${
-                          armedDeleteId === s.id ? 'bg-red-100' : 'hover:bg-red-50'
-                        }`}
-                        title={armedDeleteId === s.id ? t('labs.cc.confirmDelete') : undefined}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
+                      <DeleteButton
+                        variant="icon"
+                        disarmSignal={disarmSignal}
+                        onDelete={() => onDelete(s.id)}
+                        className="shrink-0"
+                      />
                     </>
                   )
                 )}

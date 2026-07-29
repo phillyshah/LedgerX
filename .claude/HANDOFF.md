@@ -6,8 +6,82 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.15`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.17`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **✅ v13.17's SQL IS APPLIED AND CONFIRMED LIVE.**
+  `supabase/migrations/20260803000000_estimate_completion_and_links.sql` was
+  run by the owner in the Supabase SQL editor. Verified by:
+  `pg_get_constraintdef` on `estimates_status_check` returning
+  `CHECK ((status = ANY (ARRAY['open','accepted','rejected','completed'])))`;
+  a `pg_proc` count over `link_estimate_item` / `unlink_estimate_item` /
+  `list_estimate_links` / `list_estimate_link_candidates` returning `4`;
+  `estimate_links` present in `information_schema.tables`; and
+  `estimates.amount` present in `information_schema.columns`.
+  **Note the safe ordering used here**: the migration is purely additive (a
+  new status value, a new table, two new nullable columns), so applying it
+  while production still ran v13.15 broke nothing — no deployed code read any
+  of it. Keep that ordering for future additive migrations.
+- **v13.17 in one paragraph**: estimates gained a fourth status `completed`
+  (Mark Complete, full-admin only, offered only from `accepted`), a nullable
+  `amount`/`currency`, and `estimate_links` — the **first** relationship
+  between estimates and actual spend. One estimate takes many receipts and/or
+  invoices; **partial unique indexes on `expense_id` and `invoice_id` are what
+  guarantee** a receipt belongs to at most one estimate, so the matched total
+  can't double-count. RLS follows the reconciliation convention: SELECT for
+  `is_admin()`, **no client INSERT/UPDATE/DELETE policy at all** — mutation is
+  RPC-only. **Do not reuse `scoreCandidate` from `lib/statementMatching.ts`
+  here**: it hard-gates on the amount matching within $0.50, so a $5,000 quote
+  satisfied by an invoice plus several small receipts would score every
+  candidate `null`. The picker is unranked by design. Verified with **13
+  SQL assertion blocks** (`supabase/tests/estimate_{harness,tests}.sql`,
+  incl. double-link rejection, cascade behaviour, and every RPC refusing a
+  non-admin), plus **23 browser assertions** on the quoted-vs-actual
+  arithmetic (over / under / exact / no-quote / nothing-linked) and
+  **13 more** on the button hierarchy.
+- **Also in v13.17 (frontend only)**: the household-admin quick-action row's
+  solid button now tracks `activeView` (`PRIMARY_ACTION_FOR_VIEW` in
+  `AdminLayout.tsx`) — Invoices promotes Submit Invoice, Estimates promotes
+  Submit Estimate. Users were clicking the always-green Add Transaction while
+  reviewing invoices and believing they'd uploaded one. Add Transaction's icon
+  went `Plus` → `ReceiptText` (not plain `Receipt` — that already means the
+  Transactions nav item in the same file).
+- **v13.16 (UX feedback round) — frontend only, NO SQL, NO edge function.**
+  Merging to `main` auto-deploys via `.github/workflows/deploy.yml`; there is
+  nothing to run by hand for that part. Three owner-reported issues:
+  1. **One delete control app-wide.** New
+     `src/components/shared/DeleteButton.tsx` (variants `icon` / `pill` /
+     `prominent`) replaces three separate conventions: a two-tap confirm
+     copy-pasted inline into 3 files, **7** `window.confirm()` popups, and
+     6 controls that deleted a row on a single unconfirmed tap. Zero
+     `window.confirm(` left in `src/`. The reported "tiny X on messages" was
+     `EmailInboxPanel.tsx` — a 28px grey X in the card header corner with no
+     confirm; now a 40px red `Trash2` "Discard" beside Review. **Notification
+     dismissal deliberately stays instant** (discards a pointer, not the
+     record) — don't "fix" it. Modal-close X's, cancel-inline-edit X's,
+     clear-filter X and the 5 staging-array image X's are intentionally NOT
+     converted: nothing persisted is destroyed, so a confirm is noise.
+  2. **Transactions is one screen now.** `ExpenseList` gained
+     `allowOwnFilter`; `AdminLayout` drops `ownSubmissionsOnly` and shows the
+     whole household with a "Just mine" chip (persisted at
+     `localStorage['ledgerx:txnOwnOnly']`). **Contractors/members must keep
+     their own-only scoping at the *query* level** (`useExpenses(…,
+     {ownOnly:true})` in `Dashboard.tsx`) — the chip is admin-shell only and
+     must never be able to widen their view.
+  3. **Subtitles checked against the queries that feed them** and corrected;
+     `CollapsibleSection` gained a `subtitle` prop.
+- **Two real bugs fixed in passing**: `useEmailInbox`'s `discard` **and**
+  `accept` both ignored the returned error and dropped the row optimistically,
+  so an RLS refusal looked like success until reload; and `ExpenseList`
+  compared own-only `filteredExpenses.length` against household-wide
+  `expenses.length`, producing "Showing 3 of 87 transactions" plus a wrong
+  empty state. Both now derive from one `scopedExpenses`.
+- **`.claude/UX-AUDIT.md` is the deliverable for the "too many options"
+  complaint.** Only the unambiguous wins shipped. **The big one is deferred
+  and needs the owner's yes**: merging Analytics + Reports + Activity +
+  Estimate report into one tabbed hub (15 destinations → 12). Also recorded
+  there: deleting the duplicated admin-home tiles looks like an easy win and
+  **is not** — on mobile the sidebar is behind the hamburger, so those tiles
+  are the primary navigation.
 - **✅ v13.10 through v13.15 are ALL MERGED AND CONFIRMED DEPLOYED.** Footer at
   `https://ledger.90ten.life` confirmed reading `v13.15` by the owner directly.
   v13.10's Activity Report self-inclusion SQL confirmed live via

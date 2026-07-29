@@ -11,7 +11,7 @@ import type { AddExpenseInitialData } from './AddExpense';
 import type { InvoiceFormInitialData } from './InvoiceForm';
 import { InvoiceList } from './InvoiceList';
 import { EstimateList } from './EstimateList';
-import { Plus, Download, FileText, ClipboardList } from 'lucide-react';
+import { Download, FileText, ClipboardList, ReceiptText } from 'lucide-react';
 import { LogoText } from './LogoText';
 import { UserMenu } from './UserMenu';
 import { AppFooter } from './AppFooter';
@@ -65,7 +65,14 @@ export function Dashboard() {
   // panel's card list. Discarding or accepting an item updates `items`,
   // which immediately re-derives `inboxCount` — fixing the stale badge
   // that lingered when two independent hooks ran side by side.
-  const { items: inboxItems, loading: inboxLoading, discard: inboxDiscard, accept: inboxAccept } = useEmailInbox(0);
+  const {
+    items: inboxItems,
+    loading: inboxLoading,
+    discard: inboxDiscard,
+    accept: inboxAccept,
+    actionError: inboxError,
+    clearActionError: clearInboxError,
+  } = useEmailInbox(0);
   const inboxCount = inboxItems.length;
 
   // Tracks which inbox item (if any) sourced the currently-open form so
@@ -236,7 +243,7 @@ export function Dashboard() {
               className="group flex flex-col items-start gap-3 p-5 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
             >
               <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                <Plus className="w-5 h-5" />
+                <ReceiptText className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-semibold text-base leading-tight">{t('dashboard.addTransaction')}</div>
@@ -283,6 +290,8 @@ export function Dashboard() {
               items={inboxItems}
               loading={inboxLoading}
               onDiscard={inboxDiscard}
+              actionError={inboxError}
+              onDismissError={clearInboxError}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
@@ -291,6 +300,7 @@ export function Dashboard() {
           <CollapsibleSection
             storageKey="contractor.invoices"
             title={t('invoice.myInvoices')}
+            subtitle={t('invoice.myInvoicesHint')}
             icon={<FileSignature className="w-4 h-4" />}
             expandSignal={invoicesExpand}
           >
@@ -306,7 +316,8 @@ export function Dashboard() {
 
           <CollapsibleSection
             storageKey="contractor.estimates"
-            title={t('estimate.myEstimates')}
+            title={t('estimate.navTitle')}
+            subtitle={t('estimate.myEstimatesHint')}
             icon={<ClipboardList className="w-4 h-4" />}
             expandSignal={estimatesExpand}
           >
@@ -324,6 +335,7 @@ export function Dashboard() {
             expandSignal={transactionsExpand}
             storageKey="contractor.submissions"
             title={t('dashboard.yourSubmissions')}
+            subtitle={t('expenses.subtitleOwn')}
             icon={<ListChecks className="w-4 h-4" />}
           >
             <ExpenseList
@@ -396,7 +408,7 @@ export function Dashboard() {
               className="group w-full sm:w-auto sm:min-w-[280px] flex items-center gap-3 p-4 bg-emerald-900 hover:bg-emerald-800 text-white rounded-2xl transition-all shadow-sm text-left active:scale-[0.99]"
             >
               <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors shrink-0">
-                <Plus className="w-5 h-5" />
+                <ReceiptText className="w-5 h-5" />
               </div>
               <div>
                 <div className="font-semibold text-base leading-tight">{t('dashboard.addTransaction')}</div>
@@ -434,6 +446,8 @@ export function Dashboard() {
               items={inboxItems}
               loading={inboxLoading}
               onDiscard={inboxDiscard}
+              actionError={inboxError}
+              onDismissError={clearInboxError}
               onOpenExpense={handleInboxExpense}
               onOpenInvoice={handleInboxInvoice}
             />
@@ -444,6 +458,7 @@ export function Dashboard() {
             expandSignal={transactionsExpand}
             storageKey="dashboard.transactions"
             title={t('expenses.heading')}
+            subtitle={t('expenses.subtitleOwn')}
             icon={<ListChecks className="w-4 h-4" />}
             meta={expenses.length > 0 ? `${expenses.length}` : undefined}
           >
@@ -460,6 +475,7 @@ export function Dashboard() {
           <CollapsibleSection
             storageKey="dashboard.estimates"
             title={t('estimate.networkEstimates')}
+            subtitle={t('estimate.networkEstimatesHint')}
             icon={<ClipboardList className="w-4 h-4" />}
             meta={estimates.length > 0 ? `${estimates.length}` : undefined}
             expandSignal={estimatesExpand}

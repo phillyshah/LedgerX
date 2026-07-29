@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useVendorCatalog, type VendorMapping } from '../../hooks/useVendorCatalog';
-import { Plus, Trash2, Globe, Home, Save, X, Search } from 'lucide-react';
+import { Plus, Globe, Home, Save, X, Search } from 'lucide-react';
+import { DeleteButton } from '../shared/DeleteButton';
 
 interface Category { id: string; name: string; household_id: string | null; }
 interface Household { id: string; name: string; }
@@ -120,7 +121,6 @@ export function ManageVendors() {
   };
 
   const remove = async (row: VendorMapping) => {
-    if (!confirm(t('admin.vendors.confirmDelete', { vendor: row.vendor_name }))) return;
     const { error: delErr } = await supabase
       .from('vendor_category_map')
       .delete()
@@ -258,13 +258,7 @@ export function ManageVendors() {
                         <Globe className="w-4 h-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => remove(row)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                      aria-label={t('common.delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <DeleteButton variant="icon" onDelete={() => remove(row)} />
                   </>
                 )}
               </div>

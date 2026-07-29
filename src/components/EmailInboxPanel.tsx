@@ -18,10 +18,11 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Mail, FileText, X, Loader2, ChevronDown, Receipt, FileSignature } from 'lucide-react';
+import { Mail, FileText, Loader2, ChevronDown, Receipt, FileSignature, X } from 'lucide-react';
 import type { InboxItem } from '../hooks/useEmailInbox';
 import { supabase } from '../lib/supabase';
 import { useT } from '../hooks/useT';
+import { DeleteButton } from './shared/DeleteButton';
 export type { InboxItem } from '../hooks/useEmailInbox';
 
 // Show the OCR-prefilled fields as compact pills so the user can tell
@@ -157,14 +158,6 @@ function InboxCard({
             </p>
           )}
         </div>
-        <button
-          onClick={() => onDiscard(item.id)}
-          className="flex-shrink-0 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-          title={t('inbox.discard')}
-          aria-label={t('inbox.discard')}
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
       {/* OCR-extracted fields — surfaced as pills so the card is informative
@@ -180,9 +173,16 @@ function InboxCard({
         </div>
       )}
 
-      {/* Actions — compact split button. The user picks receipt vs invoice;
-          we OCR after the form opens so the answer is correct either way. */}
-      <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex justify-end">
+      {/* Actions — Discard sits beside Review as a peer rather than as a
+          hard-to-hit X in the header corner. It used to be a 28px grey icon
+          that deleted on a single tap; users reported missing it, and there
+          was no way back once hit. */}
+      <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex items-center justify-between gap-2">
+        <DeleteButton
+          variant="prominent"
+          label={t('inbox.discard')}
+          onDelete={() => onDiscard(item.id)}
+        />
         <ReviewMenu item={item} onOpenAs={onOpenAs} t={t} />
       </div>
     </div>
@@ -275,9 +275,13 @@ interface Props {
   onOpenExpense: (item: InboxItem) => void;
   /** Called when the user wants to open InvoiceForm pre-filled from an inbox item */
   onOpenInvoice: (item: InboxItem) => void;
+  /** Surfaced when a discard/accept write is refused — without this a failed
+   *  discard was indistinguishable from a successful one. */
+  actionError?: string | null;
+  onDismissError?: () => void;
 }
 
-export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOpenInvoice }: Props) {
+export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOpenInvoice, actionError, onDismissError }: Props) {
   const { t, locale } = useT();
 
   // User picks receipt vs invoice on each card now (the auto-detected
@@ -289,12 +293,28 @@ export function EmailInboxPanel({ items, loading, onDiscard, onOpenExpense, onOp
   };
 
   // Only render when there are pending items
-  if (!loading && items.length === 0) return null;
+  // Keep rendering while an error is showing even if the list is now empty,
+  // otherwise the message would unmount before it could be read.
+  if (!loading && items.length === 0 && !actionError) return null;
 
   // The wrapping CollapsibleSection on the dashboard provides the section
   // title — we just render the cards directly here.
   return (
     <div className="space-y-3">
+      {actionError && (
+        <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <span className="flex-1">{actionError}</span>
+          {onDismissError && (
+            <button
+              onClick={onDismissError}
+              className="p-1 hover:bg-red-100 rounded-lg transition-all flex-shrink-0"
+              aria-label={t('common.close')}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
           <Loader2 className="w-4 h-4 animate-spin" />

@@ -47,6 +47,7 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [billingType, setBillingType] = useState<BillingType>('total');
+  const [amount, setAmount] = useState('');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -145,6 +146,9 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
           title: title.trim(),
           description: description.trim() || null,
           billing_type: billingType,
+          // Optional: a blank quote is still a valid estimate, it just has
+          // nothing for the admin to reconcile spend against later.
+          amount: amount.trim() === '' ? null : Number(amount),
           file_path: firstPath,
           file_mime: files[0].file.type || (files[0].isPdf ? 'application/pdf' : 'image/jpeg'),
         } as never)
@@ -262,6 +266,24 @@ export function EstimateForm({ onClose, onSaved }: EstimateFormProps) {
               placeholder={t('estimate.descriptionPlaceholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
             />
+          </div>
+
+          {/* Quoted amount — optional */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t('estimate.amountLabel')}
+            </label>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={t('estimate.amountPlaceholder')}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            />
+            <p className="mt-1.5 text-xs text-slate-500">{t('estimate.amountHint')}</p>
           </div>
 
           {/* Billing Type */}

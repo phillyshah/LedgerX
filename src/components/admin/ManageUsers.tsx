@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Shield, Trash2, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Loader2 , FileWarning } from 'lucide-react';
+import { Shield, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Loader2 , FileWarning } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
 import { useT } from '../../hooks/useT';
 import { PHONE_E164_RE, type NotifyChannel, type PhoneNumberRow } from '../../hooks/useWhatsApp';
+import { DeleteButton } from '../shared/DeleteButton';
 
 type Role = 'regular' | 'admin' | 'contractor' | 'household_admin';
 
@@ -151,8 +152,6 @@ export function ManageUsers() {
       setError(t('admin.cannotDeleteSelf'));
       return;
     }
-
-    if (!confirm(t('admin.deleteConfirm'))) return;
 
     setActionLoading(userId);
     setError('');
@@ -655,13 +654,11 @@ export function ManageUsers() {
                         >
                           <Key className="w-4 h-4 text-blue-500" />
                         </button>
-                        <button
-                          onClick={() => deleteUser(user.id)}
+                        <DeleteButton
+                          variant="icon"
                           disabled={isLoading}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
+                          onDelete={() => deleteUser(user.id)}
+                        />
                       </>
                     )}
                   </div>
@@ -988,13 +985,11 @@ export function ManageUsers() {
                       <MessageCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
                       <span className="flex-1 font-medium text-slate-700 truncate">{p.phone}</span>
                       {p.label && <span className="text-xs text-slate-400 italic">{p.label}</span>}
-                      <button
-                        onClick={() => removeWaPhone(p.id)}
-                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title={t('whatsapp.removePhone')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <DeleteButton
+                        variant="icon"
+                        label={t('whatsapp.removePhone')}
+                        onDelete={() => removeWaPhone(p.id)}
+                      />
                     </li>
                   ))}
                 </ul>

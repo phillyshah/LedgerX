@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Trash2, Check, Loader2, MessageCircle } from 'lucide-react';
+import { X, Eye, EyeOff, Mail, Lock, User, Languages, Plus, Check, Loader2, MessageCircle } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { LANGUAGES, type Language } from '../i18n';
 import { useSenderEmails } from '../hooks/useEmailInbox';
 import { useMyPhoneNumbers, useNotifyChannel, type NotifyChannel } from '../hooks/useWhatsApp';
 import { useEscapeClose } from '../hooks/useEscapeClose';
+import { DeleteButton } from './shared/DeleteButton';
 
 interface UserSettingsProps {
   onClose: () => void;
@@ -278,13 +279,10 @@ export function UserSettings({ onClose }: UserSettingsProps) {
                       <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                       <span className="flex-1 font-medium text-slate-700 truncate">{se.email}</span>
                       {se.label && <span className="text-xs text-slate-400 italic">{se.label}</span>}
-                      <button
-                        onClick={async () => { await removeSender(se.id); setSenderRefresh(r => r + 1); }}
-                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title={t('inbox.discard')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <DeleteButton
+                        variant="icon"
+                        onDelete={async () => { await removeSender(se.id); setSenderRefresh(r => r + 1); }}
+                      />
                     </li>
                   ))}
                 </ul>

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Loader2, Plus, Trash2, Check, X, Pencil, Info,
+  Loader2, Plus, Check, X, Pencil, Info,
   EyeOff, Eye, AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useT } from '../../../hooks/useT';
 import type { ScheduleELineRow } from '../../../lib/scheduleE';
+import { DeleteButton } from '../../shared/DeleteButton';
 
 interface CategoryMapping {
   category_id: string;
@@ -291,14 +292,11 @@ export function MappingTab() {
                     {/* Built-in lines have no delete button at all — the RPC
                         refuses them, so offering it would only ever error. */}
                     {!l.is_system && (
-                      <button
-                        onClick={() => deleteLine(l.id)}
+                      <DeleteButton
+                        variant="icon"
                         disabled={busy}
-                        className="p-2 hover:bg-red-50 rounded-lg disabled:opacity-40"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
+                        onDelete={() => deleteLine(l.id)}
+                      />
                     )}
                   </>
                 )}

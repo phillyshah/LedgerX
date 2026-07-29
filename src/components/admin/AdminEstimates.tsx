@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useT } from '../../hooks/useT';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, ChevronDown, ChevronUp, FileText, Check, Trash2, MessageCircle, Ban, UserPlus, Loader2, ClipboardList, Pencil } from 'lucide-react';
-import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant, BillingType } from '../../types/estimate';
+import { X, ChevronDown, ChevronUp, FileText, Check, MessageCircle, Ban, UserPlus, Loader2, ClipboardList, Pencil, CheckCheck, Link2, Receipt, HardHat } from 'lucide-react';
+import type { Estimate, EstimateStatus, EstimateAttachment, EstimateParticipant, BillingType, EstimateLink } from '../../types/estimate';
 import { EstimateChat } from '../EstimateChat';
 import { AttachmentAdder } from '../AttachmentAdder';
+import { DeleteButton } from '../shared/DeleteButton';
+import { EstimateLinkModal } from './EstimateLinkModal';
 
 interface HouseholdOption { id: string; name: string; }
 
@@ -19,14 +21,16 @@ type StatusFilter = EstimateStatus | 'all';
 
 function StatusBadge({ status, t }: { status: EstimateStatus; t: (k: string) => string }) {
   const styles: Record<EstimateStatus, string> = {
-    open:     'bg-amber-100 text-amber-800',
-    accepted: 'bg-green-100 text-green-800',
-    rejected: 'bg-slate-200 text-slate-700',
+    open:      'bg-amber-100 text-amber-800',
+    accepted:  'bg-green-100 text-green-800',
+    completed: 'bg-blue-100 text-blue-800',
+    rejected:  'bg-slate-200 text-slate-700',
   };
   const labels: Record<EstimateStatus, string> = {
-    open: t('estimate.statusOpen'),
-    accepted: t('estimate.statusAccepted'),
-    rejected: t('estimate.statusRejected'),
+    open:      t('estimate.statusOpen'),
+    accepted:  t('estimate.statusAccepted'),
+    completed: t('estimate.statusCompleted'),
+    rejected:  t('estimate.statusRejected'),
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>
@@ -60,6 +64,11 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
   const [actioning, setActioning] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Actual spend linked to the quote (estimate_links).
+  const [links, setLinks] = useState<EstimateLink[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+
   // Invite participants
   const [participants, setParticipants] = useState<EstimateParticipant[]>([]);
   const [inviteUsername, setInviteUsername] = useState('');
@@ -73,6 +82,7 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
   const [eBilling, setEBilling] = useState<BillingType>('total');
   const [eHousehold, setEHousehold] = useState('');
   const [eNotes, setENotes] = useState('');
+  const [eAmount, setEAmount] = useState('');
   const [eSaving, setESaving] = useState(false);
   const [eError, setEError] = useState<string | null>(null);
 
@@ -115,19 +125,51 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
     return [...rows].sort((a, b) => sign * a.created_at.localeCompare(b.created_at));
   }, [estimates, statusFilter, householdFilter, sortDir]);
 
+  const fmtCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: currency || 'USD' }).format(amount);
+
   const fmtDate = (s: string) => {
     const [y, m, d] = s.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  const loadLinks = useCallback(async (estimateId: string) => {
+    setLinksLoading(true);
+    const { data } = await supabase.rpc('list_estimate_links' as never, {
+      p_estimate_id: estimateId,
+    } as never);
+    setLinks(
+      ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+        link_id: String(r.link_id),
+        kind: r.kind as 'expense' | 'invoice',
+        item_id: String(r.item_id),
+        occurred_on: String(r.occurred_on),
+        label: String(r.label ?? '—'),
+        detail: (r.detail as string | null) ?? null,
+        amount: Number(r.amount),
+        currency: String(r.currency ?? 'USD'),
+        linked_at: String(r.linked_at),
+      })),
+    );
+    setLinksLoading(false);
+  }, []);
+
+  const unlinkItem = async (linkId: string) => {
+    await supabase.rpc('unlink_estimate_item' as never, { p_link_id: linkId } as never);
+    if (detail) await loadLinks(detail.id);
+  };
+
   const openDetail = async (est: AdminEstimateRow) => {
     setDetail(est);
+    setLinks([]);
     setAttachments([]);
     setSignedUrls({});
     setParticipants([]);
     setInviteUsername('');
     setInviteError(null);
     setLoadingDetail(true);
+
+    void loadLinks(est.id);
 
     const [attsRes, partsRes] = await Promise.all([
       supabase.from('estimate_attachments').select('*').eq('estimate_id', est.id).order('display_order'),
@@ -217,6 +259,7 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
     setEBilling(est.billing_type);
     setEHousehold(est.household_id ?? '');
     setENotes(est.admin_notes ?? '');
+    setEAmount(est.amount == null ? '' : String(est.amount));
     setEError(null);
   };
 
@@ -231,6 +274,9 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
       p_billing_type: eBilling,
       p_household_id: eHousehold || null,
       p_admin_notes: eNotes.trim() || null,
+      // Blank clears the quote back to "not quoted" — a straight assignment
+      // server-side, not a COALESCE.
+      p_amount: eAmount.trim() === '' ? null : Number(eAmount),
     } as never);
     setESaving(false);
     if (error) { setEError(t('adminEstimates.editError')); return; }
@@ -242,6 +288,7 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
       household_id: eHousehold || null,
       household_name: hhName,
       admin_notes: eNotes.trim() || null,
+      amount: eAmount.trim() === '' ? null : Number(eAmount),
     };
     setDetail((d) => (d && d.id === editModal.id ? { ...d, ...patch } : d));
     setEditModal(null);
@@ -249,7 +296,6 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
   };
 
   const deleteEstimate = async (est: AdminEstimateRow) => {
-    if (!confirm(t('adminEstimates.confirmDelete'))) return;
     setDeletingId(est.id);
     const { error } = await supabase.from('estimates').delete().eq('id', est.id);
     setDeletingId(null);
@@ -286,6 +332,7 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
           <option value="all">{t('adminEstimates.allStatuses')}</option>
           <option value="open">{t('estimate.statusOpen')}</option>
           <option value="accepted">{t('estimate.statusAccepted')}</option>
+          <option value="completed">{t('estimate.statusCompleted')}</option>
           <option value="rejected">{t('estimate.statusRejected')}</option>
         </select>
 
@@ -500,6 +547,105 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                 <p className="text-xs text-slate-400 mt-1.5">{t('adminEstimates.inviteHint')}</p>
               </div>
 
+              {/* ── Matched spend ──────────────────────────────────────
+                  What was actually spent against this quote. Transactions
+                  and invoices interleaved; each row belongs to at most one
+                  estimate, enforced by a partial unique index, so the total
+                  can't double-count. */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                  <span className="text-sm font-semibold text-slate-700">{t('estimate.link.sectionTitle')}</span>
+                  <button
+                    onClick={() => setShowLinkModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition-all"
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    {t('estimate.link.addButton')}
+                  </button>
+                </div>
+
+                {/* Quoted vs actual. With no quoted amount there's nothing to
+                    compare against, so show the total alone rather than
+                    inventing a variance. */}
+                <div className="px-4 py-3 border-b border-slate-100 text-sm">
+                  {(() => {
+                    const total = links.reduce((sum, l) => sum + l.amount, 0);
+                    const currency = links[0]?.currency ?? detail.currency ?? 'USD';
+                    const nExp = links.filter((l) => l.kind === 'expense').length;
+                    const nInv = links.filter((l) => l.kind === 'invoice').length;
+                    const counts = t('estimate.link.counts', { invoices: String(nInv), receipts: String(nExp) });
+                    if (detail.amount == null) {
+                      return (
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <span className="text-slate-500">{t('estimate.link.noQuote')}</span>
+                          <span className="font-semibold text-slate-900">{fmtCurrency(total, currency)}</span>
+                          <span className="text-xs text-slate-400">{counts}</span>
+                        </div>
+                      );
+                    }
+                    const diff = total - detail.amount;
+                    return (
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="text-slate-500">{t('estimate.link.quoted')}</span>
+                        <span className="font-semibold text-slate-900">{fmtCurrency(detail.amount, detail.currency || currency)}</span>
+                        <span className="text-slate-300">·</span>
+                        <span className="text-slate-500">{t('estimate.link.matched')}</span>
+                        <span className="font-semibold text-slate-900">{fmtCurrency(total, currency)}</span>
+                        <span className="text-xs text-slate-400">{counts}</span>
+                        {links.length > 0 && Math.abs(diff) >= 0.01 && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            diff > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {t(diff > 0 ? 'estimate.link.over' : 'estimate.link.under', {
+                              amount: fmtCurrency(Math.abs(diff), currency),
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {linksLoading ? (
+                  <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t('common.loading')}
+                  </div>
+                ) : links.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-slate-500">{t('estimate.link.empty')}</p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {links.map((l) => (
+                      <div key={l.link_id} className="group flex items-center gap-3 px-4 py-2.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          l.kind === 'invoice' ? 'bg-amber-100' : 'bg-emerald-100'
+                        }`}>
+                          {l.kind === 'invoice'
+                            ? <HardHat className="w-4 h-4 text-amber-700" />
+                            : <Receipt className="w-4 h-4 text-emerald-700" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900 truncate">{l.label}</p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {fmtDate(l.occurred_on)}
+                            {l.detail ? ` · ${l.detail}` : ''}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-slate-900 shrink-0">
+                          {fmtCurrency(l.amount, l.currency)}
+                        </span>
+                        <DeleteButton
+                          variant="icon"
+                          revealOnHover
+                          label={t('estimate.link.unlink')}
+                          onDelete={() => unlinkItem(l.link_id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Admin actions */}
               <div className="flex flex-wrap gap-2 pt-2">
                 <button
@@ -538,14 +684,26 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                     {t('adminEstimates.actionReopen')}
                   </button>
                 )}
-                <button
-                  onClick={() => deleteEstimate(detail)}
+                {/* Closing out an accepted job. Offered only from 'accepted'
+                    — completing something never accepted would skip the
+                    decision the status is there to record. */}
+                {detail.status === 'accepted' && (
+                  <button
+                    onClick={() => setStatus(detail, 'completed')}
+                    disabled={actioning}
+                    className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    {t('adminEstimates.actionComplete')}
+                  </button>
+                )}
+                <DeleteButton
+                  variant="pill"
+                  label={t('adminEstimates.actionDelete')}
                   disabled={deletingId === detail.id}
-                  className="ml-auto px-4 py-2.5 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium rounded-xl transition-all inline-flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {deletingId === detail.id ? t('common.deleting') : t('adminEstimates.actionDelete')}
-                </button>
+                  onDelete={() => deleteEstimate(detail)}
+                  className="ml-auto"
+                />
               </div>
             </div>
           </div>
@@ -553,6 +711,14 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
       )}
 
       {/* ── Edit Estimate Modal ── */}
+      {showLinkModal && detail && (
+        <EstimateLinkModal
+          estimate={detail}
+          onClose={() => setShowLinkModal(false)}
+          onLinked={() => loadLinks(detail.id)}
+        />
+      )}
+
       {editModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-[60] overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-4 p-6">
@@ -611,6 +777,21 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
                   <option key={h.id} value={h.id}>{h.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Quoted amount — optional; blank means "not quoted". */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('estimate.amountLabel')}</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={eAmount}
+                onChange={(e) => { setEAmount(e.target.value); setEError(null); }}
+                placeholder={t('estimate.amountPlaceholder')}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              />
             </div>
 
             {/* Admin notes */}

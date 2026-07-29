@@ -268,7 +268,9 @@ Each pending item is shown as a card with:
 - The sender address and subject line
 - Small pills showing what was auto-extracted (vendor, amount, date) so you can tell items apart at a glance
 - Clickable thumbnails of any attachments (image or PDF — opens full-size in a new tab; HEIC files from iPhone forwards show a generic file tile that opens the original)
-- A small **Review ▾** button on the right
+- A red **Discard** button on the left and a **Review ▾** button on the right
+
+To throw an item away, tap **Discard** — it turns into **"Tap again to confirm"** for three seconds, so a mis-tap costs you nothing. (This replaced a small × in the card's top corner that deleted the item the moment it was touched.)
 
 **PDF receipts read the same as photos.** Most retailers send receipts as a PDF
 rather than an image, and those are now scanned automatically just like a phone
@@ -331,14 +333,16 @@ With your channel set to **WhatsApp** or **Both**, the notices that today arrive
 
 The **Expense List** shows all transactions for your selected household, newest first.
 
+Admins and household admins open this from **Transactions** in the nav. It shows every transaction across your properties. To narrow it to only the ones you filed yourself, tap the **Just mine** chip — LedgerX remembers that choice on this device. (Regular members and contractors always see only their own receipts; there's no chip for them, and the scoping is enforced on the server, not just hidden in the app.)
+
 ### Search, sort & filters
 
-For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar, sort control, and filter controls. If you've logged more than 25 transactions, the toolbar shows up automatically. This applies everywhere the transaction list appears — including a contractor's own **My Receipts** and a household admin's own **My Transactions** — so search, sort, and filters are always available once you have enough to need them.
+For short transaction lists, the **Filter** chip is tucked in the top-right of the section so the page stays clean. Tap it to reveal the full search bar, sort control, and filter controls. If you've logged more than 25 transactions, the toolbar shows up automatically. This applies everywhere the transaction list appears — including a contractor's own **My Receipts** and an admin's **Transactions** — so search, sort, and filters are always available once you have enough to need them.
 
 The toolbar gives you:
 - **Search** — vendor, category, notes, or household name (real-time)
 - **Sort** — always-visible dropdown next to the search box: date (newest/oldest), amount (highest/lowest), vendor (A→Z), category (A→Z). Re-orders instantly without a reload, and works on top of any active filters.
-- **Quick-tap chips** — one property or match-status per tap, no need to open the full filter panel. Tap a household name to jump straight to that property; tap it again to go back to all. If Credit Card Reconciliation is on for one of your households, **Matched** and **Unmatched** chips appear too, so you can jump straight to receipts still waiting to be reconciled. The row scrolls sideways on mobile when there isn't room for every chip.
+- **Quick-tap chips** — **Just mine** (admins), one property, or a match status per tap, no need to open the full filter panel. Tap a household name to jump straight to that property; tap it again to go back to all. If Credit Card Reconciliation is on for one of your households, **Matched** and **Unmatched** chips appear too, so you can jump straight to receipts still waiting to be reconciled. The row scrolls sideways on mobile when there isn't room for every chip.
 - **Filter panel** (tap the filter icon): household, category, match status (when applicable), date range, amount range. Opens as a bottom sheet on phones and a centered dialog on desktop.
 
 Long lists load 20 transactions at a time — tap **Show N more** at the bottom to bring in the next batch. Filtering, sorting, and searching still work across your whole list, not just what's currently loaded.
@@ -358,6 +362,10 @@ Long lists load 20 transactions at a time — tap **Show N more** at the bottom 
 3. Tap it once more within 3 seconds to commit. If you don't tap again, the button reverts to its normal state and nothing happens.
 
 > Deletions are permanent — receipt images are also removed.
+
+**This is how every delete in LedgerX works.** Anything that removes something for good — a transaction, an invoice, an estimate, a category, a household, a user, a saved template, a vendor mapping, a statement, a linked email address or phone number — uses the same red trashcan and the same two-tap confirm. Nothing is destroyed on a single tap, and there are no grey browser pop-ups left anywhere in the app.
+
+> The one exception is dismissing a notification from the bell, which stays instant — that only clears the alert, never the thing it points at.
 
 ---
 
@@ -641,13 +649,13 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 
 **Home screen:** When you sign in as a full admin, you land on a command-center home screen with:
 - **Quick Actions** — Add Transaction and Submit Invoice buttons
-- **Navigate to** — tiles for Uncategorized, Invoices, My Transactions, Analytics, and Reports
-- **Configuration** — tiles for Households, Categories, Vendors, and Users
+- **Navigate to** — tiles for Uncategorized, Invoices, Estimates, Transactions, and Reconciliation
+- **Configuration** — tiles for Households, Categories, Vendors, and Users. This group starts **collapsed** — tap the heading to open it. They're the same four screens as the sidebar's **Manage** group, so they stay one tap away without crowding the home screen.
 
 **Sidebar navigation:**
 - **Home** — returns to the command center from any view
-- **Manage** (collapsible) — expands to show Households, Categories, Vendors, and Users
-- Uncategorized · Invoices · My Transactions · Analytics · Reports
+- **Manage** (collapsible, starts closed) — expands to show Households, Categories, Vendors, and Users
+- Uncategorized · Invoices · Estimates · Transactions · Reconciliation · Analytics · Reports · Activity · Estimate Report
 
 ### Analytics
 
@@ -708,14 +716,24 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 Contractors can submit **estimates** (quotes) for you to review and discuss before any work is invoiced. Open the **Estimates** section from the nav (or the Estimates tile on the admin home).
 
 - See every estimate submitted by contractors, with a red badge showing unread messages
-- Filter by status (Open / Accepted / Rejected) and property; sort by date
+- Filter by status (Open / Accepted / Completed / Rejected) and property; sort by date
 - Click an estimate to open it: the submitted JPEG/PDF files (PDFs open in a new tab), the contractor's description, and the **conversation thread**
 - **Chat back and forth** — post replies right in the estimate; the contractor sees them and can respond
 - **Accept** or **Reject** the estimate (or **Reopen** a decided one) — the status is visible to the contractor
+- **Mark Complete** (full admins only) — once an accepted job is finished and billed, close it out. Completed estimates get their own blue status and a **Completed** entry in the status filter, so live work stops competing for attention with finished work. **Reopen** still works if you close one too early. This button only appears on an *accepted* estimate — completing something that was never accepted would skip the decision the status exists to record.
 - **Edit** (full admins only) — fix the estimate's title, description, billing type, property, or admin notes from the detail view.
 - **Delete** removes the estimate along with its files and messages. Estimate files are retained until you delete them — nothing is auto-cleaned.
 
 **Add photos any time:** open any estimate you can see and use the **Add photos** button under the attachments to add more pictures after it was submitted — anyone on the property can contribute, not just the submitter. Images are automatically shrunk to a sharp, readable size (roughly 1600px, ~0.6MB) before saving, so they stay legible while using far less storage; PDFs are kept exactly as-is.
+
+**Quoted amount:** estimates carry an optional **quoted amount**. Contractors can fill it in when submitting, and a full admin can set or correct it from **Edit**. Estimates created before v13.17 have no amount until someone edits them — they show the matched total with no comparison rather than inventing one.
+
+**Matched spend (linking actual cost to a quote):** open any estimate and use **Link item** under **Matched spend** to attach the contractor's invoice and any receipts that belong to that job. Both kinds appear in one list, and the header shows the comparison in a line: *Quoted $5,000 · matched $5,240 · 1 invoice(s), 1 receipt(s) · $240.00 over*. Over-budget shows red, under-budget green, and an exact match shows no chip at all.
+
+- A transaction or invoice belongs to **at most one estimate** — anything already linked elsewhere is left out of the picker, so a job's cost can't be double-counted across two quotes.
+- The picker is scoped to the estimate's property, newest first, with a search box. It deliberately isn't ranked by amount the way Credit Card Reconciliation is: one quote is satisfied by an invoice *plus* several smaller receipts, so amount-matching would rule out every candidate.
+- **Unlink** any row (red trashcan, tap twice) to take it back off; the totals recompute immediately and the item returns to the picker.
+- Full admins only, and the section is on the admin estimate screen — contractors don't see your other spending on their job.
 
 **Billing type:** every estimate now includes a billing type — **Total bill** or **Labor only (materials separate)**. This shows as a badge on each estimate card so you know at a glance whether materials are included in the quoted price.
 
@@ -850,7 +868,7 @@ Household admins are a scaled-down admin role. They can do everything a contract
 
 **What a household admin can do:**
 - Submit receipts (Add Transaction) and invoices (Submit Invoice)
-- View **My Transactions** — a list of every receipt they've personally submitted (filtered to their own work)
+- View **Transactions** — every transaction across their properties, with a **Just mine** chip to narrow it to their own submissions
 - View **Analytics** for households they're a member of (opens as a modal overlay from the nav)
 - View the **Contractor Invoices** list (read-only — no Mark Paid button)
 - View **Reports**
@@ -926,7 +944,7 @@ Estimates let you send a quote to the admin *before* the work happens — and th
 
 Your estimate files stay on record until an admin removes them — there's no contractor delete button for estimates, so nothing you send disappears on its own.
 
-**Household admins** get the same **Add Transaction**, **Submit Invoice**, and **Submit Estimate** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **My Transactions** nav item, so you can review what you've entered without opening Analytics.
+**Household admins** get the same **Add Transaction**, **Submit Invoice**, and **Submit Estimate** buttons at the top of the admin panel — oversight and submission live side by side, so you don't have to switch accounts to log your own work. Receipts you submit appear under the **Transactions** nav item — tap **Just mine** there to see only your own entries without opening Analytics.
 
 ---
 

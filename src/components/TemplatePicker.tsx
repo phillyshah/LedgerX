@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Bookmark, Trash2 } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import { useT } from '../hooks/useT';
 import { supabase } from '../lib/supabase';
 import { useTemplates, type TemplateKind, type TransactionTemplate } from '../hooks/useTemplates';
+import { DeleteButton } from './shared/DeleteButton';
 
 interface TemplatePickerProps {
   kind: TemplateKind;
@@ -37,8 +38,8 @@ export function TemplatePicker({ kind, onPick, refreshKey }: TemplatePickerProps
   if (loading) return null;
   if (templates.length === 0) return null;
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(t('templates.confirmDelete', { name }))) return;
+  // Confirmation lives in DeleteButton's two-tap arm; this is the commit.
+  const handleDelete = async (id: string) => {
     const { error } = await supabase.from('transaction_templates').delete().eq('id', id);
     if (!error) reload();
   };
@@ -67,15 +68,7 @@ export function TemplatePicker({ kind, onPick, refreshKey }: TemplatePickerProps
               >
                 {tpl.name}
               </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(tpl.id, tpl.name)}
-                className="px-2 py-1.5 text-emerald-400 hover:text-red-600 hover:bg-red-50"
-                aria-label={t('common.delete')}
-                title={t('common.delete')}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <DeleteButton variant="icon" onDelete={() => handleDelete(tpl.id)} />
             </div>
           ))}
         </div>
