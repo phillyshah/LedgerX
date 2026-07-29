@@ -6,8 +6,45 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.15`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.16`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.16 (UX feedback round) — frontend only, NO SQL, NO edge function.**
+  Merging to `main` auto-deploys via `.github/workflows/deploy.yml`; there is
+  nothing to run by hand. Three owner-reported issues:
+  1. **One delete control app-wide.** New
+     `src/components/shared/DeleteButton.tsx` (variants `icon` / `pill` /
+     `prominent`) replaces three separate conventions: a two-tap confirm
+     copy-pasted inline into 3 files, **7** `window.confirm()` popups, and
+     6 controls that deleted a row on a single unconfirmed tap. Zero
+     `window.confirm(` left in `src/`. The reported "tiny X on messages" was
+     `EmailInboxPanel.tsx` — a 28px grey X in the card header corner with no
+     confirm; now a 40px red `Trash2` "Discard" beside Review. **Notification
+     dismissal deliberately stays instant** (discards a pointer, not the
+     record) — don't "fix" it. Modal-close X's, cancel-inline-edit X's,
+     clear-filter X and the 5 staging-array image X's are intentionally NOT
+     converted: nothing persisted is destroyed, so a confirm is noise.
+  2. **Transactions is one screen now.** `ExpenseList` gained
+     `allowOwnFilter`; `AdminLayout` drops `ownSubmissionsOnly` and shows the
+     whole household with a "Just mine" chip (persisted at
+     `localStorage['ledgerx:txnOwnOnly']`). **Contractors/members must keep
+     their own-only scoping at the *query* level** (`useExpenses(…,
+     {ownOnly:true})` in `Dashboard.tsx`) — the chip is admin-shell only and
+     must never be able to widen their view.
+  3. **Subtitles checked against the queries that feed them** and corrected;
+     `CollapsibleSection` gained a `subtitle` prop.
+- **Two real bugs fixed in passing**: `useEmailInbox`'s `discard` **and**
+  `accept` both ignored the returned error and dropped the row optimistically,
+  so an RLS refusal looked like success until reload; and `ExpenseList`
+  compared own-only `filteredExpenses.length` against household-wide
+  `expenses.length`, producing "Showing 3 of 87 transactions" plus a wrong
+  empty state. Both now derive from one `scopedExpenses`.
+- **`.claude/UX-AUDIT.md` is the deliverable for the "too many options"
+  complaint.** Only the unambiguous wins shipped. **The big one is deferred
+  and needs the owner's yes**: merging Analytics + Reports + Activity +
+  Estimate report into one tabbed hub (15 destinations → 12). Also recorded
+  there: deleting the duplicated admin-home tiles looks like an easy win and
+  **is not** — on mobile the sidebar is behind the hamburger, so those tiles
+  are the primary navigation.
 - **✅ v13.10 through v13.15 are ALL MERGED AND CONFIRMED DEPLOYED.** Footer at
   `https://ledger.90ten.life` confirmed reading `v13.15` by the owner directly.
   v13.10's Activity Report self-inclusion SQL confirmed live via
