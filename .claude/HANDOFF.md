@@ -8,12 +8,16 @@ substantial session.
 
 - **Version `v13.18`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
-- **✅ v13.16 and v13.17 ARE MERGED to `main` (PR #100) and auto-deployed.**
-  `main` reads `v13.17`. **v13.18 is the only thing still outstanding** — it
-  was pushed to the branch after #100 merged, so it needs its own PR. When
-  reviving this branch, note PR #100 is closed: a merged PR can't track new
-  work, so the branch was restarted from `origin/main` and the v13.18 commit
-  rebased on top rather than stacked on merged history.
+- **✅ v13.16, v13.17 AND v13.18 ARE ALL MERGED AND DEPLOYED.** `main` reads
+  `v13.18`. PR #100 carried v13.16 + v13.17; PR #101 carried v13.18 (it was
+  pushed after #100 merged, so it needed its own PR — a merged PR can't track
+  new work, and the branch was restarted from `origin/main` with the v13.18
+  commit rebased on top rather than stacked on merged history). Both
+  `deploy.yml` runs completed **success** — `e8a5490` and `7e58ad4`. Nothing
+  from this session is outstanding.
+  **Lesson worth keeping**: a PR merged mid-session captures only what was
+  pushed at that moment. Always re-check `git log origin/main..HEAD` after
+  someone merges rather than assuming the PR took everything.
 - **v13.18 — frontend only, no SQL.** `ReportsHub.tsx` collapses Analytics /
   Reports / Activity / Estimate Report into one tabbed destination; the
   full-admin sidebar goes **12 → 9** and the household-admin sidebar **8 → 5**.
