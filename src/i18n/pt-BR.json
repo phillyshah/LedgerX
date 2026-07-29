@@ -1173,5 +1173,8 @@
   "estimate.link.confirm": "Vincular",
   "estimate.link.noneAvailable": "Nada disponível para vincular nesta propriedade.",
   "estimate.link.noMatches": "Nada corresponde a essa busca.",
-  "estimate.link.errorAlreadyLinked": "Esse item já está vinculado a outro orçamento."
+  "estimate.link.errorAlreadyLinked": "Esse item já está vinculado a outro orçamento.",
+  "reportsHub.navLabel": "Relatórios",
+  "reportsHub.title": "Relatórios",
+  "reportsHub.subtitle": "Gastos, exportações, atividade da equipe e o fluxo de orçamentos — tudo em um só lugar."
 }

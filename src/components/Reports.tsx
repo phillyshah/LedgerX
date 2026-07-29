@@ -40,13 +40,17 @@ interface Submitter {
 type SortKey = 'date_asc' | 'date_desc' | 'submitter' | 'amount_desc' | 'amount_asc' | 'vendor' | 'category';
 
 interface ReportsProps {
-  onClose: () => void;
+  /** Rendered bare (no overlay, no header, no close button) when omitted —
+   *  that's how ReportsHub embeds this as a tab. Mirrors the convention
+   *  AdminAnalytics already used. */
+  onClose?: () => void;
 }
 
 export function Reports({ onClose }: ReportsProps) {
+  const embedded = !onClose;
   const { user, isAdmin, isHouseholdAdmin } = useAuth();
   const { t, locale } = useT();
-  useEscapeClose(onClose);
+  useEscapeClose(onClose ?? (() => {}), !embedded);
   // Privacy gate: only privileged viewers (full + household admins) can see
   // other people's submissions. Regular users are *forced* to their own.
   const isPrivilegedViewer = isAdmin || isHouseholdAdmin;
@@ -440,8 +444,9 @@ export function Reports({ onClose }: ReportsProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+    <div className={embedded ? '' : 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'}>
+      <div className={embedded ? 'flex flex-col' : 'bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col'}>
+        {!embedded && (
         <div className="flex items-center justify-between p-6 border-b border-slate-200 shrink-0">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5" />
@@ -454,8 +459,9 @@ export function Reports({ onClose }: ReportsProps) {
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
+        )}
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className={embedded ? 'space-y-6' : 'flex-1 overflow-y-auto p-6 space-y-6'}>
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
               <strong className="font-semibold">{t('reports.error')}</strong> {error}

@@ -1173,5 +1173,8 @@
   "estimate.link.confirm": "Link",
   "estimate.link.noneAvailable": "Nothing available to link for this property.",
   "estimate.link.noMatches": "Nothing matches that search.",
-  "estimate.link.errorAlreadyLinked": "That item is already linked to another estimate."
+  "estimate.link.errorAlreadyLinked": "That item is already linked to another estimate.",
+  "reportsHub.navLabel": "Reports",
+  "reportsHub.title": "Reports",
+  "reportsHub.subtitle": "Spending, exports, team activity and the estimate pipeline — all in one place."
 }

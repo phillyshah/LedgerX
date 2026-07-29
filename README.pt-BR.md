@@ -657,7 +657,9 @@ O painel admin tem um **cabeçalho escuro de largura total** com o logo LedgerX 
 **Navegação na barra lateral:**
 - **Início** — retorna à tela de comando de qualquer visualização
 - **Gerenciar** (recolhível, começa fechado) — expande para mostrar Grupos, Categorias, Fornecedores e Usuários
-- Sem categoria · Notas Fiscais · Orçamentos · Transações · Conciliação · Análises · Relatórios · Atividade · Relatório de Orçamentos
+- Sem categoria · Notas Fiscais · Orçamentos · Transações · Conciliação · **Relatórios** · Labs
+
+**Relatórios (uma tela, quatro abas):** Análises, Relatórios, Atividade e Relatório de Orçamentos eram quatro itens separados na barra lateral — e Análises e Relatórios se sobrepunham tanto que os nomes não diziam qual abrir. Agora são quatro abas dentro de uma única tela de **Relatórios**, reduzindo a barra lateral de 12 destinos para 9. Nada mudou dentro deles: os mesmos filtros, os mesmos gráficos, as mesmas exportações em CSV e PDF. A tela lembra em qual aba você estava. Os quatro blocos de **Insights** na tela inicial do administrador mantêm os próprios nomes e cada um abre o hub direto naquela aba, então a navegação por blocos não muda.
 
 ### Análises
 

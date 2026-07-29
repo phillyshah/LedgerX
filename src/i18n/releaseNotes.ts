@@ -33,6 +33,21 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.18',
+    version: 'v13.18',
+    date: '2026-07-29',
+    title: {
+      'en': 'All your reports in one place',
+      'pt-BR': 'Todos os relat\u00f3rios em um s\u00f3 lugar',
+    },
+    body: {
+      'en':
+        "Analytics, Reports, Activity and Estimate Report used to be four separate items in the menu, and two of them overlapped so much that nothing in the names told you which to open. They're now four tabs inside a single **Reports** screen. The menu is shorter, everything is one tap from everything else, and the app remembers which tab you were last on.\n\nNothing was removed or changed inside them \u2014 same filters, same charts, same CSV and PDF exports. The four shortcuts on the admin home screen still say Analytics, Reports, Activity and Estimate Report, and each one still takes you straight to that tab, so if you navigate by the tiles nothing moved at all.",
+      'pt-BR':
+        "An\u00e1lises, Relat\u00f3rios, Atividade e Relat\u00f3rio de Or\u00e7amentos eram quatro itens separados no menu, e dois deles se sobrepunham tanto que os nomes n\u00e3o ajudavam a decidir qual abrir. Agora s\u00e3o quatro abas dentro de uma \u00fanica tela de **Relat\u00f3rios**. O menu ficou mais curto, tudo est\u00e1 a um toque de dist\u00e2ncia e o app lembra em qual aba voc\u00ea estava.\n\nNada foi removido nem alterado dentro deles \u2014 os mesmos filtros, os mesmos gr\u00e1ficos, as mesmas exporta\u00e7\u00f5es em CSV e PDF. Os quatro atalhos na tela inicial do administrador continuam se chamando An\u00e1lises, Relat\u00f3rios, Atividade e Relat\u00f3rio de Or\u00e7amentos, e cada um leva direto \u00e0 sua aba \u2014 ent\u00e3o, se voc\u00ea navega pelos blocos, nada mudou de lugar.",
+    },
+  },
+  {
     id: 'v13.17',
     version: 'v13.17',
     date: '2026-07-29',

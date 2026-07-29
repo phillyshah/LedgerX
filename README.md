@@ -655,7 +655,9 @@ The admin panel has a **full-width dark header** at the top with the LedgerX log
 **Sidebar navigation:**
 - **Home** — returns to the command center from any view
 - **Manage** (collapsible, starts closed) — expands to show Households, Categories, Vendors, and Users
-- Uncategorized · Invoices · Estimates · Transactions · Reconciliation · Analytics · Reports · Activity · Estimate Report
+- Uncategorized · Invoices · Estimates · Transactions · Reconciliation · **Reports** · Labs
+
+**Reports (one screen, four tabs):** Analytics, Reports, Activity and Estimate Report used to be four separate sidebar items — and Analytics and Reports overlapped so heavily that the names didn't tell you which to open. They're now four tabs inside one **Reports** screen, taking the sidebar from 12 destinations to 9. Nothing inside them changed: same filters, same charts, same CSV and PDF exports. The screen remembers which tab you were last on. The four **Insights** tiles on the admin home still carry their own names and each opens the hub directly on that tab, so tile-based navigation is unaffected.
 
 ### Analytics
 
