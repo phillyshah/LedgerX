@@ -4,7 +4,14 @@ import { Shield, Users, UserPlus, X, Key, Home, HardHat, MessageCircle, Plus, Lo
 import { useAuth } from '../../contexts/AuthContext';
 import { LANGUAGES, type Language } from '../../i18n';
 import { useT } from '../../hooks/useT';
-import { PHONE_E164_RE, type NotifyChannel, type PhoneNumberRow } from '../../hooks/useWhatsApp';
+import {
+  PHONE_E164_RE,
+  fetchWhatsAppDeliveries,
+  type NotifyChannel,
+  type PhoneNumberRow,
+  type WhatsAppDeliveryRow,
+  type WhatsAppDeliveryStatus,
+} from '../../hooks/useWhatsApp';
 import { DeleteButton } from '../shared/DeleteButton';
 
 type Role = 'regular' | 'admin' | 'contractor' | 'household_admin';
@@ -21,6 +28,35 @@ interface User {
 }
 
 const LANG_FLAG: Record<Language, string> = { 'en': '🇺🇸', 'pt-BR': '🇧🇷' };
+
+// Delivery-log status chips. `skipped` is amber rather than red on purpose:
+// it is the expected outcome for anyone outside their 24h reply window, and
+// colouring it like a failure would send admins chasing a non-problem.
+const WA_STATUS_CHIP: Record<WhatsAppDeliveryStatus, string> = {
+  sent: 'bg-emerald-50 text-emerald-700',
+  pending: 'bg-slate-100 text-slate-600',
+  skipped: 'bg-amber-50 text-amber-700',
+  failed: 'bg-red-50 text-red-700',
+};
+
+const WA_STATUS_KEY: Record<WhatsAppDeliveryStatus, string> = {
+  sent: 'whatsapp.log.statusSent',
+  pending: 'whatsapp.log.statusPending',
+  skipped: 'whatsapp.log.statusSkipped',
+  failed: 'whatsapp.log.statusFailed',
+};
+
+// The notification kinds enqueue_whatsapp_notification fans out. Anything not
+// listed falls back to a generic label rather than leaking a raw enum.
+const WA_KIND_KEY: Record<string, string> = {
+  chat_message: 'whatsapp.log.kindChatMessage',
+  chat_mention: 'whatsapp.log.kindChatMention',
+  estimate_created: 'whatsapp.log.kindEstimateCreated',
+  estimate_status: 'whatsapp.log.kindEstimateStatus',
+  invoice_created: 'whatsapp.log.kindInvoiceCreated',
+  invoice_paid: 'whatsapp.log.kindInvoicePaid',
+  reconcile_mention: 'whatsapp.log.kindReconcileMention',
+};
 
 interface Household {
   id: string;
@@ -71,6 +107,8 @@ export function ManageUsers() {
   const [waNewLabel, setWaNewLabel] = useState('');
   const [waAdding, setWaAdding] = useState(false);
   const [waError, setWaError] = useState('');
+  const [waLog, setWaLog] = useState<WhatsAppDeliveryRow[]>([]);
+  const [waLogLoading, setWaLogLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -329,6 +367,16 @@ export function ManageUsers() {
     setWaPhones((phonesRes.data ?? []) as PhoneNumberRow[]);
     setWaChannel(((profileRes.data?.notify_channel as NotifyChannel | undefined) ?? 'email'));
     setShowWhatsAppModal(true);
+
+    // Deliberately after the modal opens: the phone list is what an admin came
+    // for, and the log is a diagnostic they read second. Loading it in the
+    // Promise.all above would delay the modal for everyone to serve the
+    // minority case of "why didn't this arrive?".
+    setWaLog([]);
+    setWaLogLoading(true);
+    const log = await fetchWhatsAppDeliveries(userId);
+    setWaLog(log);
+    setWaLogLoading(false);
   };
 
   const addWaPhone = async (e: React.FormEvent) => {
@@ -954,8 +1002,8 @@ export function ManageUsers() {
 
       {showWhatsAppModal && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="p-6 border-b border-slate-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-slate-200 shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-slate-900">{t('whatsapp.adminModalTitle')}</h3>
@@ -970,7 +1018,7 @@ export function ManageUsers() {
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
               <p className="text-xs text-slate-500">
                 {t('whatsapp.notifyPref')}:{' '}
                 <span className="font-medium text-slate-700">
@@ -1026,6 +1074,60 @@ export function ManageUsers() {
                   {t('whatsapp.addPhone')}
                 </button>
               </form>
+
+              {/* Recent deliveries. The whole point is to answer "why didn't
+                  that arrive?" without opening the SQL editor, so `skipped`
+                  (outside the 24h window) and `failed` (Twilio refused, and
+                  here's what it said) have to be visibly different things. */}
+              <div className="pt-4 border-t border-slate-200">
+                <h4 className="text-sm font-semibold text-slate-700">{t('whatsapp.log.title')}</h4>
+
+                {waLogLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {t('common.loading')}
+                  </div>
+                ) : waLog.length === 0 ? (
+                  <p className="text-xs text-slate-500 mt-2">{t('whatsapp.log.empty')}</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5">
+                    {waLog.map(row => {
+                      const kindKey = WA_KIND_KEY[row.payload?.kind ?? ''];
+                      return (
+                        <li key={row.id} className="text-xs bg-slate-50 rounded-xl px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-medium ${WA_STATUS_CHIP[row.status]}`}
+                            >
+                              {t(WA_STATUS_KEY[row.status])}
+                            </span>
+                            <span className="flex-1 font-medium text-slate-700 truncate">
+                              {kindKey ? t(kindKey) : t('whatsapp.log.kindOther')}
+                            </span>
+                            <span className="text-slate-400 shrink-0">
+                              {new Date(row.created_at).toLocaleString(locale, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          {row.payload?.title && (
+                            <p className="text-slate-500 truncate mt-0.5">{row.payload.title}</p>
+                          )}
+                          {row.status === 'skipped' && (
+                            <p className="text-amber-700 mt-0.5">{t('whatsapp.log.skippedHint')}</p>
+                          )}
+                          {row.status === 'failed' && row.last_error && (
+                            <p className="text-red-600 mt-0.5 break-words">{row.last_error}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>

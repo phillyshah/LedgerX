@@ -19,11 +19,31 @@
 --
 -- Safe to re-run (IF NOT EXISTS / CREATE OR REPLACE / guarded DO blocks).
 --
--- Cron prerequisite (already configured live for the inactivity reminder):
---   ALTER DATABASE postgres SET app.supabase_url = 'https://<project>.supabase.co';
---   ALTER DATABASE postgres SET app.cron_secret  = '<a long random string>';
--- Verify with:
---   SELECT current_setting('app.supabase_url', true), current_setting('app.cron_secret', true) IS NOT NULL;
+-- ── Cron prerequisite — READ THIS BEFORE RUNNING ────────────────────────────
+-- Section 10 only schedules the outbox drain if app.supabase_url and
+-- app.cron_secret are readable. If they are not, the block RAISEs a NOTICE and
+-- returns: the migration still reports SUCCESS, but nothing is ever sent and
+-- whatsapp_outbox fills up silently. Getting these two settings right is the
+-- difference between a working integration and one that looks fine and does
+-- nothing.
+--
+-- ALTER DATABASE postgres SET app.supabase_url = … does NOT work on hosted
+-- Supabase — the SQL-editor role is not the database owner, so it 403s.
+-- Use a session-level SET instead, in the SAME "Run" as the rest of this file:
+--
+--   SET app.supabase_url = 'https://<project>.supabase.co';
+--   SET app.cron_secret  = '<the same value as the CRON_SECRET edge secret>';
+--   -- …then paste the whole of this migration below and run it all at once.
+--
+-- A session SET is enough because section 10 bakes both values into the job's
+-- stored command as literals (format(…, %L, …)) — they do not need to survive
+-- the session.
+--
+-- Verify afterwards with:
+--   SELECT jobname, schedule, active FROM cron.job
+--    WHERE jobname = 'ledgerx-whatsapp-outbox-drain';
+-- One row means the drain exists. No rows means it was skipped — scroll the
+-- SQL editor output for the NOTICE that says why, fix it, and re-run.
 
 -- ─── 1. user_phone_numbers ───────────────────────────────────────────────────
 -- Unlike user_sender_emails (owner-managed, UNIQUE(user_id,email)), a phone is
@@ -413,13 +433,17 @@ DECLARE
   v_secret text;
   v_existing_jobid bigint;
 BEGIN
+  -- Every early RETURN below leaves WhatsApp silently broken: rows still pile
+  -- into whatsapp_outbox, but nothing ever drains them. These are WARNINGs
+  -- rather than NOTICEs so they are hard to scroll past, and each one spells
+  -- out the consequence rather than just the cause.
   IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
-    RAISE NOTICE 'pg_cron extension not installed — skipping whatsapp-outbox-drain cron schedule. Install pg_cron and re-run the scheduling block to enable.';
+    RAISE WARNING 'WHATSAPP DRAIN NOT SCHEDULED — pg_cron extension is not installed. Nothing in whatsapp_outbox will ever be sent. Install pg_cron (Database → Extensions), then re-run this migration.';
     RETURN;
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
-    RAISE NOTICE 'pg_net extension not installed — skipping whatsapp-outbox-drain cron schedule. Install pg_net and re-run the scheduling block to enable.';
+    RAISE WARNING 'WHATSAPP DRAIN NOT SCHEDULED — pg_net extension is not installed. Nothing in whatsapp_outbox will ever be sent. Install pg_net (Database → Extensions), then re-run this migration.';
     RETURN;
   END IF;
 
@@ -427,7 +451,7 @@ BEGIN
   v_secret := current_setting('app.cron_secret', true);
 
   IF v_url IS NULL OR v_url = '' OR v_secret IS NULL OR v_secret = '' THEN
-    RAISE NOTICE 'app.supabase_url or app.cron_secret not set — skipping whatsapp-outbox-drain cron schedule. See migration header for setup instructions.';
+    RAISE WARNING 'WHATSAPP DRAIN NOT SCHEDULED — app.supabase_url and/or app.cron_secret are unset in this session. Everything else in this migration succeeded, so it LOOKS applied, but whatsapp_outbox will fill up and nothing will ever be sent. Re-run with the two SET statements from the migration header in the SAME query, then confirm with: SELECT jobname FROM cron.job WHERE jobname = ''ledgerx-whatsapp-outbox-drain'';';
     RETURN;
   END IF;
 
@@ -458,5 +482,5 @@ BEGIN
     )
   );
 
-  RAISE NOTICE 'Scheduled ledgerx-whatsapp-outbox-drain (every minute).';
+  RAISE NOTICE 'Scheduled ledgerx-whatsapp-outbox-drain (every minute). WhatsApp sending is now live.';
 END $$;

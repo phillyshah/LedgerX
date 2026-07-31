@@ -6,8 +6,33 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.18`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.19`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.19 — WhatsApp: preparing the long-stalled v12.2 deployment.** The owner
+  asked to "add WhatsApp as a communication channel". **It was already built and
+  merged** — four commits on 2026-07-06, all ancestors of `origin/main`, verified
+  with `git merge-base --is-ancestor`. Nothing needed rebuilding. What v13.19
+  adds is the three things that were genuinely missing or wrong:
+  1. **The migration header told you to do something that fails.** It said to run
+     `ALTER DATABASE postgres SET app.*`, which 403s on hosted Supabase. Worse,
+     the cron `DO` block reads those GUCs and, when unset, `RAISE NOTICE`s and
+     returns — so the migration reports success while the drain is never created
+     and `whatsapp_outbox` fills forever with no error anywhere. The header now
+     documents the session-`SET` workaround, and all three skip paths RAISE
+     **WARNING** with the consequence spelled out.
+  2. **A delivery log** inside the existing per-user WhatsApp modal in
+     `ManageUsers.tsx` — `whatsapp_outbox` had an admin SELECT policy and no UI,
+     so "why didn't that arrive?" needed the SQL editor. Deliberately **not** a
+     new nav destination: v13.16–v13.18 just cut the sidebar 12 → 9.
+     `skipped` (amber) vs `failed` (red) is the whole point — the first is the
+     expected 24h-window outcome, not a fault.
+  3. **The 72h sandbox re-join** is now in both READMEs. It expires silently.
+  Also: `whatsapp_outbox` added to `database.types.ts`; new
+  `supabase/tests/whatsapp_{harness,tests}.sql` (12 assertion blocks, all passing
+  on local PG16, including a pin on the silent-skip cron path).
+  **Still not deployed** — see the pending-manual-steps block below. The owner
+  confirmed a verified Twilio account but no sender configured yet, so the first
+  move is establishing sandbox vs production in the Twilio console.
 - **✅ v13.16, v13.17 AND v13.18 ARE ALL MERGED AND DEPLOYED.** `main` reads
   `v13.18`. PR #100 carried v13.16 + v13.17; PR #101 carried v13.18 (it was
   pushed after #100 merged, so it needed its own PR — a merged PR can't track
@@ -773,18 +798,29 @@ substantial session.
      all receipts" fallback in the right pane, and rounded the match score to fix
      a float-dust issue where an exact amount+date pair scored 0.8999… and missed
      the 0.9 auto-match threshold.
-- **⚠️ Pending manual steps for v12.2 (WhatsApp)** — full checklist in the deploy
-  instructions message; summary:
+- **⚠️ Pending manual steps for v12.2 (WhatsApp) — still open as of v13.19.**
+  The *code* has been on `origin/main` since 2026-07-06 (`287a4b2`, `37d0a25`,
+  `d3d6b31`, `442a0f8`) and has shipped with every frontend deploy since. What
+  was never done is everything outside git. Steps:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
+     ⚠️ Prefix the paste with the two session-level `SET`s from the migration
+     header **in the same Run** — see gotcha #9. Without them the file still
+     reports success but the drain is never scheduled and the outbox silently
+     fills. As of v13.19 that path RAISEs a loud WARNING instead of a NOTICE.
   2. Dashboard: create **`whatsapp-inbound`** + **`whatsapp-send`** edge functions
      (paste from repo; **Verify JWT OFF** for both — config.toml has the entries).
-  3. Re-paste the 4 patched send fns: `send-submission-notification`,
-     `send-invoice-notification`, `send-mention-notification`,
-     `send-household-activity` (channel gating; **diff live vs repo first**).
+  3. Re-paste the **6** patched send fns (not 4 — corrected v13.19):
+     `send-submission-notification`, `send-invoice-notification`,
+     `send-mention-notification`, `send-household-activity`,
+     `send-reconcile-mention`, `send-review-reminder` (channel gating;
+     **diff live vs repo first** — see open item #3).
   4. Edge secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
      `TWILIO_WHATSAPP_FROM`, `TWILIO_WEBHOOK_URL` (+ later `TWILIO_TEMPLATE_SID`).
   5. Twilio: sandbox join + webhook URL → whatsapp-inbound.
   6. VPS rsync for the frontend.
+  After step 1, `supabase/tests/whatsapp_{harness,tests}.sql` (new in v13.19)
+  is the fastest way to confirm the schema landed — 12 assertion blocks over a
+  throwaway local Postgres 16.
 - **v12.1 (`…716`)**: user confirmed merged; SQL run on live not yet explicitly
   confirmed — verify before relying on payment_method/delete_notifications.
 - **Verified live earlier (v12.0)**: `…715 chat_mentions.sql` ran + `send-mention-notification`
@@ -824,7 +860,7 @@ substantial session.
 | v11.9 | **Add photos to existing invoice/estimate** + document image compression | `…714`, `AttachmentAdder.tsx`, `imageCompression.ts` |
 | v12.0 | **@mention chat → email + `chat_mention` bell**, deep-linked | `…715`, `send-mention-notification`, `EstimateChat.tsx`, `useInitialDeepLink.ts` |
 | v12.1 | **Admin edits invoice/estimate fields**; **payment method on mark-paid**; **delete notifications** | `…716`, `AdminInvoices.tsx`, `AdminEstimates.tsx`, `NotificationBell.tsx` |
-| v12.2 | **WhatsApp**: text the bot to create expense/invoice/estimate (NL via OpenAI, YES-confirm), add photos to existing, keyword reports; **notifications to WhatsApp** per user channel pref (email/whatsapp/both); admin phone mgmt | `…717 whatsapp_integration.sql`, `whatsapp-inbound`, `whatsapp-send`, 4 patched send-*, `useWhatsApp.ts`, `ManageUsers.tsx`, `UserSettings.tsx` |
+| v12.2 | **WhatsApp**: text the bot to create expense/invoice/estimate (NL via OpenAI, YES-confirm), add photos to existing, keyword reports; **notifications to WhatsApp** per user channel pref (email/whatsapp/both); admin phone mgmt | `…717 whatsapp_integration.sql`, `whatsapp-inbound`, `whatsapp-send`, **6** patched send-*, `useWhatsApp.ts`, `ManageUsers.tsx`, `UserSettings.tsx` |
 | v12.3 | **LedgerX Labs** (new experimental-features area) + first experiment **Credit Card Reconciliation**: admin uploads a statement (CSV, or PDF/photo OCR'd via a new edge fn), members match line items to their own receipts (client-side scoring, bulk auto-match, reverse "Match to card statement" entry point on the expense list) | `…722 labs_cc_statement_reconciliation.sql`, `extract-statement`, `src/components/labs/*`, `statementMatching.ts`, `statementCsv.ts`, `statementScanner.ts`, `useLabsAccess.ts` |
 | v12.4 | **Fix**: statement OCR year-misread (no digit-repair, unlike receipt OCR) broke matching; added period-based repair + loosened `extract-receipt`'s over-aggressive year "fix" | `statementDateRepair.ts`, `extract-statement`, `extract-receipt` |
 | v12.5 | Rename an uploaded statement (admin); small "Matched" badge on matched transactions; announced the whole Labs CC feature via What's New (skipped at v12.3 launch) | `StatementList.tsx`, `useMatchedCardLabels.ts`, `releaseNotes.ts` |
@@ -935,8 +971,13 @@ substantial session.
 
 ## Open items
 
-1. **v12.2 manual deploy** (top of file). After SQL: verify cron exists —
+1. **v12.2 manual deploy** (top of file) — **still the #1 blocker.** After SQL:
+   verify the cron exists —
    `SELECT jobname FROM cron.job WHERE jobname = 'ledgerx-whatsapp-outbox-drain';`
+   Zero rows means the drain was skipped and WhatsApp will never send, however
+   green the migration looked. v13.19 added the loud WARNING for exactly this.
+   Owner confirmed a verified Twilio account on 2026-07-31 but had **not yet
+   set up a sender** — so establish sandbox-vs-production first.
 2. **Production WhatsApp sender**: register via Twilio (Meta business verification),
    create UTILITY template `LedgerX: {{1}}` → approval → set `TWILIO_TEMPLATE_SID`,
    update `TWILIO_WHATSAPP_FROM` + webhook + `TWILIO_WEBHOOK_URL`.
