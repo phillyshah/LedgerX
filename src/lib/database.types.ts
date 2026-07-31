@@ -455,6 +455,50 @@ export interface Database {
         };
         Relationships: [];
       };
+      // Queued outbound WhatsApp notifications. Written only by the
+      // enqueue_whatsapp_notification trigger and the whatsapp-send edge
+      // function (service role) — Insert/Update exist for completeness, but
+      // the only client access is the admin SELECT policy behind the delivery
+      // log in ManageUsers.
+      whatsapp_outbox: {
+        Row: {
+          id: string;
+          user_id: string;
+          phone: string;
+          payload: Record<string, unknown>;
+          status: 'pending' | 'sent' | 'failed' | 'skipped';
+          attempts: number;
+          next_attempt_at: string;
+          last_error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          phone: string;
+          payload: Record<string, unknown>;
+          status?: 'pending' | 'sent' | 'failed' | 'skipped';
+          attempts?: number;
+          next_attempt_at?: string;
+          last_error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          phone?: string;
+          payload?: Record<string, unknown>;
+          status?: 'pending' | 'sent' | 'failed' | 'skipped';
+          attempts?: number;
+          next_attempt_at?: string;
+          last_error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
       email_inbox: {
         Row: {
           id: string;
