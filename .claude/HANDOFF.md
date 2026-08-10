@@ -848,10 +848,58 @@ substantial session.
      all receipts" fallback in the right pane, and rounded the match score to fix
      a float-dust issue where an exact amount+date pair scored 0.8999… and missed
      the 0.9 auto-match threshold.
-- **⚠️ Pending manual steps for v12.2 (WhatsApp) — still open as of v13.19.**
-  The *code* has been on `origin/main` since 2026-07-06 (`287a4b2`, `37d0a25`,
-  `d3d6b31`, `442a0f8`) and has shipped with every frontend deploy since. What
-  was never done is everything outside git. Steps:
+- **🔴 WhatsApp is MUCH further deployed than this file claimed — corrected
+  2026-08-10.** Everything below said the v12.2 SQL was never run. It was.
+  Production evidence:
+  - `SELECT jobname, schedule, active FROM cron.job;` returns
+    **`ledgerx-whatsapp-outbox-drain` / `* * * * *` / active** — that job only
+    exists if the migration ran *with* `app.supabase_url` + `app.cron_secret`
+    set, so step 1 (including the gotcha #9 session-`SET`) was done correctly.
+  - `whatsapp-send` **exists as a deployed function**. The drain has been
+    calling it every minute and getting **HTTP 401**: 120 responses in a
+    2-hour window in `net._http_response`, exactly 60/hour.
+  - `whatsapp_outbox` holds **2 pending** rows — nothing has ever drained,
+    but the backlog is tiny, so no rush and no data at risk.
+
+  **So WhatsApp isn't unbuilt or unscheduled — it's one broken auth handshake
+  away from live.** The 401 has exactly two possible sources and the response
+  body distinguishes them:
+  ```sql
+  SELECT status_code, content FROM net._http_response
+   WHERE status_code = 401 ORDER BY created DESC LIMIT 1;
+  ```
+  - Body like `{"code":401,"message":"Missing authorization header"}` → the
+    **Supabase platform JWT gate**. `config.toml` sets `verify_jwt = false`
+    for `whatsapp-send`, but **that file only applies to CLI deploys and this
+    project has no CLI linked** — the dashboard toggle is still ON. Fix: Edge
+    Functions → `whatsapp-send` → Settings → turn **Verify JWT off**. Same for
+    `whatsapp-inbound`.
+  - Body `{"error":"Unauthorized"}` → the function's **own** check at
+    `whatsapp-send/index.ts:191` (`req.headers.get("X-Cron-Secret") !==
+    cronSecret`). Means the `CRON_SECRET` edge secret doesn't match the
+    `app.cron_secret` that was baked into the cron command by `format(…%L…)`
+    when the migration ran. Fix: reconcile the two.
+    ⚠️ **`cron.job.command` contains that secret in plaintext.** Compare it
+    yourself — never paste it into a chat or an issue.
+
+  **Generalizable**: `config.toml`'s `verify_jwt` is decorative on this
+  project. Every dashboard-created function needs the toggle set by hand, and
+  nothing warns you — it just 401s forever into `net._http_response`, which
+  nobody reads. This is the same silent-failure family as the v13.9 bug and
+  the unscheduled-drain trap in gotcha #9.
+
+  ⏸️ **PARKED by the owner 2026-08-10** — "ignore whatsapp at the moment."
+  Do not resume without them asking. Recorded here only so the diagnosis
+  doesn't have to be redone. Nothing is degrading while it sits: the drain
+  401s harmlessly, the outbox holds 2 rows, no user-facing feature depends on
+  it. If it ever needs silencing rather than fixing:
+  `SELECT cron.unschedule('ledgerx-whatsapp-outbox-drain');`
+
+- **⚠️ Remaining manual steps for v12.2 (WhatsApp).** The *code* has been on
+  `origin/main` since 2026-07-06 (`287a4b2`, `37d0a25`, `d3d6b31`, `442a0f8`)
+  and has shipped with every frontend deploy since. Steps 1 and 2 are now
+  known-done (see above); what's left is the auth fix, the Twilio secrets, and
+  the sender. Steps, as originally written:
   1. SQL editor: run **`20260717000000_whatsapp_integration.sql`** (idempotent).
      ⚠️ Prefix the paste with the two session-level `SET`s from the migration
      header **in the same Run** — see gotcha #9. Without them the file still
@@ -864,11 +912,29 @@ substantial session.
      the current repo copy at step 2 covers it.
   2. Dashboard: create **`whatsapp-inbound`** + **`whatsapp-send`** edge functions
      (paste from repo; **Verify JWT OFF** for both — config.toml has the entries).
-  3. Re-paste the **6** patched send fns (not 4 — corrected v13.19):
-     `send-submission-notification`, `send-invoice-notification`,
-     `send-mention-notification`, `send-household-activity`,
-     `send-reconcile-mention`, `send-review-reminder` (channel gating;
-     **diff live vs repo first** — see open item #3).
+  3. Re-paste the patched send fns. **Corrected again 2026-08-10 — the count
+     was 6, the real number is 4, and "channel gating" undersells them:**
+     - `send-reconcile-mention` (v13.1) and `send-review-reminder` (v13.8)
+       both post-date the gating commit `d3791c1`, so they shipped with
+       gating already in them. `send-reconcile-mention`'s live copy was
+       diffed 2026-08-10 and is **identical to the repo** but for a six-line
+       security doc-comment. Neither needs anything. ✅
+     - The **4** that `d3791c1` actually patched —
+       `send-submission-notification`, `send-invoice-notification`,
+       `send-mention-notification`, `send-household-activity` — are
+       **NOT WhatsApp-inert**, which the old wording implied. That commit was
+       "address adversarial review findings", and it carries fixes that bite
+       today with WhatsApp switched off:
+       - `send-submission-notification`: replaces `token === serviceKey` with
+         a constant-time `timingSafeEqual()` — a timing side channel on the
+         service-role key check.
+       - `send-invoice-notification`: `invoice_created` email was fanning out
+         to **all** full admins while the bell row only targets household
+         members, so admins got email about households they aren't in. Also
+         adds `suppressSubmitterEmail` so the submitter doesn't get their own
+         invoice_paid mail twice.
+       **Deploy status unknown — treat as probably-undeployed** until diffed,
+       same as the v13.9 lesson above. These do not depend on WhatsApp.
   4. Edge secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
      `TWILIO_WHATSAPP_FROM`, `TWILIO_WEBHOOK_URL` (+ later `TWILIO_TEMPLATE_SID`).
   5. Twilio: sandbox join + webhook URL → whatsapp-inbound.
