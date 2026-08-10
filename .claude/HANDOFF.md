@@ -854,8 +854,11 @@ substantial session.
   (`inbound-email`, now fixed). Everything else this file called pending was
   already done.** Confirmed live by diffing dashboard copies against the repo:
   `inbound-email` ✅ (pasted today), `send-reconcile-mention` ✅ (identical),
-  `send-invoice-notification` ✅ (identical), `send-review-reminder` ✅
-  (implied by its cron existing), plus all three cron jobs present and active.
+  `send-invoice-notification` ✅ (identical), `send-submission-notification`
+  ✅ (identical), `send-review-reminder` ✅ (implied by its cron existing),
+  plus `send-mention-notification` / `send-household-activity` ✅ (same commit
+  as the two identical ones), plus all three cron jobs present and active.
+  **Every edge function in the project is now accounted for.**
   **Genuinely stale, and harmless:** the three `extract-*` copies of v13.20's
   date rule — `src/lib/ocrYearFix.ts` already corrects their output
   client-side before it reaches a form, so they change no behaviour.
@@ -957,15 +960,17 @@ substantial session.
          members, so admins got email about households they aren't in. Also
          adds `suppressSubmitterEmail` so the submitter doesn't get their own
          invoice_paid mail twice.
-       **`send-invoice-notification` was diffed live 2026-08-10 and is
-       IDENTICAL to the repo** — the `d3791c1` patch (`adminIds` /
-       `adminMembers` / `memberIds` / `phoneIds` / `suppressSubmitterEmail`)
-       is all present. So that commit *was* deployed, and since all four went
-       out in one pass the other three are almost certainly current too. ✅
-       Remaining unconfirmed: `send-submission-notification` (search it for
-       `timingSafeEqual`), `send-mention-notification`,
-       `send-household-activity` — the last two are channel-gating-only and
-       inert with WhatsApp off, so they are not worth a session.
+       ✅ **RESOLVED 2026-08-10 — `d3791c1` was deployed. Nothing to do.**
+       Two of the four were diffed live against the repo and are identical:
+       `send-invoice-notification` (`adminIds` / `adminMembers` / `memberIds`
+       / `phoneIds` / `suppressSubmitterEmail` all present) and
+       `send-submission-notification` (`timingSafeEqual` at line 41, the
+       service-key check at 174, membership scoping at 348-359, the
+       `kind !== "expense"` recipient filter at 398-401 — every marker
+       matching). Since all four functions shipped in that one commit and two
+       are confirmed byte-identical, `send-mention-notification` and
+       `send-household-activity` are current as well. **This whole step is
+       closed — do not re-open it.**
   4. Edge secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
      `TWILIO_WHATSAPP_FROM`, `TWILIO_WEBHOOK_URL` (+ later `TWILIO_TEMPLATE_SID`).
   5. Twilio: sandbox join + webhook URL → whatsapp-inbound.
