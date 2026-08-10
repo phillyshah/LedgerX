@@ -848,6 +848,22 @@ substantial session.
      all receipts" fallback in the right pane, and rounded the match score to fix
      a float-dust issue where an exact amount+date pair scored 0.8999… and missed
      the 0.9 auto-match threshold.
+- **📋 Full edge-function + cron deploy audit, 2026-08-10.** Prompted by the
+  v13.9 discovery: if one "pending manual step" bullet sat undone for weeks,
+  the rest deserved checking. **Result: only ONE real gap existed
+  (`inbound-email`, now fixed). Everything else this file called pending was
+  already done.** Confirmed live by diffing dashboard copies against the repo:
+  `inbound-email` ✅ (pasted today), `send-reconcile-mention` ✅ (identical),
+  `send-invoice-notification` ✅ (identical), `send-review-reminder` ✅
+  (implied by its cron existing), plus all three cron jobs present and active.
+  **Genuinely stale, and harmless:** the three `extract-*` copies of v13.20's
+  date rule — `src/lib/ocrYearFix.ts` already corrects their output
+  client-side before it reaches a form, so they change no behaviour.
+  **Resource finding**: the WhatsApp drain was the single biggest caller in
+  the system — 1,440 calls/day, every one failing, roughly 5× all other
+  traffic combined. See below. The frontend does no polling at all (no
+  `setInterval`, no realtime subscriptions); the 5-minute IMAP poll is the
+  email feature working as designed.
 - **🔴 WhatsApp is MUCH further deployed than this file claimed — corrected
   2026-08-10.** Everything below said the v12.2 SQL was never run. It was.
   Production evidence:
@@ -933,8 +949,15 @@ substantial session.
          members, so admins got email about households they aren't in. Also
          adds `suppressSubmitterEmail` so the submitter doesn't get their own
          invoice_paid mail twice.
-       **Deploy status unknown — treat as probably-undeployed** until diffed,
-       same as the v13.9 lesson above. These do not depend on WhatsApp.
+       **`send-invoice-notification` was diffed live 2026-08-10 and is
+       IDENTICAL to the repo** — the `d3791c1` patch (`adminIds` /
+       `adminMembers` / `memberIds` / `phoneIds` / `suppressSubmitterEmail`)
+       is all present. So that commit *was* deployed, and since all four went
+       out in one pass the other three are almost certainly current too. ✅
+       Remaining unconfirmed: `send-submission-notification` (search it for
+       `timingSafeEqual`), `send-mention-notification`,
+       `send-household-activity` — the last two are channel-gating-only and
+       inert with WhatsApp off, so they are not worth a session.
   4. Edge secrets: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
      `TWILIO_WHATSAPP_FROM`, `TWILIO_WEBHOOK_URL` (+ later `TWILIO_TEMPLATE_SID`).
   5. Twilio: sandbox join + webhook URL → whatsapp-inbound.
