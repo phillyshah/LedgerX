@@ -160,7 +160,10 @@ serviço, data de vencimento etc.).
 - **Recibos planos** escaneiam melhor que amassados.
 - **Papel térmico desbota** — escaneie ou fotografe logo após a compra.
 - A leitura é feita apenas no **primeiro arquivo anexado**. Adicione outros recibos depois.
-- **Verificação de data**: se após a leitura o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá — o OCR às vezes lê o ano errado (ex.: 2023 em vez de 2026). Corrija o ano e salve.
+- **Datas lidas como 2023 são corrigidas para 2026 automaticamente.** A leitura confunde o "6" de 2026 com "3" com frequência, então qualquer data lida que caia em 2023 passa a ser movida para 2026 para você. Vale para recibos, faturas e faturas de cartão, não importa por onde chegaram — pelo aplicativo, por e-mail ou pelo WhatsApp.
+  - **Se você estiver registrando um recibo realmente de 2023**, isso vai errar. Corrija a data à mão antes de salvar; nada impede.
+  - Dois casos ficam de fora de propósito: uma data que terminaria no futuro (um recibo com data do mês que vem nunca está certo) e uma fatura de cartão cujo período de cobrança você informou como 2023 — o que você digitou vale mais do que o que a leitura entendeu.
+- **Verificação de data**: se, mesmo assim, o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá. Corrija o ano e salve.
 
 ---
 
@@ -309,6 +312,7 @@ O LedgerX tem um número de WhatsApp com o qual você pode conversar como se fos
 1. **Um administrador vincula seu telefone.** Os números são gerenciados em **Gerenciar Usuários → WhatsApp** (somente administradores) e devem ser informados no formato internacional exatamente como o WhatsApp reporta (ex.: `+5511998765432`, `+14155551234`). Mensagens de números não vinculados são recusadas educadamente.
 2. **Escolha seu canal de notificação.** Em **Configurações → WhatsApp**, escolha para onde vão as notificações: **E-mail**, **WhatsApp** ou **Ambos**. (E-mails administrativos sobre recibos continuam indo por e-mail — recibos não geram avisos no WhatsApp.)
 3. **Enquanto estivermos no sandbox da Twilio:** você precisa entrar no sandbox primeiro (envie o código de adesão que o administrador passar), e notificações iniciadas pelo sistema só chegam dentro de 24 horas após sua última mensagem ao robô. Mandar mensagem de vez em quando mantém o canal aberto. Um número de produção remove essas duas limitações.
+4. **Repita a adesão a cada 72 horas (somente no sandbox).** Sua participação no sandbox expira três dias depois da adesão, e expira *silenciosamente* — sem aviso nenhum: o robô simplesmente para de responder e as notificações param de chegar. Envie o código de adesão de novo para voltar. Se o robô ficou mudo sem motivo aparente, quase sempre é isso. Um número de produção também elimina essa limitação.
 
 ### O que você pode enviar
 
@@ -323,6 +327,18 @@ O robô responde no seu idioma preferido (português ou inglês), aplica exatame
 ### Notificações pelo WhatsApp
 
 Com o canal definido como **WhatsApp** ou **Ambos**, os avisos que hoje chegam por e-mail/sino — novo orçamento ou fatura na sua residência, decisão de orçamento, fatura marcada como paga, mensagens de chat e @menções — também chegam como mensagens de WhatsApp, cada uma com um link que abre o LedgerX direto no registro certo.
+
+### Envios recentes (administradores)
+<!-- roles: admin -->
+
+Em **Gerenciar Usuários → WhatsApp** aparecem as últimas mensagens de WhatsApp que o LedgerX tentou enviar para aquela pessoa, das mais recentes para as mais antigas — assim, "por que ela não recebeu?" tem resposta sem precisar vasculhar registros técnicos. Cada linha mostra o assunto da mensagem, quando entrou na fila e um destes quatro estados:
+
+- **Enviada** — entregue ao WhatsApp.
+- **Na fila** — aguardando o próximo envio, que acontece a cada minuto.
+- **Não enviada** — pulada de propósito, quase sempre porque a pessoa não escreveu ao robô nas últimas 24 horas e não temos um modelo aprovado para alcançá-la fora dessa janela. Isso é o comportamento esperado, não uma falha. Peça para ela mandar uma mensagem ao robô (e, no sandbox, reenviar o código de adesão).
+- **Falhou** — o WhatsApp ou a Twilio recusou a mensagem. O motivo aparece na própria linha.
+
+Somente administradores completos veem essa lista.
 
 ---
 

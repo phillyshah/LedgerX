@@ -33,6 +33,50 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.20',
+    version: 'v13.20',
+    date: '2026-08-10',
+    title: {
+      'en': 'No more receipts landing in 2023',
+      'pt-BR': 'Chega de recibos parando em 2023',
+    },
+    body: {
+      'en':
+        'When LedgerX scans a receipt, invoice or card statement, it kept reading the "6" in 2026 as a "3" — so this year\'s receipts were quietly filed three years ago, and you only noticed when a report came out wrong. ' +
+        'Any scanned date that comes back as 2023 is now moved to 2026 for you, no matter how the document arrived: the app, email, or WhatsApp.\n\n' +
+        'The trade-off is deliberate: if you file a receipt that really is from 2023, this will get it wrong, so check the date before saving. ' +
+        'Two cases are left alone on purpose — a date that would end up in the future, and a card statement whose billing period you told us was 2023. What you typed always beats what the scanner read.',
+      'pt-BR':
+        'Ao ler um recibo, uma fatura ou uma fatura de cartão, o LedgerX vinha confundindo o "6" de 2026 com "3" — então os recibos deste ano eram registrados três anos atrás, e você só percebia quando um relatório saía errado. ' +
+        'Agora, qualquer data lida que volte como 2023 é movida para 2026 automaticamente, não importa por onde o documento chegou: pelo aplicativo, por e-mail ou pelo WhatsApp.\n\n' +
+        'A troca é proposital: se você registrar um recibo que é mesmo de 2023, isso vai errar, então confira a data antes de salvar. ' +
+        'Dois casos ficam de fora de propósito — uma data que terminaria no futuro e uma fatura de cartão cujo período de cobrança você informou como 2023. O que você digitou sempre vale mais do que o que a leitura entendeu.',
+    },
+  },
+  {
+    id: 'v13.19',
+    version: 'v13.19',
+    date: '2026-07-31',
+    title: {
+      'en': 'WhatsApp: see what was sent',
+      'pt-BR': 'WhatsApp: veja o que foi enviado',
+    },
+    body: {
+      'en':
+        'LedgerX can send your notifications by WhatsApp instead of email, and now admins can see how that is going. ' +
+        'Manage Users → WhatsApp lists the recent messages we tried to send that person, so "why didn\'t they get it?" has an answer. ' +
+        'Each one says whether it was sent, still queued, deliberately not sent, or failed — and failures show the reason.\n\n' +
+        'The most common one is "Not sent", and it is not a fault: WhatsApp only lets us message someone within 24 hours of their last message to us. ' +
+        'If someone stops getting notices, ask them to text the LedgerX number. The Help page explains the rest.',
+      'pt-BR':
+        'O LedgerX pode enviar suas notificações pelo WhatsApp em vez de e-mail, e agora os administradores conseguem acompanhar isso. ' +
+        'Em Gerenciar Usuários → WhatsApp aparecem as mensagens recentes que tentamos enviar àquela pessoa, então "por que ela não recebeu?" tem resposta. ' +
+        'Cada linha diz se foi enviada, se ainda está na fila, se não foi enviada de propósito ou se falhou — e as falhas mostram o motivo.\n\n' +
+        'A mais comum é "Não enviada", e não é defeito: o WhatsApp só permite escrever para alguém dentro de 24 horas depois da última mensagem que essa pessoa nos mandou. ' +
+        'Se alguém parar de receber avisos, peça que mande uma mensagem para o número do LedgerX. A página de Ajuda explica o resto.',
+    },
+  },
+  {
     id: 'v13.18',
     version: 'v13.18',
     date: '2026-07-29',

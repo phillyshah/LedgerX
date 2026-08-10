@@ -66,7 +66,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
   return content;
 }
 
-function parseExtracted(content: string) {
+function parseExtracted(content: string, todayIso: string) {
   const extracted = JSON.parse(content);
 
   // Coerce numeric fields
@@ -81,7 +81,56 @@ function parseExtracted(content: string) {
     extracted.currency = "USD";
   }
 
+  // due_date allows a future result — an invoice due next month is normal,
+  // unlike an invoice *issued* next month or a service period that hasn't
+  // happened yet.
+  extracted.invoice_date = forceMisreadYear(extracted.invoice_date, todayIso);
+  extracted.due_date = forceMisreadYear(extracted.due_date, todayIso, true);
+  extracted.service_date_start = forceMisreadYear(extracted.service_date_start, todayIso);
+  extracted.service_date_end = forceMisreadYear(extracted.service_date_end, todayIso);
+
   return extracted;
+}
+
+// ── The 2023 → 2026 override ─────────────────────────────────────────────────
+// gpt-4o-mini misreads the year digit "6" as "3" often enough that 2026
+// documents keep landing in the ledger dated 2023, and no structural check
+// can catch it — a past date is indistinguishable from a genuinely old one.
+// Owner's explicit call (2026-08-10): treat every OCR'd 2023 as a misread
+// 2026 and accept that real 2023 documents get moved.
+//
+// HARDCODED AND TIME-LIMITED. Both years are literals. In 2027 this rewrites
+// genuine 2023 dates and does nothing for misread 2027s — revisit it then.
+// Mirrors src/lib/ocrYearFix.ts and the copies in extract-receipt,
+// extract-statement, inbound-email and whatsapp-inbound. Keep them in sync.
+const OCR_MISREAD_YEAR = 2023;
+const OCR_CORRECTED_YEAR = 2026;
+
+function forceMisreadYear(
+  date: unknown,
+  todayIso: string,
+  allowFuture = false,
+): unknown {
+  if (typeof date !== "string") return date;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
+
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (!allowFuture && t) {
+    const rewritten = new Date(
+      OCR_CORRECTED_YEAR,
+      parseInt(m[2], 10) - 1,
+      parseInt(m[3], 10),
+    );
+    const today = new Date(
+      parseInt(t[1], 10),
+      parseInt(t[2], 10) - 1,
+      parseInt(t[3], 10),
+    );
+    if (rewritten.getTime() > today.getTime()) return date;
+  }
+
+  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -98,7 +147,14 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { image } = await req.json();
+    // `today` is the caller's LOCAL date (see extract-receipt) — the future
+    // guard in forceMisreadYear is off by a day if we use the server's UTC
+    // date instead. Older clients don't send it; falling back to UTC is the
+    // safe default there.
+    const { image, today } = await req.json();
+    const todayIso = typeof today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(today)
+      ? today
+      : new Date().toISOString().slice(0, 10);
     if (!image) {
       return new Response(
         JSON.stringify({ error: "image (base64) is required" }),
@@ -126,7 +182,7 @@ Deno.serve(async (req: Request) => {
     for (const model of models) {
       try {
         const content = await callOpenAI(openaiApiKey, model, imageDataUrl);
-        const extracted = parseExtracted(content);
+        const extracted = parseExtracted(content, todayIso);
         return new Response(JSON.stringify(extracted), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

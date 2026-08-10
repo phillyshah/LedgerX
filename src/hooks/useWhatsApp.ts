@@ -12,6 +12,44 @@ export interface PhoneNumberRow {
 
 export type NotifyChannel = 'email' | 'whatsapp' | 'both';
 
+/**
+ * A row of whatsapp_outbox, as shown in the admin delivery log.
+ *
+ * `skipped` is the one worth understanding: it means the drain deliberately
+ * did not send, almost always because the recipient is outside their 24-hour
+ * reply window and there's no approved template to reach them. That is
+ * designed behaviour — it is emphatically not the same as `failed`, which
+ * means Twilio rejected the message and `last_error` says why.
+ */
+export type WhatsAppDeliveryStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+
+export interface WhatsAppDeliveryRow {
+  id: string;
+  status: WhatsAppDeliveryStatus;
+  payload: { kind?: string; title?: string | null } | null;
+  last_error: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
+
+/**
+ * The most recent queued/sent WhatsApp notifications for one user.
+ *
+ * Readable only by full admins — whatsapp_outbox's sole client-facing RLS
+ * policy is `USING (is_admin())`, so for anyone else this simply returns an
+ * empty list rather than erroring.
+ */
+export async function fetchWhatsAppDeliveries(userId: string, limit = 10): Promise<WhatsAppDeliveryRow[]> {
+  const { data, error } = await supabase
+    .from('whatsapp_outbox')
+    .select('id, status, payload, last_error, created_at, sent_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []) as WhatsAppDeliveryRow[];
+}
+
 // E.164, mirroring the DB CHECK constraint on user_phone_numbers.phone.
 export const PHONE_E164_RE = /^\+[1-9][0-9]{6,14}$/;
 

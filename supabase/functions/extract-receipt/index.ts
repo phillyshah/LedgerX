@@ -95,9 +95,57 @@ function parseExtracted(content: string, todayIso: string) {
       extracted.transaction_date,
       todayIso,
     );
+    // Applied after the clamp above, deliberately: the clamp only ever moves
+    // future dates, and running this second means the year we force is the
+    // year that survives rather than being re-adjusted.
+    extracted.transaction_date = forceMisreadYear(
+      extracted.transaction_date,
+      todayIso,
+    );
   }
 
   return extracted;
+}
+
+// ── The 2023 → 2026 override ─────────────────────────────────────────────────
+// gpt-4o-mini misreads the year digit "6" as "3" often enough that 2026
+// receipts keep landing in the ledger dated 2023, and repairImplausibleYear
+// above cannot catch it — a past date is indistinguishable from a genuinely
+// old receipt. Owner's explicit call (2026-08-10): treat every OCR'd 2023 as
+// a misread 2026 and accept that real 2023 receipts get moved.
+//
+// HARDCODED AND TIME-LIMITED. Both years are literals. In 2027 this rewrites
+// genuine 2023 dates and does nothing for misread 2027s — revisit it then.
+// Mirrors src/lib/ocrYearFix.ts and the copies in extract-invoice,
+// extract-statement, inbound-email and whatsapp-inbound. Keep them in sync.
+//
+// Exception: if the rewrite would land in the future, the original is kept.
+// A receipt dated next month is never right, and inventing one is worse than
+// leaving OCR's answer alone.
+const OCR_MISREAD_YEAR = 2023;
+const OCR_CORRECTED_YEAR = 2026;
+
+function forceMisreadYear(date: unknown, todayIso: string): unknown {
+  if (typeof date !== "string") return date;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
+
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (t) {
+    const rewritten = new Date(
+      OCR_CORRECTED_YEAR,
+      parseInt(m[2], 10) - 1,
+      parseInt(m[3], 10),
+    );
+    const today = new Date(
+      parseInt(t[1], 10),
+      parseInt(t[2], 10) - 1,
+      parseInt(t[3], 10),
+    );
+    if (rewritten.getTime() > today.getTime()) return date;
+  }
+
+  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
 }
 
 function repairImplausibleYear(date: string, todayIso: string): string {

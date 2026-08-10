@@ -164,7 +164,10 @@ date, etc.).
 - **Flat receipts** scan better than crumpled ones.
 - **Thermal paper fades** — scan or photograph soon after purchase.
 - The scan runs on the **first attached file only**. Add additional receipts after.
-- **Date check**: if the form shows a date more than 90 days in the past after scanning, a yellow warning appears — OCR occasionally misreads the year (e.g. 2023 instead of 2026). Just correct the year and save.
+- **Dates read as 2023 are corrected to 2026 automatically.** The scanner reliably misreads the "6" in 2026 as a "3", so any scanned date landing in 2023 is now moved to 2026 for you. This applies to receipts, invoices and card statements, however they arrive — the app, email, or WhatsApp.
+  - **If you are filing a genuinely old 2023 receipt**, this will get it wrong. Correct the date by hand before saving; nothing stops you.
+  - Two things are deliberately left alone: a date that would end up in the future (a receipt dated next month is never right), and a card statement whose billing period you entered as 2023 — what you typed wins over what the scanner read.
+- **Date check**: if the form still shows a date more than 90 days in the past after scanning, a yellow warning appears. Just correct the year and save.
 
 ---
 
@@ -311,6 +314,7 @@ LedgerX has a WhatsApp number you can text like a person. Once your phone is lin
 1. **An admin links your phone.** Numbers are managed in **Manage Users → WhatsApp** (admins only) and must be entered in international format exactly as WhatsApp reports it (e.g. `+14155551234`, `+5511998765432`). Messages from unlinked numbers are politely declined.
 2. **Pick your notification channel.** In **Settings → WhatsApp**, choose where notifications go: **Email**, **WhatsApp**, or **Both**. (Receipt-related admin emails always go by email — receipts don't generate WhatsApp notices.)
 3. **While we're on the Twilio sandbox:** you'll need to join the sandbox first (text the join code the admin gives you), and business-initiated notifications only arrive within 24 hours of your last message to the bot. Texting it occasionally keeps the channel open. A production number removes both limits.
+4. **Re-join every 72 hours (sandbox only).** Your sandbox membership expires three days after you join, and it expires *quietly* — no warning, and the bot simply stops replying and stops delivering notifications. Send the join code again to get back in. If the bot has gone silent for no obvious reason, this is almost always why. A production number removes this too.
 
 ### What you can text
 
@@ -325,6 +329,18 @@ The bot answers in your preferred language (English or Portuguese), applies exac
 ### WhatsApp notifications
 
 With your channel set to **WhatsApp** or **Both**, the notices that today arrive by email/bell — new estimate or invoice in your property, an estimate decision, an invoice marked paid, chat messages and @mentions — also arrive as WhatsApp messages, each with a link that opens LedgerX straight to the right record.
+
+### Recent deliveries (admins)
+<!-- roles: admin -->
+
+**Manage Users → WhatsApp** shows the last WhatsApp messages LedgerX tried to send that person, newest first, so "why didn't they get it?" has an answer without digging through logs. Each row shows what the message was about, when it was queued, and one of four states:
+
+- **Sent** — delivered to WhatsApp.
+- **Queued** — waiting for the next send, which runs every minute.
+- **Not sent** — deliberately skipped, almost always because the person hadn't messaged the bot in the last 24 hours and we have no approved template to reach them outside that window. This is expected behaviour, not a fault. Ask them to text the bot (and, on the sandbox, to re-send the join code).
+- **Failed** — WhatsApp or Twilio rejected it. The reason is shown on the row.
+
+Only full admins see this.
 
 ---
 

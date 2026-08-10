@@ -1,5 +1,6 @@
 import { pdfFirstPageToJpeg } from './pdfToImage';
 import { todayDateString } from './dateUtils';
+import { forceOcrYear } from './ocrYearFix';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -87,7 +88,13 @@ export async function scanReceipt(imageFile: File): Promise<ReceiptData> {
       throw new Error(detail || errorData.error || `Receipt scan failed (${response.status})`);
     }
 
-    return response.json();
+    const data: ReceiptData = await response.json();
+    // Belt and braces: the edge function applies the same rule, but edge
+    // functions are deployed by hand through the dashboard while the frontend
+    // ships automatically. Doing it here too means the fix is live the moment
+    // the build is out, and re-applying it to an already-corrected date is a
+    // no-op.
+    return { ...data, transaction_date: forceOcrYear(data.transaction_date) };
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error('Receipt scan timed out. Please try again.');

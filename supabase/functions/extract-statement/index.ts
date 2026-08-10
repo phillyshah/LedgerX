@@ -87,17 +87,70 @@ interface RawLineItem {
   amount?: number | string | null;
 }
 
-function parseExtracted(content: string): { line_items: { date: string | null; description: string | null; amount: number | null }[] } {
+function parseExtracted(
+  content: string,
+  todayIso: string,
+  periodStart?: string,
+  periodEnd?: string,
+): { line_items: { date: string | null; description: string | null; amount: number | null }[] } {
   const parsed = JSON.parse(content);
   const rawItems: RawLineItem[] = Array.isArray(parsed.line_items) ? parsed.line_items : [];
 
+  // The uploader's billing period is trusted, human-entered ground truth (it
+  // is why the prompt above hands it to the model at all). If they told us
+  // this statement really is from 2023, that beats a blanket digit rule —
+  // otherwise every line of a genuinely old statement would be shunted to
+  // 2026 and then dragged back by repairLineItemYears on the client, which is
+  // a lot of motion to end up where we started.
+  const periodTouches2023 =
+    (periodStart ?? "").startsWith(`${OCR_MISREAD_YEAR}-`) ||
+    (periodEnd ?? "").startsWith(`${OCR_MISREAD_YEAR}-`);
+
   return {
     line_items: rawItems.map((item) => ({
-      date: typeof item.date === "string" ? item.date : null,
+      date: typeof item.date === "string"
+        ? (periodTouches2023 ? item.date : forceMisreadYear(item.date, todayIso) as string)
+        : null,
       description: typeof item.description === "string" ? item.description : null,
       amount: item.amount != null ? Math.abs(parseFloat(String(item.amount))) : null,
     })),
   };
+}
+
+// ── The 2023 → 2026 override ─────────────────────────────────────────────────
+// gpt-4o-mini misreads the year digit "6" as "3" often enough that 2026 dates
+// keep landing in the ledger as 2023. Owner's explicit call (2026-08-10):
+// treat every OCR'd 2023 as a misread 2026 and accept that genuinely old
+// documents get moved.
+//
+// HARDCODED AND TIME-LIMITED. Both years are literals. In 2027 this rewrites
+// genuine 2023 dates and does nothing for misread 2027s — revisit it then.
+// Mirrors src/lib/ocrYearFix.ts and the copies in extract-receipt,
+// extract-invoice, inbound-email and whatsapp-inbound. Keep them in sync.
+const OCR_MISREAD_YEAR = 2023;
+const OCR_CORRECTED_YEAR = 2026;
+
+function forceMisreadYear(date: unknown, todayIso: string): unknown {
+  if (typeof date !== "string") return date;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
+
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (t) {
+    const rewritten = new Date(
+      OCR_CORRECTED_YEAR,
+      parseInt(m[2], 10) - 1,
+      parseInt(m[3], 10),
+    );
+    const today = new Date(
+      parseInt(t[1], 10),
+      parseInt(t[2], 10) - 1,
+      parseInt(t[3], 10),
+    );
+    if (rewritten.getTime() > today.getTime()) return date;
+  }
+
+  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
 }
 
 function mimeFromBase64(sample: string): string {
@@ -121,7 +174,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { images, periodStart, periodEnd } = await req.json();
+    // `today` is the caller's LOCAL date (see extract-receipt); older clients
+    // don't send it, so fall back to the server's UTC date.
+    const { images, periodStart, periodEnd, today } = await req.json();
+    const todayIso = typeof today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(today)
+      ? today
+      : new Date().toISOString().slice(0, 10);
     if (!Array.isArray(images) || images.length === 0) {
       return new Response(
         JSON.stringify({ error: "images (array of base64 strings) is required" }),
@@ -144,7 +202,7 @@ Deno.serve(async (req: Request) => {
     for (const model of models) {
       try {
         const content = await callOpenAI(openaiApiKey, model, imageDataUrls, periodStart, periodEnd);
-        const extracted = parseExtracted(content);
+        const extracted = parseExtracted(content, todayIso, periodStart, periodEnd);
         return new Response(JSON.stringify(extracted), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
