@@ -1,4 +1,6 @@
 import { pdfAllPagesToJpeg } from './pdfToImage';
+import { forceOcrYear, OCR_MISREAD_YEAR } from './ocrYearFix';
+import { todayDateString } from './dateUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -55,7 +57,7 @@ export async function scanStatement(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ images, periodStart, periodEnd }),
+      body: JSON.stringify({ images, periodStart, periodEnd, today: todayDateString() }),
       signal: controller.signal,
     });
 
@@ -68,7 +70,19 @@ export async function scanStatement(
     }
 
     const data = await response.json();
-    return data.line_items ?? [];
+    const items: StatementLineItemOCR[] = data.line_items ?? [];
+
+    // The uploader's billing period is trusted, human-entered ground truth,
+    // so a statement they told us is from 2023 keeps its dates — the blanket
+    // rule would only shunt every line to 2026 for repairLineItemYears to
+    // drag straight back. Everywhere else, force it. (Mirrors the same guard
+    // in the extract-statement edge function; harmless to apply twice.)
+    const periodTouches2023 =
+      !!periodStart?.startsWith(`${OCR_MISREAD_YEAR}-`) ||
+      !!periodEnd?.startsWith(`${OCR_MISREAD_YEAR}-`);
+    if (periodTouches2023) return items;
+
+    return items.map((item) => ({ ...item, date: forceOcrYear(item.date) }));
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error('Statement scan timed out. Please try again.');

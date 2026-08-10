@@ -160,7 +160,10 @@ serviço, data de vencimento etc.).
 - **Recibos planos** escaneiam melhor que amassados.
 - **Papel térmico desbota** — escaneie ou fotografe logo após a compra.
 - A leitura é feita apenas no **primeiro arquivo anexado**. Adicione outros recibos depois.
-- **Verificação de data**: se após a leitura o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá — o OCR às vezes lê o ano errado (ex.: 2023 em vez de 2026). Corrija o ano e salve.
+- **Datas lidas como 2023 são corrigidas para 2026 automaticamente.** A leitura confunde o "6" de 2026 com "3" com frequência, então qualquer data lida que caia em 2023 passa a ser movida para 2026 para você. Vale para recibos, faturas e faturas de cartão, não importa por onde chegaram — pelo aplicativo, por e-mail ou pelo WhatsApp.
+  - **Se você estiver registrando um recibo realmente de 2023**, isso vai errar. Corrija a data à mão antes de salvar; nada impede.
+  - Dois casos ficam de fora de propósito: uma data que terminaria no futuro (um recibo com data do mês que vem nunca está certo) e uma fatura de cartão cujo período de cobrança você informou como 2023 — o que você digitou vale mais do que o que a leitura entendeu.
+- **Verificação de data**: se, mesmo assim, o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá. Corrija o ano e salve.
 
 ---
 

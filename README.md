@@ -164,7 +164,10 @@ date, etc.).
 - **Flat receipts** scan better than crumpled ones.
 - **Thermal paper fades** — scan or photograph soon after purchase.
 - The scan runs on the **first attached file only**. Add additional receipts after.
-- **Date check**: if the form shows a date more than 90 days in the past after scanning, a yellow warning appears — OCR occasionally misreads the year (e.g. 2023 instead of 2026). Just correct the year and save.
+- **Dates read as 2023 are corrected to 2026 automatically.** The scanner reliably misreads the "6" in 2026 as a "3", so any scanned date landing in 2023 is now moved to 2026 for you. This applies to receipts, invoices and card statements, however they arrive — the app, email, or WhatsApp.
+  - **If you are filing a genuinely old 2023 receipt**, this will get it wrong. Correct the date by hand before saving; nothing stops you.
+  - Two things are deliberately left alone: a date that would end up in the future (a receipt dated next month is never right), and a card statement whose billing period you entered as 2023 — what you typed wins over what the scanner read.
+- **Date check**: if the form still shows a date more than 90 days in the past after scanning, a yellow warning appears. Just correct the year and save.
 
 ---
 

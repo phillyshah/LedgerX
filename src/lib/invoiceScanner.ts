@@ -1,5 +1,7 @@
 import type { InvoiceOCRData } from '../types/invoice';
 import { pdfFirstPageToJpeg } from './pdfToImage';
+import { forceOcrYear } from './ocrYearFix';
+import { todayDateString } from './dateUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -38,7 +40,9 @@ export async function scanInvoice(imageFile: File): Promise<InvoiceOCRData> {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({ image: base64 }),
+    // Local date, not UTC — matches extract-receipt's convention so the
+    // server-side year guard isn't skewed by the caller's UTC offset.
+    body: JSON.stringify({ image: base64, today: todayDateString() }),
   });
 
   if (!response.ok) {
@@ -49,5 +53,16 @@ export async function scanInvoice(imageFile: File): Promise<InvoiceOCRData> {
     throw new Error(detail || errorData.error || `Invoice scan failed (${response.status})`);
   }
 
-  return response.json();
+  const data: InvoiceOCRData = await response.json();
+
+  // Every date on an invoice gets the 2023→2026 rule. due_date opts out of
+  // the "don't invent a future date" guard — an invoice due next month is
+  // perfectly normal, unlike a receipt dated next month.
+  return {
+    ...data,
+    invoice_date: forceOcrYear(data.invoice_date),
+    due_date: forceOcrYear(data.due_date, { allowFuture: true }),
+    service_date_start: forceOcrYear(data.service_date_start),
+    service_date_end: forceOcrYear(data.service_date_end),
+  };
 }

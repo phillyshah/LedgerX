@@ -773,10 +773,47 @@ function mergeFields(prior: DraftFields, incoming: Record<string, unknown>): Dra
   return out;
 }
 
+// ── The 2023 → 2026 override ─────────────────────────────────────────────────
+// gpt-4o-mini misreads the year digit "6" as "3" often enough that 2026
+// receipts keep landing in the ledger dated 2023, and nothing in the value
+// itself distinguishes that from a genuinely old receipt. Owner's explicit
+// call (2026-08-10): treat every OCR'd 2023 as a misread 2026 and accept that
+// real 2023 documents get moved.
+//
+// HARDCODED AND TIME-LIMITED. Both years are literals. In 2027 this rewrites
+// genuine 2023 dates and does nothing for misread 2027s — revisit it then.
+// Mirrors src/lib/ocrYearFix.ts and the copies in extract-receipt,
+// extract-invoice, extract-statement and inbound-email. Keep them in sync.
+//
+// Exception: if the rewrite would land in the future, the original is kept.
+// UTC "today" is fine here — the bot has no client to ask for a local date,
+// and the guard only matters to within a day.
+const OCR_MISREAD_YEAR = 2023;
+const OCR_CORRECTED_YEAR = 2026;
+
+function forceMisreadYear(date: string | null): string | null {
+  if (date === null) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
+
+  const rewritten = new Date(
+    OCR_CORRECTED_YEAR,
+    parseInt(m[2], 10) - 1,
+    parseInt(m[3], 10),
+  );
+  const t = new Date().toISOString().slice(0, 10).split("-").map(Number);
+  const today = new Date(t[0], t[1] - 1, t[2]);
+  if (rewritten.getTime() > today.getTime()) return date;
+
+  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+}
+
 function applyOcrDefaults(intent: string | null, fields: DraftFields, ocr: Record<string, unknown>): DraftFields {
   const out = { ...fields };
   const amt = parseAmount(ocr.total_amount);
-  const date = isIsoDate(ocr.doc_date) ? (ocr.doc_date as string) : null;
+  // Single funnel: doc_date feeds both the invoice service start and the
+  // expense date below, so correcting it here covers every WhatsApp path.
+  const date = forceMisreadYear(isIsoDate(ocr.doc_date) ? (ocr.doc_date as string) : null);
   if (intent === "create_invoice") {
     if (out.amount == null && amt != null) out.amount = amt;
     if (!out.description && typeof ocr.description === "string" && ocr.description) out.description = ocr.description as string;

@@ -6,8 +6,33 @@ substantial session.
 
 ## Current state
 
-- **Version `v13.19`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
+- **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.20 — OCR dates read as 2023 are forced to 2026.** Owner's explicit call:
+  gpt-4o-mini misreads the "6" in 2026 as "3" persistently, and neither existing
+  defence catches it (extract-receipt's clamp only moves *future* dates;
+  `statementDateRepair` needs a billing period). They accepted that genuinely
+  2023-dated documents will be mis-filed rather than keep losing current ones.
+  - Canonical implementation: **`src/lib/ocrYearFix.ts`** (`forceOcrYear`).
+    Hand-mirrored into **five** Deno edge functions, which can't import from
+    `src/`: `extract-receipt`, `extract-invoice`, `extract-statement`,
+    `inbound-email`, `whatsapp-inbound`. Each copy carries a "keep in sync"
+    banner — and the sync is actually **tested**, not just asserted in a
+    comment: a differential harness extracts each copy from source, runs it,
+    and diffs it against the client version across a 17-date matrix.
+  - Two deliberate carve-outs, both load-bearing:
+    **(a)** a rewrite that would land in the future is refused (invoice
+    `due_date` opts out via `allowFuture`, since those are legitimately ahead);
+    **(b)** `extract-statement` / `statementScanner` skip the rule entirely when
+    the uploader's billing period is itself in 2023 — human-entered ground truth
+    beats a blanket digit rule, and otherwise `repairLineItemYears` would just
+    drag every line back.
+  - Client *and* server both apply it. That's intentional given edge functions
+    deploy by hand: the frontend rsync makes the fix live immediately, and the
+    function is idempotent so double-application is a no-op.
+  - ⚠️ **This is hardcoded and time-limited.** Both years are literals. In 2027
+    it will rewrite genuine 2023 dates while doing nothing for misread 2027s.
+    Revisit — bump `OCR_CORRECTED_YEAR` or delete the module.
 - **v13.19 — WhatsApp: preparing the long-stalled v12.2 deployment.** The owner
   asked to "add WhatsApp as a communication channel". **It was already built and
   merged** — four commits on 2026-07-06, all ancestors of `origin/main`, verified
@@ -807,6 +832,8 @@ substantial session.
      header **in the same Run** — see gotcha #9. Without them the file still
      reports success but the drain is never scheduled and the outbox silently
      fills. As of v13.19 that path RAISEs a loud WARNING instead of a NOTICE.
+  1b. ⚠️ **v13.20 also touched `whatsapp-inbound` and `inbound-email`** (the
+     2023→2026 OCR rule), so those two need re-pasting regardless of WhatsApp.
   2. Dashboard: create **`whatsapp-inbound`** + **`whatsapp-send`** edge functions
      (paste from repo; **Verify JWT OFF** for both — config.toml has the entries).
   3. Re-paste the **6** patched send fns (not 4 — corrected v13.19):
