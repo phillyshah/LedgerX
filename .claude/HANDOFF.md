@@ -906,10 +906,18 @@ substantial session.
 
   ⏸️ **PARKED by the owner 2026-08-10** — "ignore whatsapp at the moment."
   Do not resume without them asking. Recorded here only so the diagnosis
-  doesn't have to be redone. Nothing is degrading while it sits: the drain
-  401s harmlessly, the outbox holds 2 rows, no user-facing feature depends on
-  it. If it ever needs silencing rather than fixing:
-  `SELECT cron.unschedule('ledgerx-whatsapp-outbox-drain');`
+  doesn't have to be redone.
+
+  ✅ **The drain was unscheduled 2026-08-10** —
+  `SELECT cron.unschedule('ledgerx-whatsapp-outbox-drain');` returned `true`.
+  That stopped 1,440 failing calls a day. Nothing is lost: the 2 `pending`
+  rows stay in `whatsapp_outbox`, and re-running
+  `20260717000000_whatsapp_integration.sql` (with the gotcha #9 session
+  `SET`s) recreates the job.
+  **⚠️ So `cron.job` no longer lists the drain — that is now the intended
+  state, NOT the gotcha #9 failure it looks like.** Anyone reviving WhatsApp
+  must (a) re-run the migration to restore the job, and (b) fix the 401
+  first, or it just resumes failing once a minute.
 
 - **⚠️ Remaining manual steps for v12.2 (WhatsApp).** The *code* has been on
   `origin/main` since 2026-07-06 (`287a4b2`, `37d0a25`, `d3d6b31`, `442a0f8`)
