@@ -30,6 +30,14 @@ substantial session.
   - Client *and* server both apply it. That's intentional given edge functions
     deploy by hand: the frontend rsync makes the fix live immediately, and the
     function is idempotent so double-application is a no-op.
+  - **Deployment status**: `inbound-email` pasted + verified live 2026-08-10 —
+    the only *functionally required* one, because emailed receipts get no
+    client-side re-scan (`AddExpense.tsx` calls `handleScanReceipt` only when
+    `initialData?.expense_date` is falsy, and a *wrong* date still counts as
+    a date). The three `extract-*` copies are belt-and-braces: `ocrYearFix.ts`
+    already corrects their output before it reaches any form, so they change
+    no behaviour today and are safe to paste whenever. `whatsapp-inbound`
+    isn't deployed at all yet.
   - ⚠️ **This is hardcoded and time-limited.** Both years are literals. In 2027
     it will rewrite genuine 2023 dates while doing nothing for misread 2027s.
     Revisit — bump `OCR_CORRECTED_YEAR` or delete the module.
@@ -473,6 +481,21 @@ substantial session.
   clean, i18n parity, plus 16 assertions on the docx extraction path (real
   generated .docx via python-docx, mislabeled content-type recognition,
   missing-dependency degradation, corrupt-file handling).
+- **✅ v13.9 manual steps — ALL DONE as of 2026-08-10** (step 2 sat undone for
+  ~2 weeks; see below). Verified in production with
+  `SELECT prefilled FROM email_inbox ORDER BY received_at DESC LIMIT 1;`
+  returning a populated `total_amount` (`{"vendor_name":"OpenRouter, Inc",
+  "total_amount":11.45,"transaction_date":"2026-08-05",...}`) — the first
+  non-empty `prefilled` since the bug landed. **Lesson: a "pending manual
+  step" bullet is not a reminder anybody sees.** Step 1 (VPS) was done in the
+  v13.10–v13.13 deploy session and step 2 (the edge function) was silently
+  skipped, so the rasterized PNG the poller had been sending since July was
+  landing in a function that still filtered for PDFs. Nothing surfaced the
+  gap — the silent `return {}` was the whole point of the bug. It was only
+  caught when the owner pasted the live copy for an unrelated reason
+  (v13.20's date fix) and it got diffed. **When a release needs a dashboard
+  paste, verify it landed in the same session, or it will not land.**
+  Historical detail kept below.
 - **Pending manual steps for v13.9 (PDF receipts never got OCR'd)**:
   1. **`/opt/ledgerx/venv/bin/pip install pymupdf` on the VPS — NOT system
      pip3/apt.** Confirmed 2026-07-25: cron runs
@@ -484,11 +507,13 @@ substantial session.
      copy the updated `scripts/poll_email_inbox.py` to `/opt/ledgerx/`.
      Without the wheel the poller still runs — the import is guarded — it
      just doesn't rasterize, i.e. today's behaviour.
-  2. Redeploy `inbound-email`. **⚠️ The live copy has drifted from the repo
-     (gotcha #7) — diff before pasting, do NOT wholesale-replace.** The two
-     changes needed are small: drop `|| a.content_type === "application/pdf"`
-     from the `ocrTarget` filter, and route the four `if (!resp.ok) return {}`
-     sites through the new `logOcrFailure()` helper.
+  2. ✅ **DONE 2026-08-10** — Redeploy `inbound-email`. (The old warning here
+     said the live copy had drifted and must not be wholesale-replaced; that
+     was checked and disproved — see open item #3.) The two changes: drop
+     `|| a.content_type === "application/pdf"` from the `ocrTarget` filter,
+     and route the four `if (!resp.ok) return {}` sites through the new
+     `logOcrFailure()` helper. Shipped together with v13.20's
+     `forceMisreadYear` in one full-file paste.
   3. Verify: forward a Lowe's-style receipt, wait one poll cycle (≤5 min), then
      `SELECT prefilled FROM email_inbox ORDER BY received_at DESC LIMIT 1;`
      — expect a populated `total_amount`.
@@ -834,6 +859,9 @@ substantial session.
      fills. As of v13.19 that path RAISEs a loud WARNING instead of a NOTICE.
   1b. ⚠️ **v13.20 also touched `whatsapp-inbound` and `inbound-email`** (the
      2023→2026 OCR rule), so those two need re-pasting regardless of WhatsApp.
+     ✅ `inbound-email` **done 2026-08-10**. `whatsapp-inbound` is still
+     pending but moot — the function isn't deployed at all yet, so pasting
+     the current repo copy at step 2 covers it.
   2. Dashboard: create **`whatsapp-inbound`** + **`whatsapp-send`** edge functions
      (paste from repo; **Verify JWT OFF** for both — config.toml has the entries).
   3. Re-paste the **6** patched send fns (not 4 — corrected v13.19):
@@ -1008,8 +1036,12 @@ substantial session.
 2. **Production WhatsApp sender**: register via Twilio (Meta business verification),
    create UTILITY template `LedgerX: {{1}}` → approval → set `TWILIO_TEMPLATE_SID`,
    update `TWILIO_WHATSAPP_FROM` + webhook + `TWILIO_WEBHOOK_URL`.
-3. **`inbound-email` drift** — live (dashboard) copy predates the repo. Only
-   `KNOWN_COMMANDS` was patched live. Consider syncing.
+3. ~~**`inbound-email` drift**~~ — **RESOLVED 2026-08-10.** The live copy was
+   dumped and diffed line-by-line against the repo: the repo is a **strict
+   superset**, nothing existed only in the dashboard (the `KNOWN_COMMANDS`
+   patch was already committed). Live was wholesale-replaced with the repo
+   copy at `fb9d0e4` and verified. **The "diff before pasting, never
+   wholesale-replace" warning no longer applies to this function.**
 4. **v12.2 known minors**: bot leaves image width/height null (app tolerates);
    invoice `category_id` not set by bot (admin reassigns later — same as email
    inbox); expense-related emails ignore the channel pref (documented, by design);
