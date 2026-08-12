@@ -76,43 +76,72 @@ function repairImplausibleYear(date: unknown, todayIso: string): unknown {
   return `${year}-${mon}-${day}`;
 }
 
-// ── The 2023 → 2026 override ─────────────────────────────────────────────────
+// ── The 2023 year override ───────────────────────────────────────────────────
 // repairImplausibleYear above only moves FUTURE dates, so the common failure —
-// a 2026 receipt read as 2023 — sails straight through it. Owner's explicit
-// call (2026-08-10): treat every OCR'd 2023 as a misread 2026 and accept that
-// genuinely old receipts get moved.
+// a current receipt landing in 2023 — sails straight through it. Owner's
+// explicit call: treat every OCR'd 2023 as a misread and accept that genuinely
+// old receipts get moved.
+//
+// This is the SAFETY NET, not the primary defence. The real fix is dateRule()
+// below, which tells the model what year it is — the prompts here never did,
+// which is why emailed receipts kept coming back with wrong years even after
+// the 2023 rule shipped.
 //
 // HARDCODED AND TIME-LIMITED. Both years are literals. In 2027 this rewrites
 // genuine 2023 dates and does nothing for misread 2027s — revisit it then.
 // Mirrors src/lib/ocrYearFix.ts and the copies in extract-receipt,
 // extract-invoice, extract-statement and whatsapp-inbound. Keep them in sync.
-//
-// Exception: if the rewrite would land in the future, the original is kept —
-// a receipt dated next month is never right.
 const OCR_MISREAD_YEAR = 2023;
 const OCR_CORRECTED_YEAR = 2026;
 
-function forceMisreadYear(date: unknown, todayIso: string): unknown {
+function forceMisreadYear(
+  date: unknown,
+  todayIso: string,
+  allowFuture = false,
+): unknown {
   if (typeof date !== "string") return date;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
 
+  const month = parseInt(m[2], 10);
+  const day = parseInt(m[3], 10);
+
+  if (allowFuture) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
-  if (t) {
-    const rewritten = new Date(
-      OCR_CORRECTED_YEAR,
-      parseInt(m[2], 10) - 1,
-      parseInt(m[3], 10),
-    );
-    const today = new Date(
-      parseInt(t[1], 10),
-      parseInt(t[2], 10) - 1,
-      parseInt(t[3], 10),
-    );
-    if (rewritten.getTime() > today.getTime()) return date;
+  if (!t) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
+  const today = new Date(
+    parseInt(t[1], 10),
+    parseInt(t[2], 10) - 1,
+    parseInt(t[3], 10),
+  );
+
+  // Walk back to the first year that isn't in the future. v13.20 refused the
+  // rewrite outright here and returned the ORIGINAL 2023 date, so every 2023
+  // date later in the calendar year than today stayed in 2023 — the guard was
+  // preserving the very bug it sat beside.
+  for (let year = OCR_CORRECTED_YEAR; year > OCR_MISREAD_YEAR; year--) {
+    const candidate = new Date(year, month - 1, day);
+    if (candidate.getMonth() !== month - 1) continue; // Feb 29, non-leap year
+    if (candidate.getTime() <= today.getTime()) {
+      return `${year}-${m[2]}-${m[3]}`;
+    }
   }
 
-  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+  return date;
+}
+
+// ── Date instruction shared by every prompt below ─────────────────────────────
+// The prompts used to say only "date in YYYY-MM-DD format", with no hint of
+// what year it currently is. That is the actual root cause of receipts landing
+// in the past: a receipt printing `08/12/26` gives the model a TWO-DIGIT year,
+// and with no anchor it expands "26" however it likes. extract-receipt has
+// carried an anchor for a while; these four prompts never did, which is why the
+// emailed-receipt path kept producing wrong years after the year-repair rule
+// shipped. Fixing the prompt beats repairing the output after the fact.
+function dateRule(todayIso: string): string {
+  return `Today is ${todayIso}. Dates must be YYYY-MM-DD. If the document shows a two-digit year (e.g. "08/12/26" means 2026), expand it to the most recent year that does not fall in the future. If a year looks ambiguous or implausible relative to today, prefer the most recent plausible year.`;
 }
 
 // ── From-header normalization ─────────────────────────────────────────────────
@@ -182,6 +211,7 @@ async function runReceiptOCR(
   apiKey: string,
   base64Data: string,
   contentType: string,
+  todayIso: string,
 ): Promise<Record<string, unknown>> {
   const dataUrl = `data:${contentType};base64,${base64Data}`;
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -200,8 +230,9 @@ async function runReceiptOCR(
               text: `Extract from this receipt image as JSON:
 - vendor_name: store or business name
 - total_amount: total as a number (e.g. 42.50)
-- transaction_date: date in YYYY-MM-DD format
+- transaction_date: the purchase date
 - handwritten_notes: any handwritten text (null if none)
+${dateRule(todayIso)}
 Use null for any field you cannot determine.`,
             },
             { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
@@ -225,6 +256,7 @@ Use null for any field you cannot determine.`,
 async function runReceiptTextExtraction(
   apiKey: string,
   text: string,
+  todayIso: string,
 ): Promise<Record<string, unknown>> {
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -239,8 +271,9 @@ async function runReceiptTextExtraction(
           content: `Extract from this forwarded receipt email body as JSON:
 - vendor_name: store or business name
 - total_amount: total as a number (e.g. 42.50)
-- transaction_date: date in YYYY-MM-DD format
+- transaction_date: the purchase date
 - handwritten_notes: short description of what was purchased (null if unclear)
+${dateRule(todayIso)}
 Use null for any field you cannot determine.
 
 EMAIL BODY:
@@ -261,6 +294,7 @@ ${text.slice(0, 8000)}`,
 async function runInvoiceTextExtraction(
   apiKey: string,
   text: string,
+  todayIso: string,
 ): Promise<Record<string, unknown>> {
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -276,9 +310,10 @@ async function runInvoiceTextExtraction(
 - vendor_name: business issuing the invoice
 - invoice_number: invoice or reference number
 - total_amount: total amount due as a number
-- invoice_date: date in YYYY-MM-DD format
-- due_date: payment due date in YYYY-MM-DD format (null if not shown)
+- invoice_date: the invoice date
+- due_date: payment due date (null if not shown)
 - description: brief description of services/goods
+${dateRule(todayIso)}
 Use null for any field you cannot determine.
 
 EMAIL BODY:
@@ -324,6 +359,7 @@ async function runInvoiceOCR(
   apiKey: string,
   base64Data: string,
   contentType: string,
+  todayIso: string,
 ): Promise<Record<string, unknown>> {
   const dataUrl = `data:${contentType};base64,${base64Data}`;
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -343,9 +379,10 @@ async function runInvoiceOCR(
 - vendor_name: business issuing the invoice
 - invoice_number: invoice or reference number
 - total_amount: total amount due as a number
-- invoice_date: date in YYYY-MM-DD format
-- due_date: payment due date in YYYY-MM-DD format (null if not shown)
+- invoice_date: the invoice date
+- due_date: payment due date (null if not shown)
 - description: brief description of services/goods
+${dateRule(todayIso)}
 Use null for any field you cannot determine.`,
             },
             { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
@@ -545,14 +582,19 @@ Deno.serve(async (req: Request) => {
     //    guaranteed failure.
     //
     //    HEIC from iPhone forwards is excluded for the same reason.
+    // The poller doesn't send a `today`, and this function has no browser to
+    // ask, so UTC is the best available anchor. A few hours' skew is harmless
+    // here — it only ever decides between adjacent years for a two-digit date.
+    const todayIso = new Date().toISOString().slice(0, 10);
+
     const apiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
     let prefilled: Record<string, unknown> = {};
     const ocrTarget = attachments.find((a) => isOcrSupportedImage(a.content_type));
     if (ocrTarget && apiKey) {
       prefilled =
         kind === "invoice"
-          ? await runInvoiceOCR(apiKey, ocrTarget.data, ocrTarget.content_type)
-          : await runReceiptOCR(apiKey, ocrTarget.data, ocrTarget.content_type);
+          ? await runInvoiceOCR(apiKey, ocrTarget.data, ocrTarget.content_type, todayIso)
+          : await runReceiptOCR(apiKey, ocrTarget.data, ocrTarget.content_type, todayIso);
       console.log(
         `[inbound-email] attachment OCR (${ocrTarget.content_type}) ` +
           `useful=${hasUsefulFields(prefilled)}`,
@@ -567,24 +609,41 @@ Deno.serve(async (req: Request) => {
     if (!hasUsefulFields(prefilled) && inlineText.length > 20 && apiKey) {
       prefilled =
         kind === "invoice"
-          ? await runInvoiceTextExtraction(apiKey, inlineText)
-          : await runReceiptTextExtraction(apiKey, inlineText);
+          ? await runInvoiceTextExtraction(apiKey, inlineText, todayIso)
+          : await runReceiptTextExtraction(apiKey, inlineText, todayIso);
     }
 
-    // 7d. Repair OCR'd receipt year if the model misread a digit.
-    if (kind === "expense" && prefilled.transaction_date) {
-      const todayIso = new Date().toISOString().slice(0, 10);
-      prefilled.transaction_date = repairImplausibleYear(
-        prefilled.transaction_date,
-        todayIso,
-      );
-      // Then the blanket 2023 → 2026 rule, which catches the past-dated
-      // misreads the clamp above cannot see. Second so the year it forces is
-      // the year that survives.
-      prefilled.transaction_date = forceMisreadYear(
-        prefilled.transaction_date,
-        todayIso,
-      );
+    // 7d. Repair the OCR'd year.
+    //
+    // This used to be gated on `kind === "expense"`, which is how a real
+    // receipt reached a user's form dated 2023. detectKind() calls anything
+    // whose subject or filename contains "invoice"/"bill" an invoice — and
+    // retailer receipts print "Invoice #12345" all the time — so a large share
+    // of forwarded RECEIPTS took the invoice branch and got no repair at all.
+    // Both kinds are repaired now.
+    if (kind === "expense") {
+      if (prefilled.transaction_date) {
+        prefilled.transaction_date = repairImplausibleYear(
+          prefilled.transaction_date,
+          todayIso,
+        );
+        // Then the blanket 2023 rule, which catches the past-dated misreads
+        // the clamp above cannot see. Second so the year it forces survives.
+        prefilled.transaction_date = forceMisreadYear(
+          prefilled.transaction_date,
+          todayIso,
+        );
+      }
+    } else {
+      // Invoices skip repairImplausibleYear on purpose — invoice dates can
+      // legitimately sit further out, and they're reviewed before being marked
+      // paid. due_date passes allowFuture for the same reason.
+      if (prefilled.invoice_date) {
+        prefilled.invoice_date = forceMisreadYear(prefilled.invoice_date, todayIso);
+      }
+      if (prefilled.due_date) {
+        prefilled.due_date = forceMisreadYear(prefilled.due_date, todayIso, true);
+      }
     }
 
     // 7c. Synthetic attachment — when there are no real attachments but

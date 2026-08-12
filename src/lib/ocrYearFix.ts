@@ -1,33 +1,47 @@
 /**
- * Forces OCR'd dates read as 2023 to 2026.
+ * Repairs OCR'd dates whose YEAR the model got wrong.
  *
- * Why this exists: gpt-4o-mini reading low-detail receipt images misreads the
- * year digit "6" as "3" often enough that 2026 receipts keep landing in the
- * ledger as 2023. Nothing in the date value itself distinguishes "misread"
- * from "genuinely old" — that ambiguity is exactly why the older, gentler
- * repairs (extract-receipt's future-date clamp, statementDateRepair's
- * billing-period check) leave past dates alone. They only catch a subset.
+ * Why this exists, and why the original framing was wrong
+ * ──────────────────────────────────────────────────────────────────────────
+ * v13.20 assumed a single failure mode: gpt-4o-mini misreading the digit "6"
+ * as "3", so a 2026 receipt lands as 2023. That does happen. But the receipt
+ * that prompted v13.21 printed its dates as `08/12/26` — a TWO-DIGIT year.
+ * There was no "2026" on the page to misread. The model had to *expand* "26",
+ * and the prompt gave it no idea what year it is, so it guessed.
  *
- * The owner's explicit call (2026-08-10): treat *every* OCR'd 2023 as a
- * misread 2026, and accept that genuinely-2023 receipts get moved. Wrong
- * dates on the rare old receipt are preferable to the ongoing stream of
- * current receipts filed three years in the past.
+ * That reframes the problem. The durable fix is the prompt: every extractor
+ * now tells the model today's date and how to expand a two-digit year (see
+ * `extract-receipt`, `extract-invoice`, `extract-statement`, `inbound-email`,
+ * `whatsapp-inbound`). This module is the safety net behind that, not the
+ * primary defence.
+ *
+ * What it does
+ * ──────────────────────────────────────────────────────────────────────────
+ * Rewrites a date whose year is OCR_MISREAD_YEAR (2023) to the most recent
+ * year that does not put the date in the future — normally OCR_CORRECTED_YEAR
+ * (2026), falling back to 2025, then 2024.
+ *
+ * That fallback is the v13.21 fix. v13.20 refused the rewrite outright when
+ * 2026 would land in the future and returned the ORIGINAL 2023 date, so with
+ * today = 2026-08-12 every 2023 date from Aug 13 to Dec 31 — about 40% of the
+ * calendar — was silently left in 2023. The guard meant to prevent inventing a
+ * future date was instead preserving the exact bug it sat next to.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * THIS IS A HARDCODED, TIME-LIMITED RULE. Both years below are literal. Come
- * January 2027 this will happily rewrite genuine 2023 dates to 2026 while
- * doing nothing for 2027 receipts misread as 2023. Revisit it then — either
- * bump CORRECTED_YEAR, or delete this module and go back to the structural
- * repairs once the OCR model handles the digit correctly.
+ * STILL HARDCODED AND TIME-LIMITED. The trigger year is a literal. Come 2027
+ * this rewrites genuine 2023 dates while doing nothing for a 2027 misread.
+ * The prompt anchor above is what should make this module redundant; when the
+ * extraction is reliably right, delete it rather than bump the constants.
+ *
+ * NOTE ON SCOPE: only 2023 triggers a rewrite. A two-digit-year misread can
+ * equally produce 2024 or 2025, and those still pass through untouched — that
+ * is deliberate. Widening the trigger would start moving legitimately old
+ * receipts, which the reconciliation feature exists to process, and the owner
+ * only ever signed off on 2023. Revisit if 2024/2025 misreads show up.
  * ─────────────────────────────────────────────────────────────────────────
  *
- * The one exception to "always": if rewriting the year would produce a date
- * in the future, the original is kept. A receipt dated next month is never
- * right, and fabricating one is worse than leaving OCR's answer alone — it
- * would also collide with extract-receipt's future-date clamp, which would
- * then drag the date back to an entirely different year. Invoice due dates
- * opt out of that guard via `allowFuture`, since those legitimately fall
- * ahead of today.
+ * Invoice due dates opt out of the not-in-the-future rule via `allowFuture`,
+ * since those legitimately fall ahead of today.
  */
 
 import { todayDateString } from './dateUtils';
@@ -45,9 +59,9 @@ interface Options {
 }
 
 /**
- * Rewrites a YYYY-MM-DD string whose year is OCR_MISREAD_YEAR to
- * OCR_CORRECTED_YEAR. Anything else — a different year, a malformed string,
- * null — passes through untouched.
+ * Rewrites a YYYY-MM-DD string whose year is OCR_MISREAD_YEAR to the most
+ * recent year that keeps it out of the future. Anything else — a different
+ * year, a malformed string, null — passes through untouched.
  */
 export function forceOcrYear<T extends string | null | undefined>(
   date: T,
@@ -59,20 +73,34 @@ export function forceOcrYear<T extends string | null | undefined>(
   if (!m) return date;
   if (Number(m[1]) !== OCR_MISREAD_YEAR) return date;
 
-  const corrected = `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+  const month = Number(m[2]);
+  const day = Number(m[3]);
 
-  if (!options.allowFuture) {
-    const t = ISO_DATE.exec(options.today ?? todayDateString());
-    if (t) {
-      // Local-time construction on both sides — never `new Date(string)`,
-      // which parses as UTC and shifts the day (CLAUDE.md date rule).
-      const rewritten = new Date(OCR_CORRECTED_YEAR, Number(m[2]) - 1, Number(m[3]));
-      const today = new Date(Number(t[1]), Number(t[2]) - 1, Number(t[3]));
-      if (rewritten.getTime() > today.getTime()) return date;
+  if (options.allowFuture) {
+    return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}` as T;
+  }
+
+  const t = ISO_DATE.exec(options.today ?? todayDateString());
+  if (!t) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}` as T;
+
+  // Local-time construction on both sides — never `new Date(string)`, which
+  // parses as UTC and shifts the day (CLAUDE.md date rule).
+  const today = new Date(Number(t[1]), Number(t[2]) - 1, Number(t[3]));
+
+  // Walk back from the corrected year to the first one that isn't in the
+  // future. Stops above the misread year itself, so we never "correct" a date
+  // to the year we already believe is wrong.
+  for (let year = OCR_CORRECTED_YEAR; year > OCR_MISREAD_YEAR; year--) {
+    const candidate = new Date(year, month - 1, day);
+    // Rejects Feb 29 in a non-leap year, which Date rolls over into March.
+    if (candidate.getMonth() !== month - 1) continue;
+    if (candidate.getTime() <= today.getTime()) {
+      return `${year}-${m[2]}-${m[3]}` as T;
     }
   }
 
-  return corrected as T;
+  // Every candidate year was still in the future — leave OCR's answer alone.
+  return date;
 }
 
 /**

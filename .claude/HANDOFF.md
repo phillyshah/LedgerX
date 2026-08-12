@@ -8,6 +8,57 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.21 — the real cause of receipts landing in 2023. v13.20 was treating a
+  symptom.** @onion submitted a receipt on 2026-08-12 that stored a 2023 date,
+  two days after v13.20 shipped and deployed successfully. Three independent
+  defects, each sufficient on its own:
+  1. **The prompts never said what year it is.** The receipt printed
+     `AuthTime 08/12/26` — a **two-digit year**. There was no "2026" on the page
+     to misread as "2023"; the model had to *expand* `26` and was given no
+     anchor. `extract-receipt` had carried one for a while; the four prompts in
+     `inbound-email` never did, and `extract-invoice` had none either. **This is
+     the root cause, and it invalidates v13.20's stated premise** ("gpt-4o-mini
+     misreads the digit 6 as 3"). A digit-substitution rule keyed to the literal
+     year 2023 cannot cover a guess that can equally produce 2024 or 2025.
+     Fixed by `dateRule()` in `inbound-email` and `buildPrompt(todayIso)` in
+     `extract-invoice`; guarded by `tests/promptAnchor.test.ts`.
+  2. **The repair was gated to expenses.** `inbound-email` ran the year fix
+     inside `if (kind === "expense" && …)`. `detectKind()` labels anything whose
+     subject or filename contains `invoice`/`bill`/`factura`/`fatura` an
+     invoice — and this receipt printed **"Invoice 86525"**. Retailer receipts
+     do that constantly, so a large share of forwarded RECEIPTS took the invoice
+     branch and got **no year repair at all**. Both kinds are repaired now.
+  3. **The future guard preserved the bug it sat beside.** `ocrYearFix.ts`
+     returned the ORIGINAL 2023 date when the 2026 rewrite would land in the
+     future. With today = Aug 12, every 2023 date from **Aug 13 to Dec 31** —
+     about 40% of the calendar — was silently left in 2023. It now walks back
+     to the most recent non-future year (2025, then 2024).
+  - Also fixed: the email-inbox → form path applied **no** client-side repair
+    (`Dashboard.tsx`, `AdminEmailInbox.tsx` copied `prefilled.*` verbatim), so
+    it depended entirely on a hand-pasted edge function. `forceOcrYear` now runs
+    there too, which means this fix ships with a **frontend deploy** — the
+    dashboard paste is belt-and-braces, not a prerequisite.
+  - **Scope deliberately unchanged**: only 2023 triggers a rewrite. Widening it
+    to 2024/2025 would start moving legitimately old receipts, which the
+    reconciliation feature exists to process, and the owner only ever signed off
+    on 2023. The prompt anchor is what should make the trigger redundant.
+- **🧪 The project now has tests — `npm test`.** There were none. No framework
+  was added: `tests/harness.ts` is ~30 lines and `scripts/run-tests.mjs` bundles
+  with the esbuild Vite already ships. 30 assertions covering the year matrix
+  (including the Aug 13–Dec 31 dead zone and Feb 29), a **differential check
+  that extracts `forceMisreadYear` from all five edge functions and diffs it
+  against the client** — so "keep in sync" is enforced, not just commented —
+  and prompt-anchor guards that fail if a date prompt loses its `today`.
+  It caught real drift on first run. Swap in vitest if it outgrows this; the
+  `test(name, fn)` shape matches.
+- **🚨 The deploy workflow was silently broken — fixed.** Run `841b40d` shows
+  `npm run build` succeeding and then `ssh-keyscan -H 72.62.174.193` exiting 1
+  under `bash -e`, aborting the job **after** the build, so the rsync never ran
+  and production stayed on the previous bundle. Nothing announced it but the
+  Actions tab. `ssh-keyscan` is now best-effort (the rsync already passes
+  `StrictHostKeyChecking=no`, so it was never required) and the rsync retries
+  three times before failing loudly. **Always confirm a deploy landed — green
+  Actions run AND the footer version — before believing a fix is live.**
 - **v13.20 — OCR dates read as 2023 are forced to 2026.** Owner's explicit call:
   gpt-4o-mini misreads the "6" in 2026 as "3" persistently, and neither existing
   defence catches it (extract-receipt's clamp only moves *future* dates;

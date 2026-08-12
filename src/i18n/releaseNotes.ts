@@ -33,6 +33,19 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.21',
+    version: 'v13.21',
+    date: '2026-08-12',
+    title: {
+      'en': 'Receipt dates: fixed properly this time',
+      'pt-BR': 'Datas dos recibos: agora corrigidas de verdade',
+    },
+    body: {
+      'en': "Last week's fix wasn't enough — receipts were still being filed in 2023. We found the real reason. Many receipts print the year with only two digits, like \"08/12/26\", and the scanner was never told what year it is, so it guessed. Now it's told the date every time. We also found that any receipt whose email mentioned the word \"Invoice\" or \"Bill\" was skipping the date check entirely, which is what happened to the receipt that was reported. Both are fixed, and dates from later in the year no longer get stuck in the past. If you spot a wrong date on a receipt, please keep telling us — that report is what found this.",
+      'pt-BR': 'A correção da semana passada não bastou — recibos ainda apareciam em 2023. Descobrimos o motivo real. Muitos recibos imprimem o ano com apenas dois dígitos, como "08/12/26", e o leitor nunca era informado do ano atual, então ele chutava. Agora ele recebe a data sempre. Também descobrimos que qualquer recibo cujo e-mail mencionasse "Invoice" ou "Bill" pulava a verificação de data por completo — foi exatamente o que aconteceu com o recibo relatado. Os dois casos foram corrigidos, e datas do fim do ano não ficam mais presas no passado. Se você vir uma data errada, continue nos avisando — foi um aviso desses que encontrou isto.',
+    },
+  },
+  {
     id: 'v13.20',
     version: 'v13.20',
     date: '2026-08-10',

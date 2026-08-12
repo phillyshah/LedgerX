@@ -791,21 +791,42 @@ function mergeFields(prior: DraftFields, incoming: Record<string, unknown>): Dra
 const OCR_MISREAD_YEAR = 2023;
 const OCR_CORRECTED_YEAR = 2026;
 
-function forceMisreadYear(date: string | null): string | null {
-  if (date === null) return null;
+function forceMisreadYear(
+  date: unknown,
+  todayIso: string,
+  allowFuture = false,
+): unknown {
+  if (typeof date !== "string") return date;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
 
-  const rewritten = new Date(
-    OCR_CORRECTED_YEAR,
-    parseInt(m[2], 10) - 1,
-    parseInt(m[3], 10),
-  );
-  const t = new Date().toISOString().slice(0, 10).split("-").map(Number);
-  const today = new Date(t[0], t[1] - 1, t[2]);
-  if (rewritten.getTime() > today.getTime()) return date;
+  const month = parseInt(m[2], 10);
+  const day = parseInt(m[3], 10);
 
-  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+  if (allowFuture) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
+  const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
+  if (!t) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
+  const today = new Date(
+    parseInt(t[1], 10),
+    parseInt(t[2], 10) - 1,
+    parseInt(t[3], 10),
+  );
+
+  // Walk back to the first year that isn't in the future. v13.20 refused the
+  // rewrite outright here and returned the ORIGINAL 2023 date, so every 2023
+  // date later in the calendar year than today stayed in 2023 — the guard was
+  // preserving the very bug it sat beside.
+  for (let year = OCR_CORRECTED_YEAR; year > OCR_MISREAD_YEAR; year--) {
+    const candidate = new Date(year, month - 1, day);
+    if (candidate.getMonth() !== month - 1) continue; // Feb 29, non-leap year
+    if (candidate.getTime() <= today.getTime()) {
+      return `${year}-${m[2]}-${m[3]}`;
+    }
+  }
+
+  return date;
 }
 
 function applyOcrDefaults(intent: string | null, fields: DraftFields, ocr: Record<string, unknown>): DraftFields {
@@ -813,7 +834,13 @@ function applyOcrDefaults(intent: string | null, fields: DraftFields, ocr: Recor
   const amt = parseAmount(ocr.total_amount);
   // Single funnel: doc_date feeds both the invoice service start and the
   // expense date below, so correcting it here covers every WhatsApp path.
-  const date = forceMisreadYear(isIsoDate(ocr.doc_date) ? (ocr.doc_date as string) : null);
+  // No caller-supplied `today` on this path (the message arrives from Twilio,
+  // not a browser), so UTC is the anchor — see inbound-email for the same note.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const date = forceMisreadYear(
+    isIsoDate(ocr.doc_date) ? (ocr.doc_date as string) : null,
+    todayIso,
+  ) as string | null;
   if (intent === "create_invoice") {
     if (out.amount == null && amt != null) out.amount = amt;
     if (!out.description && typeof ocr.description === "string" && ocr.description) out.description = ocr.description as string;

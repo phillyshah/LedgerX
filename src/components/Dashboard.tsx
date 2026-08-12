@@ -18,6 +18,7 @@ import { AppFooter } from './AppFooter';
 import { NotificationBell } from './NotificationBell';
 import type { AppNotification } from '../types/notification';
 import { EmailInboxPanel } from './EmailInboxPanel';
+import { forceOcrYear } from '../lib/ocrYearFix';
 import { InboxAcceptToast } from './InboxAcceptToast';
 import { CollapsibleSection } from './CollapsibleSection';
 import { useEmailInbox, type InboxItem } from '../hooks/useEmailInbox';
@@ -136,11 +137,18 @@ export function Dashboard() {
     }
   };
 
+  // Dates arriving from email_inbox.prefilled get the year repair applied HERE
+  // as well as in the inbound-email edge function. Not redundant: that function
+  // gated the repair on kind === "expense", so anything its keyword heuristic
+  // called an invoice — including retailer receipts that merely print the word
+  // "Invoice" — reached this form with the raw OCR year. Correcting client-side
+  // too means the fix ships with a frontend deploy instead of waiting on a
+  // hand-pasted edge function, and double-application is a no-op.
   const handleInboxExpense = (item: InboxItem) => {
     setExpenseInitialData({
       vendor: item.prefilled.vendor_name ?? undefined,
       total: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
-      expense_date: item.prefilled.transaction_date ?? undefined,
+      expense_date: forceOcrYear(item.prefilled.transaction_date) ?? undefined,
       notes: item.prefilled.handwritten_notes ?? undefined,
       attachment_paths: item.attachment_paths,
     });
@@ -154,7 +162,7 @@ export function Dashboard() {
       invoice_number: item.prefilled.invoice_number ?? undefined,
       amount: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
       description: item.prefilled.description ?? undefined,
-      invoice_date: item.prefilled.invoice_date ?? undefined,
+      invoice_date: forceOcrYear(item.prefilled.invoice_date) ?? undefined,
       attachment_paths: item.attachment_paths,
     });
     setPendingInboxId(item.id);

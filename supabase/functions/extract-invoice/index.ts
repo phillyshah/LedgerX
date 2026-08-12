@@ -7,7 +7,11 @@ const corsHeaders = {
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PROMPT = `Analyze this invoice image or PDF page and extract the following fields as JSON:
+// Built per-request so the model is told what year it is. Without that anchor
+// a document printing a two-digit year ("08/12/26") gets expanded to whatever
+// year the model guesses — the failure that produced 2023 dates on real
+// receipts even after the year-repair rule shipped.
+const buildPrompt = (todayIso: string) => `Analyze this invoice image or PDF page and extract the following fields as JSON:
 - invoice_number: the invoice or reference number printed on the document (e.g. "INV-2026-042", "NF-001")
 - vendor_name: the name of the company or person issuing the invoice (the seller/contractor)
 - total_amount: the final total amount due as a number (float with decimal precision, e.g. 1250.00). Use the grand total or "Amount Due", NOT subtotals.
@@ -19,6 +23,7 @@ const PROMPT = `Analyze this invoice image or PDF page and extract the following
 - currency: the currency code — one of "USD", "EUR", "CAD", "BRL" (default to "USD" if not determinable)
 
 Important rules:
+- Today is ${todayIso}. All dates must be YYYY-MM-DD. If the document shows a two-digit year (e.g. "08/12/26" means 2026), expand it to the most recent year that does not fall in the future. If a year looks ambiguous or implausible relative to today, prefer the most recent plausible year. (due_date is the exception — it may legitimately be in the future.)
 - If a service/billing period is shown as a date range (e.g. "March 1–31, 2026"), extract start and end dates.
 - If only one date is shown (not invoice_date), treat it as the invoice_date and leave service dates null.
 - If invoice_number is not present, use null.
@@ -26,7 +31,7 @@ Important rules:
 
 Return only a valid JSON object with these exact field names.`;
 
-async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): Promise<string> {
+async function callOpenAI(apiKey: string, model: string, imageDataUrl: string, todayIso: string): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -47,7 +52,7 @@ async function callOpenAI(apiKey: string, model: string, imageDataUrl: string): 
             },
             {
               type: "text",
-              text: PROMPT,
+              text: buildPrompt(todayIso),
             },
           ],
         },
@@ -115,22 +120,33 @@ function forceMisreadYear(
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m || parseInt(m[1], 10) !== OCR_MISREAD_YEAR) return date;
 
+  const month = parseInt(m[2], 10);
+  const day = parseInt(m[3], 10);
+
+  if (allowFuture) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
   const t = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayIso);
-  if (!allowFuture && t) {
-    const rewritten = new Date(
-      OCR_CORRECTED_YEAR,
-      parseInt(m[2], 10) - 1,
-      parseInt(m[3], 10),
-    );
-    const today = new Date(
-      parseInt(t[1], 10),
-      parseInt(t[2], 10) - 1,
-      parseInt(t[3], 10),
-    );
-    if (rewritten.getTime() > today.getTime()) return date;
+  if (!t) return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+
+  const today = new Date(
+    parseInt(t[1], 10),
+    parseInt(t[2], 10) - 1,
+    parseInt(t[3], 10),
+  );
+
+  // Walk back to the first year that isn't in the future. v13.20 refused the
+  // rewrite outright here and returned the ORIGINAL 2023 date, so every 2023
+  // date later in the calendar year than today stayed in 2023 — the guard was
+  // preserving the very bug it sat beside.
+  for (let year = OCR_CORRECTED_YEAR; year > OCR_MISREAD_YEAR; year--) {
+    const candidate = new Date(year, month - 1, day);
+    if (candidate.getMonth() !== month - 1) continue; // Feb 29, non-leap year
+    if (candidate.getTime() <= today.getTime()) {
+      return `${year}-${m[2]}-${m[3]}`;
+    }
   }
 
-  return `${OCR_CORRECTED_YEAR}-${m[2]}-${m[3]}`;
+  return date;
 }
 
 Deno.serve(async (req: Request) => {
@@ -181,7 +197,7 @@ Deno.serve(async (req: Request) => {
 
     for (const model of models) {
       try {
-        const content = await callOpenAI(openaiApiKey, model, imageDataUrl);
+        const content = await callOpenAI(openaiApiKey, model, imageDataUrl, todayIso);
         const extracted = parseExtracted(content, todayIso);
         return new Response(JSON.stringify(extracted), {
           status: 200,
