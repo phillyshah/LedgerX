@@ -29,6 +29,7 @@ import { useEmailInbox, type InboxItem } from '../../hooks/useEmailInbox';
 import { useAuth } from '../../contexts/AuthContext';
 import { useT } from '../../hooks/useT';
 import { supabase } from '../../lib/supabase';
+import { forceOcrYear } from '../../lib/ocrYearFix';
 import type { AddExpenseInitialData } from '../AddExpense';
 import type { InvoiceFormInitialData } from '../InvoiceForm';
 
@@ -184,11 +185,14 @@ export function AdminEmailInbox({ storageKey }: Props) {
   const [pendingInboxId, setPendingInboxId] = useState<string | null>(null);
   const [acceptToast, setAcceptToast] = useState<'expense' | 'invoice' | null>(null);
 
+  // See the matching note in Dashboard.tsx: the year repair runs here too
+  // because inbound-email gated it on kind === "expense", so invoice-classified
+  // mail arrived with the raw OCR year.
   const handleOpenExpense = (item: InboxItem) => {
     setExpenseInitialData({
       vendor: item.prefilled.vendor_name ?? undefined,
       total: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
-      expense_date: item.prefilled.transaction_date ?? undefined,
+      expense_date: forceOcrYear(item.prefilled.transaction_date) ?? undefined,
       notes: item.prefilled.handwritten_notes ?? undefined,
       attachment_paths: item.attachment_paths,
     });
@@ -202,7 +206,7 @@ export function AdminEmailInbox({ storageKey }: Props) {
       invoice_number: item.prefilled.invoice_number ?? undefined,
       amount: item.prefilled.total_amount != null ? String(item.prefilled.total_amount) : undefined,
       description: item.prefilled.description ?? undefined,
-      invoice_date: item.prefilled.invoice_date ?? undefined,
+      invoice_date: forceOcrYear(item.prefilled.invoice_date) ?? undefined,
       attachment_paths: item.attachment_paths,
     });
     setPendingInboxId(item.id);

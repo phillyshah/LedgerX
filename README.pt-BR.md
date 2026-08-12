@@ -160,9 +160,10 @@ serviço, data de vencimento etc.).
 - **Recibos planos** escaneiam melhor que amassados.
 - **Papel térmico desbota** — escaneie ou fotografe logo após a compra.
 - A leitura é feita apenas no **primeiro arquivo anexado**. Adicione outros recibos depois.
-- **Datas lidas como 2023 são corrigidas para 2026 automaticamente.** A leitura confunde o "6" de 2026 com "3" com frequência, então qualquer data lida que caia em 2023 passa a ser movida para 2026 para você. Vale para recibos, faturas e faturas de cartão, não importa por onde chegaram — pelo aplicativo, por e-mail ou pelo WhatsApp.
+- **A leitura recebe a data de hoje, então anos de dois dígitos são interpretados corretamente.** Muitos recibos imprimem o ano com dois dígitos — `08/12/26`. Agora a leitura recebe a data atual todas as vezes e é orientada a expandir um ano curto para o ano mais recente que não caia no futuro, então `26` vira 2026 em vez de um palpite.
+- **Datas que ainda voltarem como 2023 são corrigidas automaticamente.** Qualquer data lida que caia em 2023 é movida para o ano mais recente que não a coloque no futuro. Vale para recibos, faturas e faturas de cartão, não importa por onde chegaram — pelo aplicativo, por e-mail ou pelo WhatsApp.
   - **Se você estiver registrando um recibo realmente de 2023**, isso vai errar. Corrija a data à mão antes de salvar; nada impede.
-  - Dois casos ficam de fora de propósito: uma data que terminaria no futuro (um recibo com data do mês que vem nunca está certo) e uma fatura de cartão cujo período de cobrança você informou como 2023 — o que você digitou vale mais do que o que a leitura entendeu.
+  - Um caso fica de fora de propósito: uma fatura de cartão cujo período de cobrança você informou como 2023 — o que você digitou vale mais do que o que a leitura entendeu. Datas de *vencimento* de faturas também podem ficar no futuro, o que é normal.
 - **Verificação de data**: se, mesmo assim, o formulário mostrar uma data de mais de 90 dias atrás, um aviso amarelo aparecerá. Corrija o ano e salve.
 
 ---

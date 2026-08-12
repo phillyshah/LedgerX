@@ -31,10 +31,27 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 72.62.174.193 >> ~/.ssh/known_hosts
+          # Best-effort only. The rsync below passes StrictHostKeyChecking=no,
+          # so a populated known_hosts is a nicety, not a requirement — but the
+          # step runs under `bash -e`, so a transient ssh-keyscan failure used
+          # to abort the whole deploy AFTER a successful build. That is exactly
+          # what happened on 841b40d: the build passed, this line exited 1, the
+          # rsync never ran, and production silently stayed on the old bundle.
+          ssh-keyscan -H 72.62.174.193 >> ~/.ssh/known_hosts || \
+            echo "ssh-keyscan failed; continuing (rsync does not require it)"
 
       - name: Rsync dist to VPS
         run: |
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            dist/ root@72.62.174.193:/var/www/ledger.90ten.life/
+          # Retry: a single dropped connection should not mean a silently
+          # un-deployed fix. Fails loudly if all three attempts fail.
+          for attempt in 1 2 3; do
+            if rsync -avz --delete \
+                 -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+                 dist/ root@72.62.174.193:/var/www/ledger.90ten.life/; then
+              exit 0
+            fi
+            echo "rsync attempt $attempt failed"
+            sleep $((attempt * 5))
+          done
+          echo "::error::rsync failed after 3 attempts — production was NOT updated"
+          exit 1
