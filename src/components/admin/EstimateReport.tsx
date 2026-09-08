@@ -326,7 +326,8 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
                     <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
                       <h3 className="text-sm font-semibold text-slate-900">{t('estimateReport.byContractorTitle')}</h3>
                     </div>
-                    <table className="w-full">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
                       <thead className="bg-slate-50">
                         <tr>
                           <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('estimateReport.colContractor')}</th>
@@ -348,6 +349,7 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </>
               )}
@@ -364,7 +366,8 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
                 ) : aging.length === 0 ? (
                   <div className="p-8 text-center text-slate-500 text-sm">{t('estimateReport.emptyAging')}</div>
                 ) : (
-                  <table className="w-full">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('estimateReport.colEstimate')}</th>
@@ -402,6 +405,7 @@ export function EstimateReport({ onClose }: EstimateReportProps) {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
             </>

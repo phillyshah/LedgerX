@@ -210,7 +210,7 @@ export function ManageCategories() {
         <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-slate-900">{t('admin.cat.addCategory')}</h3>
-            <button onClick={() => setShowAdd(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+            <button onClick={() => setShowAdd(false)} className="p-2.5 hover:bg-slate-100 rounded-lg">
               <X className="w-4 h-4 text-slate-500" />
             </button>
           </div>

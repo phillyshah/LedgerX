@@ -33,6 +33,19 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.23',
+    version: 'v13.23',
+    date: '2026-08-12',
+    title: {
+      'en': 'Phone fixes: no more getting stuck in a form',
+      'pt-BR': 'Correções no celular: sem mais travar num formulário',
+    },
+    body: {
+      'en': "On a phone, the Edit invoice screen could not be scrolled far enough to reach Save or Cancel — the buttons sat below the bottom of the screen with no way to get to them, so the only escape was closing the browser. That is fixed: long forms now scroll, and the buttons stay put at the bottom where you can always tap them. We went through every pop-up in the app and fixed the same problem everywhere it could happen. Wide report tables now slide sideways on their own instead of stretching the page, and the X buttons that close a pop-up are bigger and easier to hit.",
+      'pt-BR': 'No celular, a tela Editar fatura não rolava o suficiente para chegar em Salvar ou Cancelar — os botões ficavam abaixo do fim da tela, sem nenhum jeito de alcançá-los, e a única saída era fechar o navegador. Isso foi corrigido: formulários longos agora rolam e os botões ficam fixos embaixo, sempre ao alcance do toque. Revisamos todas as janelas do aplicativo e corrigimos o mesmo problema em todos os lugares onde ele poderia acontecer. Tabelas largas de relatório agora deslizam para os lados sozinhas, em vez de esticar a página, e os botões X que fecham uma janela ficaram maiores e mais fáceis de acertar.',
+    },
+  },
+  {
     id: 'v13.22',
     version: 'v13.22',
     date: '2026-08-12',

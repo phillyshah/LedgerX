@@ -724,7 +724,7 @@ export function AdminEstimates({ onAdd, openId, onOpenHandled }: {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-4 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900">{t('adminEstimates.editTitle')}</h3>
-              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setEditModal(null)} className="p-2.5 hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
