@@ -8,6 +8,33 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.22 — admins can edit an invoice's payment method.** Owner's report:
+  admins were typing payment instructions into the contractor's own
+  `description` ("Please Zelle payment to 412-585-3852") because there was
+  nowhere else to put them.
+  - **The columns and an RPC already existed** (`payment_method`,
+    `payment_method_note`, since v12.1 / `20260716000000`). The only writer was
+    `admin_update_invoice_status`, and only on the `paid` transition — so the
+    method could not be set on a pending invoice, nor corrected afterwards,
+    since the mark-paid modal is a one-shot the UI never reopens. **This was a
+    missing-UI problem, not a schema one.** Worth checking for that shape
+    before writing a migration.
+  - Migration `20260812000000` extends `admin_update_invoice_details` with
+    `p_payment_method` / `p_payment_method_note` / `p_set_payment_method`.
+    The sentinel matters: NULL means "Not recorded", which is a real value, so
+    without it the RPC can't tell "clear this" from "leave alone". Clearing the
+    method clears the note server-side, so a stale detail line can't outlive it.
+    ⚠️ **Adding params changes a function's identity — the 10-arg version is
+    DROPped first.** Same trick v12.1 used.
+  - The note now applies to **any** method, not just `other`. It was previously
+    stored for `other` alone and rendered nowhere else, so a Zelle handle
+    recorded against a named method was silently invisible. Detail view shows
+    `Method · note` now.
+  - **`is_admin()` gate unchanged** — full admins only, same as every other
+    field in that modal. Household admins still can't edit invoices at all.
+    Extending that is a separate permissions decision, not implied by this ask.
+  - Removed the now-orphaned `adminInvoices.paymentMethodOtherPlaceholder` key
+    from both locales.
 - **v13.21 — the real cause of receipts landing in 2023. v13.20 was treating a
   symptom.** @onion submitted a receipt on 2026-08-12 that stored a 2023 date,
   two days after v13.20 shipped and deployed successfully. Three independent
