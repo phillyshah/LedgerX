@@ -33,6 +33,19 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.22',
+    version: 'v13.22',
+    date: '2026-08-12',
+    title: {
+      'en': 'Edit how an invoice gets paid',
+      'pt-BR': 'Edite a forma de pagamento da fatura',
+    },
+    body: {
+      'en': "Admins can now set or change an invoice's payment method from the Edit invoice screen — Venmo, Zelle, ACH, check, credit card or other — instead of only at the moment it's marked paid. That means you can record how something will be paid before it happens, and fix a wrong choice afterwards. You can also add a detail line next to any method, like a Zelle number or a check number, so it no longer has to be typed into the contractor's own description. Those details now show on the invoice too.",
+      'pt-BR': 'Os administradores agora podem definir ou alterar a forma de pagamento de uma fatura na tela Editar fatura — Venmo, Zelle, ACH, cheque, cartão de crédito ou outro — e não apenas no momento de marcar como paga. Assim dá para registrar como algo será pago antes de acontecer e corrigir uma escolha errada depois. Também é possível adicionar um detalhe ao lado de qualquer forma de pagamento, como um número de Zelle ou de cheque, sem precisar digitar isso na descrição escrita pelo prestador. Esses detalhes agora também aparecem na fatura.',
+    },
+  },
+  {
     id: 'v13.21',
     version: 'v13.21',
     date: '2026-08-12',

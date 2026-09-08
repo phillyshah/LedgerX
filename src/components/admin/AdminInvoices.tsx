@@ -73,6 +73,11 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
   const [editDescription, setEditDescription] = useState<string>('');
   const [editStart, setEditStart] = useState<string>('');
   const [editEnd, setEditEnd] = useState<string>('');
+  // Payment method is editable here as well as in the mark-paid modal. That
+  // modal only fires once, on the paid transition, so it could neither record
+  // a method up front nor fix one chosen by mistake.
+  const [editPayMethod, setEditPayMethod] = useState<PaymentMethod | ''>('');
+  const [editPayNote, setEditPayNote] = useState<string>('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -177,7 +182,9 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
       p_status: 'paid',
       p_admin_notes: actionNotes.trim() || undefined,
       p_payment_method: payMethod || null,
-      p_payment_method_note: payMethod === 'other' ? (payNote.trim() || null) : null,
+      // Note kept for any method, not just "other" — a Zelle handle or check
+      // number is worth recording against a named method too.
+      p_payment_method_note: payMethod ? (payNote.trim() || null) : null,
     } as never);
     if (error) setActionError(t('adminInvoices.failedAction'));
     else {
@@ -208,6 +215,8 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
     setEditDescription(invoice.description ?? '');
     setEditStart(invoice.service_date_start ?? '');
     setEditEnd(invoice.service_date_end ?? '');
+    setEditPayMethod(invoice.payment_method ?? '');
+    setEditPayNote(invoice.payment_method_note ?? '');
     setEditError(null);
   };
 
@@ -238,6 +247,11 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
         p_service_date_start: editStart,
         p_service_date_end: editEnd,
         p_set_invoice_number: true,
+        // p_set_payment_method tells the RPC this call owns the field, so
+        // "Not recorded" clears it rather than reading as "left untouched".
+        p_payment_method: editPayMethod || null,
+        p_payment_method_note: editPayMethod ? (editPayNote.trim() || null) : null,
+        p_set_payment_method: true,
       } as never,
     );
     if (error) {
@@ -481,12 +495,12 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
                   <option key={m} value={m}>{t(`adminInvoices.method_${m}`)}</option>
                 ))}
               </select>
-              {payMethod === 'other' && (
+              {payMethod && (
                 <input
                   type="text"
                   value={payNote}
                   onChange={(e) => setPayNote(e.target.value)}
-                  placeholder={t('adminInvoices.paymentMethodOtherPlaceholder')}
+                  placeholder={t('adminInvoices.editPaymentNotePlaceholder')}
                   className="mt-2 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
                 />
               )}
@@ -551,9 +565,16 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
                   ...(detailInvoice.paid_at ? [{ label: t('adminInvoices.detailPaidAt'), value: fmtDate(detailInvoice.paid_at.split('T')[0]) }] : []),
                   ...(detailInvoice.payment_method ? [{
                     label: t('adminInvoices.detailPaymentMethod'),
-                    value: detailInvoice.payment_method === 'other' && detailInvoice.payment_method_note
-                      ? detailInvoice.payment_method_note
-                      : t(`adminInvoices.method_${detailInvoice.payment_method}`),
+                    // The note now shows alongside ANY method. It used to be
+                    // rendered only for "other", which meant a Zelle handle or
+                    // account reference recorded against a named method was
+                    // stored but never displayed anywhere.
+                    value: detailInvoice.payment_method === 'other'
+                      ? (detailInvoice.payment_method_note
+                          || t('adminInvoices.method_other'))
+                      : (detailInvoice.payment_method_note
+                          ? `${t(`adminInvoices.method_${detailInvoice.payment_method}`)} · ${detailInvoice.payment_method_note}`
+                          : t(`adminInvoices.method_${detailInvoice.payment_method}`)),
                   }] : []),
                 ].map(({ label, value }) => (
                   <div key={label}>
@@ -832,6 +853,42 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Payment method — how this invoice is/was paid. The note is
+                offered for EVERY method, not just "other": the common case is
+                a Zelle or Venmo handle, which admins were previously writing
+                into the contractor's own description field. */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('adminInvoices.editPaymentMethod')}
+              </label>
+              <select
+                value={editPayMethod}
+                onChange={(e) => {
+                  const next = e.target.value as PaymentMethod | '';
+                  setEditPayMethod(next);
+                  // Clearing the method clears its note, matching what the RPC
+                  // does server-side — no stale detail line left behind.
+                  if (!next) setEditPayNote('');
+                  setEditError(null);
+                }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+              >
+                <option value="">{t('adminInvoices.paymentMethodNone')}</option>
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>{t(`adminInvoices.method_${m}`)}</option>
+                ))}
+              </select>
+              {editPayMethod && (
+                <input
+                  type="text"
+                  value={editPayNote}
+                  onChange={(e) => { setEditPayNote(e.target.value); setEditError(null); }}
+                  placeholder={t('adminInvoices.editPaymentNotePlaceholder')}
+                  className="mt-2 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent"
+                />
+              )}
             </div>
 
             {/* Admin notes */}
