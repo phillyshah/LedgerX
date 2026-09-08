@@ -455,15 +455,22 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
       {/* ── Mark Paid Modal ── */}
       {actionModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
+          {/* max-h + flex-col keeps the panel inside the viewport, and the
+              action buttons live in a pinned footer below the scroll area —
+              so Confirm is reachable on a phone however tall the form gets. */}
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900">
                 {t('adminInvoices.modalPaidTitle')}
               </h3>
-              <button onClick={() => setActionModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setActionModal(null)} className="w-11 h-11 -mr-2 flex items-center justify-center hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
+
+            {/* min-h-0 is load-bearing: a flex child will not shrink below its
+                content height without it, and the overflow never engages. */}
+            <div className="px-6 overflow-y-auto flex-1 min-h-0">
 
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
               <div className="flex justify-between">
@@ -520,7 +527,9 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
               {actionError && <p className="mt-1 text-sm text-red-600">{actionError}</p>}
             </div>
 
-            <div className="flex gap-3">
+            </div>
+
+            <div className="flex gap-3 px-6 pb-6 pt-4 border-t border-slate-100 flex-shrink-0">
               <button
                 onClick={() => setActionModal(null)}
                 disabled={actioning}
@@ -723,15 +732,22 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
       {/* ── Edit Invoice Modal — household + category + admin notes ── */}
       {editModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
+          {/* max-h + flex-col keeps the panel inside the viewport, and the
+              action buttons live in a pinned footer below the scroll area —
+              so Confirm is reachable on a phone however tall the form gets. */}
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900">
                 {t('adminInvoices.editTitle')}
               </h3>
-              <button onClick={() => setEditModal(null)} className="p-1 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setEditModal(null)} className="w-11 h-11 -mr-2 flex items-center justify-center hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
+
+            {/* min-h-0 is load-bearing: a flex child will not shrink below its
+                content height without it, and the overflow never engages. */}
+            <div className="px-6 overflow-y-auto flex-1 min-h-0">
 
             <div className="bg-slate-50 rounded-xl p-4 mb-4 text-sm space-y-1">
               <div className="flex justify-between">
@@ -907,7 +923,9 @@ export function AdminInvoices({ onAdd, openId, onOpenHandled }: {
               {editError && <p className="mt-1 text-sm text-red-600">{editError}</p>}
             </div>
 
-            <div className="flex gap-3">
+            </div>
+
+            <div className="flex gap-3 px-6 pb-6 pt-4 border-t border-slate-100 flex-shrink-0">
               <button
                 onClick={() => setEditModal(null)}
                 disabled={editSaving}

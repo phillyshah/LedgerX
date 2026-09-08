@@ -49,7 +49,7 @@ export function StatementHouseholdsModal({ cardLabel, initialHouseholdIds, allHo
             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1">{t('labs.cc.editHouseholds')}</p>
             <p className="font-semibold text-slate-900 truncate">{cardLabel}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all shrink-0">
+          <button onClick={onClose} className="p-2.5 hover:bg-slate-100 rounded-lg transition-all shrink-0">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>

@@ -49,7 +49,7 @@ export function TaxSettingsModal({ settings, onSaved, onClose }: TaxSettingsModa
       <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl flex flex-col max-h-[90vh]">
         <div className="p-5 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
           <h3 className="text-base font-semibold text-slate-900">{t('tax.settings')}</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all" aria-label={t('common.close')}>
+          <button onClick={onClose} className="p-2.5 hover:bg-slate-100 rounded-lg transition-all" aria-label={t('common.close')}>
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>

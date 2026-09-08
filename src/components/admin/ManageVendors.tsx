@@ -269,8 +269,9 @@ export function ManageVendors() {
 
       {/* Add-mapping modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+  {/* items-start + overflow-y-auto on the overlay, my-auto on the panel: the panel stays vertically centred while it fits, and becomes scrollable instead of clipped once it is taller than the viewport. Centring alone overflows off BOTH edges with nothing to scroll. */}
+          <div className="bg-white my-auto rounded-2xl w-full max-w-md shadow-xl">
             <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">{t('admin.vendors.addTitle')}</h3>
               <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-lg">

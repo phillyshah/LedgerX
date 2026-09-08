@@ -99,7 +99,7 @@ export function NPILookupModal({
           <h2 className="text-lg font-bold text-white">Surgeon NPI Lookup</h2>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-green-700 rounded-lg transition-colors"
+            className="p-2.5 hover:bg-green-700 rounded-lg transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5 text-green-300" />

@@ -17,6 +17,7 @@ import type { Language } from '../i18n';
 // Map a release id (or version) to a big emoji that non-technical users
 // will immediately associate with the feature.
 const VERSION_EMOJI: Record<string, string> = {
+  'v13.23': '📱',
   'v13.22': '💳',
   'v13.21': '🗓️',
   'v13.20': '📅',
@@ -208,10 +209,13 @@ export function LoginWhatsNewModal({ onClose, language }: Props) {
       style={{ backdropFilter: 'blur(6px)', background: 'rgba(6,28,20,0.70)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-lg bg-slate-50 rounded-3xl shadow-2xl overflow-hidden animate-in">
+      {/* max-h + flex-col: the cards had a 60vh cap, but the header and the
+          footer button sat outside it, so on a short phone the total could
+          still exceed the screen and push "Got it!" out of reach. */}
+      <div className="w-full max-w-lg max-h-[90vh] flex flex-col bg-slate-50 rounded-3xl shadow-2xl overflow-hidden animate-in">
 
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-emerald-700 to-green-900 px-6 pt-8 pb-6">
+        <div className="relative flex-shrink-0 bg-gradient-to-br from-emerald-700 to-green-900 px-6 pt-8 pb-6">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full text-green-300 hover:text-white hover:bg-white/10 transition-all"
@@ -238,7 +242,7 @@ export function LoginWhatsNewModal({ onClose, language }: Props) {
         </div>
 
         {/* Feature cards */}
-        <div className="px-5 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="px-5 py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
           {recent.map((note, i) => (
             <FeatureCard
               key={note.id}
@@ -251,7 +255,7 @@ export function LoginWhatsNewModal({ onClose, language }: Props) {
         </div>
 
         {/* Footer CTA */}
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 pt-1 flex-shrink-0">
           <button
             onClick={onClose}
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-base shadow-md transition-all active:scale-[0.98]"

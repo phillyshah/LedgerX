@@ -8,6 +8,48 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.23 — mobile: modal actions were unreachable.** A phone user opened
+  **Edit invoice**, could not scroll to Cancel/Confirm, and had to close the
+  browser to escape.
+  - **Root cause, and it is a CSS trap worth internalising:** a `fixed inset-0`
+    overlay with `items-center` and no scroll affordance. When the panel is
+    taller than the viewport, centring overflows it off **both** edges at once,
+    and nothing can scroll — not the panel (no overflow), not the overlay (no
+    overflow), not the page behind (it is `fixed`). The buttons are unreachable
+    by construction. **`items-center` alone on a fixed overlay is the bug.**
+  - Measured in Chromium: the Edit invoice panel is **791px**. Confirm sat at
+    y=667 on an iPhone SE (667px) and y=654 on a 640px Android — off-screen and
+    unreachable after scrolling. It passed on a bare 844px iPhone 12 viewport,
+    which is why it went unnoticed; with Safari's chrome eating ~140px a real
+    iPhone 12 is ~700px and also fails.
+  - **Two correct patterns, both now in use.** Long forms:
+    `max-h-[90vh] flex flex-col` with a `flex-1 min-h-0 overflow-y-auto` body
+    and a pinned footer — **`min-h-0` is load-bearing**, a flex child will not
+    shrink below its content height without it and the overflow never engages.
+    Short/medium dialogs: overlay `items-start ... overflow-y-auto` + panel
+    `my-auto`, which stays centred while it fits and scrolls once it does not.
+  - Swept all **44** overlays; every one now has a cap or a scroll region.
+    Restructured both `AdminInvoices` modals, added the overlay pattern to
+    `AdminAnalytics`, `ManageUsers` (×2), `ManageVendors`, `WalkthroughModal`,
+    and capped `LoginWhatsNewModal` — that last one had a `max-h-[60vh]` on its
+    cards but header+footer outside the cap, so "Got it!" could still be pushed
+    off a short screen. `TaxCenter` was already correct (`h-[92vh]` + internal
+    scroll). Also wrapped 5 report tables in `overflow-x-auto` and enlarged 11
+    modal close buttons from ~28px to ~40px.
+  - ⚠️ **JSX gotcha hit twice while doing this**: adding a `{/* comment */}` as a
+    sibling immediately before a modal's root inside `{cond && ( ... )}` or a
+    ternary branch makes two children and fails to compile. Put the comment
+    *inside* the element, or omit it.
+  - **Deliberately NOT done — do not "fix" this later without asking.** Inputs
+    stay at `text-sm` (14px), so iOS Safari still auto-zooms on focus. Raising
+    every field to 16px would stop that but changes text density in every form
+    in the app; the owner judged that too visible. Dense inline row actions
+    (`ExpenseList`, `StatementUpload`, `Reports`, `EmailInboxPanel`) also keep
+    their small tap targets, since enlarging them reflows list rows.
+  - **Overlays are hand-rolled and copy-pasted — that is how this spread.** The
+    owner chose patching in place over extracting a shared `<Modal>`, accepting
+    that a future hand-rolled modal can reintroduce it. Copy one of the two
+    patterns above rather than inventing a third.
 - **v13.22 — admins can edit an invoice's payment method.** Owner's report:
   admins were typing payment instructions into the contractor's own
   `description` ("Please Zelle payment to 412-585-3852") because there was

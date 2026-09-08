@@ -39,8 +39,9 @@ export function WalkthroughModal({ onClose }: Props) {
   const prev = () => !isFirst && setIndex(i => i - 1);
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+  {/* items-start + overflow-y-auto on the overlay, my-auto on the panel: the panel stays vertically centred while it fits, and becomes scrollable instead of clipped once it is taller than the viewport. Centring alone overflows off BOTH edges with nothing to scroll. */}
+      <div className="bg-white my-auto rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
 
         {/* Header bar — title + close */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
@@ -50,7 +51,7 @@ export function WalkthroughModal({ onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-100 rounded-lg transition-all"
+            className="p-2.5 hover:bg-slate-100 rounded-lg transition-all"
             aria-label={t('common.close')}
           >
             <X className="w-4 h-4 text-slate-500" />

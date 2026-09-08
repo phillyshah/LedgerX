@@ -110,7 +110,7 @@ export function LineItemCommentsModal({
               <p className="font-semibold text-slate-900 truncate">{description}</p>
               <p className="text-xs text-slate-500">{formatDate(lineDate)} · {formatAmount(amount)} · {cardLabel}</p>
             </div>
-            <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all shrink-0">
+            <button onClick={onClose} className="p-2.5 hover:bg-slate-100 rounded-lg transition-all shrink-0">
               <X className="w-5 h-5 text-slate-500" />
             </button>
           </div>

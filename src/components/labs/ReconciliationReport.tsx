@@ -101,7 +101,7 @@ export function ReconciliationReport({ onClose }: ReconciliationReportProps) {
             <FileBarChart className="w-5 h-5 text-emerald-600" />
             <h2 className="text-lg font-bold text-slate-900">{t('labs.cc.report.title')}</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition-all">
+          <button onClick={onClose} className="p-2.5 hover:bg-slate-100 rounded-lg transition-all">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>

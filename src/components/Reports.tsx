@@ -666,7 +666,7 @@ export function Reports({ onClose }: ReportsProps) {
                 </div>
               </div>
 
-              <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-xl">
+              <div className="max-h-96 overflow-auto border border-slate-200 rounded-xl">
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>

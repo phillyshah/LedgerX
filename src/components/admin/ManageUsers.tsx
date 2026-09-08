@@ -718,8 +718,9 @@ export function ManageUsers() {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+  {/* items-start + overflow-y-auto on the overlay, my-auto on the panel: the panel stays vertically centred while it fits, and becomes scrollable instead of clipped once it is taller than the viewport. Centring alone overflows off BOTH edges with nothing to scroll. */}
+          <div className="bg-white my-auto rounded-2xl w-full max-w-md shadow-xl">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-slate-900">{t('admin.createNewUser')}</h3>
@@ -871,8 +872,9 @@ export function ManageUsers() {
       )}
 
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
+  {/* items-start + overflow-y-auto on the overlay, my-auto on the panel: the panel stays vertically centred while it fits, and becomes scrollable instead of clipped once it is taller than the viewport. Centring alone overflows off BOTH edges with nothing to scroll. */}
+          <div className="bg-white my-auto rounded-2xl w-full max-w-md shadow-xl">
             <div className="p-6 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div>

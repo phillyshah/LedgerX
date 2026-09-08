@@ -548,7 +548,8 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                 ) : rows.length === 0 ? (
                   <div className="p-8 text-center text-slate-500 text-sm">{t('activityReport.emptyFeed')}</div>
                 ) : (
-                  <table className="w-full">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
                     <thead className="bg-slate-50">
                       <tr>
                         <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activityReport.colTime')}</th>
@@ -608,6 +609,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
 
@@ -624,7 +626,8 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
               ) : filteredLogins.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-sm">{t('activityReport.emptyLogins')}</div>
               ) : (
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('activityReport.colUser')}</th>
@@ -650,6 +653,7 @@ export function ActivityReport({ onClose }: ActivityReportProps) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           )}
