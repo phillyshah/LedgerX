@@ -484,6 +484,40 @@ Each statement's card in the list shows a **progress ring** around the card icon
 
 Only a full admin can upload statements — and rename one later by tapping the pencil icon next to it, handy for fixing a typo or clarifying which card it is.
 
+### Start a statement by email (full admins)
+
+Instead of the upload screen, you can mail a statement in and correct it by reply.
+
+**1. Send it.** Attach the statement (PDF, photo, or CSV export) to an email to `receipts@90ten.life` with **`statement`** as the subject, and put the details in the body:
+
+```
+card: Chase Ink ...1234
+period: 2026-10-01 to 2026-10-31
+households: Beach House, Mountain Cabin
+```
+
+Only `card` is required, and you can put it in the subject instead — `statement Chase Ink ...1234` works. `period` is worth including: it's what lets the reader resolve a half-printed year like `10/14` correctly. `households` is optional and does the same job as the building icon on a statement.
+
+**2. Check what came back.** LedgerX reads every page and emails you a numbered list of every charge it found, plus a short code in the subject like `[LX-7K3M9Q]`. Keep that code in the subject when you reply — it's how we know which statement you mean.
+
+**3. Fix anything wrong.** Reply with only the lines you want to change:
+
+```
+card: Chase Sapphire ...9012
+3: 2026-10-14 | Home Depot | 128.44
+drop 7, 9
+add: 2026-10-20 | Lowes | 45.00
+```
+
+Line numbers are the ones printed in the email you received. Everything you don't mention is left alone, and you get a fresh copy of the list back after every reply, so you can go round as many times as you need.
+
+**4. Save it.** Reply **`confirm`** and the statement appears in Reconciliation exactly as an uploaded one would. Reply **`cancel`** to throw it away.
+
+**Nothing is saved until you confirm.** A draft isn't a statement — it never shows up in Reconciliation, never turns up as a matching candidate, and quietly expires after 14 days if you forget about it. That's deliberate: a misread statement should never be able to become real without someone looking at it first.
+
+> The same commands work in Portuguese — `cartão:`, `período:`, `propriedades:`, `remover`, `adicionar`, `confirmar`, `cancelar`.
+
+
 **Comments & asking someone.** Every statement line has a **comment** button. Open it to leave notes, and type **@** to mention someone — a picker suggests admins and the people who submitted receipts. Whoever you mention gets notified (in the app, and by email or WhatsApp depending on their preference) with the charge's full details and your question, so they know exactly what you're asking about. Lines with a discussion show a small comment badge.
 
 **Auto reconcile — sweep every statement at once** (full admins only — marked

@@ -519,6 +519,59 @@ Deno.serve(async (req: Request) => {
     }
     console.log(`[inbound-email] matched user_id=${userId}`);
 
+    // 3b. Statement-by-email — a full admin emailing a credit-card statement.
+    //
+    //     Routed here rather than through the KNOWN_COMMANDS block above for
+    //     two reasons. It needs the ATTACHMENTS, which that block deliberately
+    //     drops, and it needs the sender resolved first so the command is
+    //     gated to full admins — meaning a contractor forwarding a vendor's
+    //     "Statement of account" still gets handled as an ordinary receipt
+    //     instead of being hijacked by a first-word match.
+    //
+    //     Two ways in: the first word of the subject, or the [LX-XXXXXX] draft
+    //     token that replies carry. The token check reads the RAW subject,
+    //     because normalizedSubject has already stripped the brackets and
+    //     digits that make it a token.
+    const STATEMENT_WORDS = ["statement", "stmt", "extrato"];
+    const rawSubject = String(subject ?? "");
+    const isStatementReply = /\[LX-[A-Z0-9]{6}\]/i.test(rawSubject);
+    const isStatementStart = STATEMENT_WORDS.includes(normalizedSubject.split(" ")[0] ?? "");
+
+    if (isStatementReply || isStatementStart) {
+      const { data: roleRow } = await supabase
+        .from("user_roles")
+        .select("is_admin")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (roleRow?.is_admin) {
+        try {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/statement-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              from_email, subject, body_text, body_html, attachments, secret,
+            }),
+          });
+        } catch (e) {
+          console.error("[inbound-email] statement forward failed:", e);
+        }
+        console.log(
+          `[inbound-email] handled as statement (reply=${isStatementReply}) ` +
+            `attachments=${attachments.length}`,
+        );
+        return new Response(JSON.stringify({ ok: true, statement: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Not an admin — fall through and treat it as a normal receipt.
+      console.log("[inbound-email] statement-looking subject from non-admin — treating as receipt");
+    }
+
     // 4. Deduplicate by Message-ID — only against rows the user hasn't yet
     //    handled. If they discarded or accepted an earlier copy, a fresh
     //    forward should produce a new pending row rather than vanish.

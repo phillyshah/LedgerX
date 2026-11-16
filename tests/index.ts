@@ -6,6 +6,7 @@
 import './ocrYearFix.test';
 import './edgeFunctionSync.test';
 import './promptAnchor.test';
+import './statementEmail.test';
 import { runAll } from './harness';
 
 const { passed, failed } = runAll();

@@ -524,6 +524,39 @@ Dois pontos importantes:
 
 ---
 
+
+### Começar um extrato por e-mail (apenas admins completos)
+
+Em vez da tela de upload, você pode enviar o extrato por e-mail e corrigi-lo respondendo.
+
+**1. Envie.** Anexe o extrato (PDF, foto ou exportação CSV) a um e-mail para `receipts@90ten.life` com **`statement`** no assunto e coloque os dados no corpo:
+
+```
+cartão: Chase Ink ...1234
+período: 2026-10-01 a 2026-10-31
+propriedades: Casa de Praia, Cabana na Montanha
+```
+
+Só `cartão` é obrigatório, e você pode colocá-lo no assunto — `statement Chase Ink ...1234` funciona. Vale incluir o `período`: é ele que permite interpretar corretamente um ano impresso pela metade, como `10/14`. `propriedades` é opcional e faz o mesmo que o ícone de prédio em um extrato.
+
+**2. Confira o que voltou.** O LedgerX lê todas as páginas e responde com uma lista numerada de cada lançamento encontrado, além de um código curto no assunto, como `[LX-7K3M9Q]`. Mantenha esse código no assunto ao responder — é assim que sabemos de qual extrato se trata.
+
+**3. Corrija o que estiver errado.** Responda apenas com as linhas que quer mudar:
+
+```
+cartão: Chase Sapphire ...9012
+3: 2026-10-14 | Home Depot | 128,44
+remover 7, 9
+adicionar: 2026-10-20 | Lowes | 45,00
+```
+
+Os números das linhas são os impressos no e-mail que você recebeu. Tudo o que você não mencionar fica como está, e você recebe uma nova cópia da lista a cada resposta, então dá para ir e voltar quantas vezes precisar.
+
+**4. Salve.** Responda **`confirmar`** e o extrato aparece na Conciliação exatamente como um enviado pela tela de upload. Responda **`cancelar`** para descartar.
+
+**Nada é salvo até você confirmar.** Um rascunho não é um extrato — ele nunca aparece na Conciliação, nunca entra como candidato de correspondência e expira sozinho depois de 14 dias se você esquecer dele. Isso é proposital: uma leitura errada nunca deve virar um extrato de verdade sem alguém olhar antes.
+
+
 ## Novidades (Link no Rodapé)
 <!-- roles: contractor, member, admin -->
 

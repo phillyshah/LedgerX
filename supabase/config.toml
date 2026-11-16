@@ -27,3 +27,9 @@ verify_jwt = false
 
 [functions.send-inactivity-reminder]
 verify_jwt = false
+
+# Called server-to-server by inbound-email with the shared INBOUND_EMAIL_SECRET
+# (and the attachments, which the other email commands don't get), so JWT
+# verification must be off — same handshake as email-command.
+[functions.statement-email]
+verify_jwt = false
