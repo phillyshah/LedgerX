@@ -8,6 +8,36 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **Deploys are automated now — `.github/workflows/deploy.yml` has three jobs.**
+  This project's recurring failure was never bad code; it was a correct fix
+  landing in only some of the places it had to land, with nothing reporting the
+  gap. v13.9 shipped the poller half and not the edge-function half and PDF
+  receipts came back blank for a month. `whatsapp-send` 401'd once a minute for
+  weeks because a dashboard toggle was never flipped. Both were hand steps.
+  - **`deploy`** — frontend build + rsync to `/var/www/ledger.90ten.life/`.
+    Unchanged apart from the name.
+  - **`poller`** (NEW, works immediately — `VPS_SSH_KEY` already exists) —
+    rsyncs `scripts/poll_email_inbox.py` to `/opt/ledgerx/` and then
+    **py_compiles it on the VPS in the venv cron actually uses**, failing the
+    deploy if it does not import. A broken poller otherwise dies into a log
+    nobody reads and email ingestion just stops.
+  - **`edge-functions`** (NEW, INERT until a secret is added) — deploys only
+    the functions whose files changed, via the Supabase CLI.
+    ⚠️ **Needs `SUPABASE_ACCESS_TOKEN` in repo secrets.** Without it the job
+    logs a `::warning::` and skips, so adding it could not break the deploy.
+    Project ref `bkxccrbfjoqtxbtekrgw` is hardcoded (not a secret — it is in
+    the shipped bundle already).
+  - **Side effect worth knowing: `supabase/config.toml` stops being
+    decorative.** The CLI reads `verify_jwt` from it, so once the token exists
+    a function's JWT setting comes from the repo instead of from whether
+    somebody remembered the dashboard toggle. Until then the toggle is still
+    the only thing that matters.
+  - **A change to `config.toml` redeploys ALL functions**, deliberately — that
+    file carries `verify_jwt`, and a stale toggle is the silent-401 this job
+    exists to end.
+  - **Migrations are NOT automated and that is deliberate.** Auto-applying DDL
+    to production on every merge is a different risk class from redeploying an
+    idempotent function. Raise it as its own decision if it ever comes up.
 - **v13.24 — email a credit-card statement, review it by reply, then confirm.**
   Owner asked to start a statement by emailing it in, get the extraction back,
   edit it, and send a final version to be reconciled.
