@@ -8,6 +8,49 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **v13.24 — email a credit-card statement, review it by reply, then confirm.**
+  Owner asked to start a statement by emailing it in, get the extraction back,
+  edit it, and send a final version to be reconciled.
+  - **Kickoff**: subject starts `statement` (or `stmt` / `extrato`), statement
+    attached, body carries `card:` / `period:` / `households:`. The card can
+    also ride in the subject (`statement Chase Ink ...1234`).
+  - **Threading is a token in the SUBJECT**, `[LX-XXXXXX]`, not
+    In-Reply-To/References — **the IMAP poller does not forward those
+    headers**, and a subject token also survives a forward or a fresh compose.
+    Do not "improve" this to header threading without changing the poller too.
+  - **Reply grammar**: `card:` / `period:` / `households:`, `N: date | desc |
+    amount` to fix a line, `drop N, M`, `add: date | desc | amount`,
+    `confirm`, `cancel`. pt-BR aliases throughout. Line numbers resolve
+    against the numbering the admin was *shown*, so `drop 7, 9` cannot shift
+    under an earlier edit in the same reply.
+  - WARNING: **`stripQuotedReply` is load-bearing, not politeness.** The draft
+    table we email out parses as edit commands, so without cutting the quoted
+    original every reply would reapply its own output — and a `confirm` in the
+    quoted instructions would fire on a reply that never said it. Tested.
+  - **A draft is deliberately NOT a `credit_card_statements` row.** Parking
+    unreviewed OCR there would put it in matching candidates and the
+    household-scoped views before a human agreed any of it is right.
+    `statement_email_drafts` (migration `20261116000000`) holds it; confirming
+    promotes it. Drafts expire after 14 days.
+  - **`uploaded_by` must be set explicitly on confirm** — the column default
+    and the `statements_set_uploaded_by` trigger both read `auth.uid()`, which
+    is NULL under the service role, and the column is NOT NULL.
+  - **Admin gate lives in `inbound-email`**, before routing, so a contractor
+    forwarding a vendor's "Statement of account" is still processed as an
+    ordinary receipt instead of being hijacked by a first-word match.
+  - WARNING: **VPS poller change required — statements are multi-page.**
+    `rasterize_pdf_first_page` became `rasterize_pdf_pages(max_pages)`; the
+    receipt path still asks for 1, statement subjects ask for 10.
+    **Without the new script on the VPS, OCR silently sees page 1 only** and
+    produces a statement missing most of its charges — which looks exactly
+    like a successful extraction. Copy `scripts/poll_email_inbox.py` to
+    `/opt/ledgerx/` (see the v13.9 steps for the venv caveat).
+  - Known rough edge, accepted: an **admin** forwarding "Statement of work
+    from Acme" starts a statement draft. The reply makes it obvious and
+    `cancel` discards it.
+  - 17 new parsing assertions in `tests/statementEmail.test.ts` (47 total).
+    They caught a real bug pre-merge: the CSV header matcher was anchored
+    (`^date`), so "Posting Date" read as *no header at all*.
 - **v13.23 — mobile: modal actions were unreachable.** A phone user opened
   **Edit invoice**, could not scroll to Cancel/Confirm, and had to close the
   browser to escape.

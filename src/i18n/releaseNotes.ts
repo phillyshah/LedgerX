@@ -33,6 +33,19 @@ export const LAST_SEEN_KEY = 'ledgerx:lastSeenReleaseId';
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: 'v13.24',
+    version: 'v13.24',
+    date: '2026-11-16',
+    title: {
+      'en': 'Email a credit card statement',
+      'pt-BR': 'Envie o extrato do cartão por e-mail',
+    },
+    body: {
+      'en': "Admins can now start a credit card statement by email instead of the upload screen. Send the statement to receipts@90ten.life with \u201cstatement\u201d as the subject, and add the card name and billing period in the body. We read every page and email you back a numbered list of what we found. Check it over, reply with any corrections \u2014 fix a line, drop one, add one we missed \u2014 and reply \u201cconfirm\u201d when it looks right. Nothing reaches Reconciliation until you confirm, so a bad read can never quietly become a statement.",
+      'pt-BR': 'Os administradores agora podem iniciar um extrato de cart\u00e3o por e-mail, em vez da tela de upload. Envie o extrato para receipts@90ten.life com \u201cstatement\u201d no assunto e informe o nome do cart\u00e3o e o per\u00edodo no corpo da mensagem. N\u00f3s lemos todas as p\u00e1ginas e respondemos com uma lista numerada do que encontramos. Confira, responda com as corre\u00e7\u00f5es \u2014 corrigir uma linha, remover outra, acrescentar a que faltou \u2014 e responda \u201cconfirmar\u201d quando estiver certo. Nada vai para a Concilia\u00e7\u00e3o at\u00e9 voc\u00ea confirmar, ent\u00e3o uma leitura ruim nunca vira um extrato sem voc\u00ea ver.',
+    },
+  },
+  {
     id: 'v13.23',
     version: 'v13.23',
     date: '2026-08-12',

@@ -23,6 +23,7 @@ import html
 import io
 import json
 import os
+import re
 import sys
 import urllib.request
 import urllib.error
@@ -322,40 +323,85 @@ def docx_text_to_preview_pdf(text: str) -> bytes | None:
 # so going higher buys nothing but upload time.
 PDF_RASTER_DPI = 150
 
-def rasterize_pdf_first_page(pdf_bytes: bytes) -> bytes | None:
-    """Render page 1 of a PDF to PNG bytes so it can be OCR'd.
+# Statements run several pages and the edge function reads up to 10 of them.
+STATEMENT_MAX_PAGES = 10
+_STATEMENT_WORDS = ("statement", "stmt", "extrato")
+_STATEMENT_TOKEN_RE = re.compile(r"\[LX-[A-Z0-9]{6}\]", re.I)
 
-    Only page 1: receipts are effectively always single-page, and the edge
-    function OCRs exactly one attachment, so extra pages would be uploaded
-    and never read.
 
-    Returns None on any failure — callers fall back to today's behaviour of
-    sending the PDF alone, which is no worse than before.
+def is_statement_subject(subject: str) -> bool:
+    """True when this email is part of the email-a-statement flow.
+
+    Matches the first word of the subject, or the [LX-XXXXXX] draft token a
+    reply carries. Kept loose on purpose: rendering extra pages for an email
+    that turns out not to be a statement costs upload time, while rendering
+    too few silently loses charges. Admin-gating happens server-side in
+    inbound-email, not here.
+    """
+    s = (subject or "").strip()
+    if _STATEMENT_TOKEN_RE.search(s):
+        return True
+    first = re.sub(r"[^a-z]+", "", s.lower().split()[0]) if s.split() else ""
+    return first in _STATEMENT_WORDS
+
+
+def rasterize_pdf_pages(pdf_bytes: bytes, max_pages: int = 1) -> list[bytes]:
+    """Render up to `max_pages` pages of a PDF to PNG bytes for OCR.
+
+    Receipts are effectively single-page, so the default stays at 1 and that
+    path behaves exactly as before. Credit-card statements are the exception:
+    they run several pages, and the statement flow needs all of them, because
+    OCR of page 1 alone silently produces a statement that is missing most of
+    its charges — a failure that looks like a successful extraction.
+
+    Returns [] on any failure; callers fall back to sending the PDF alone.
     """
     if not PYMUPDF_AVAILABLE:
         log(f"  rasterize_pdf: PyMuPDF not available "
             f"(import error: {PYMUPDF_IMPORT_ERROR})")
-        return None
+        return []
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         if doc.page_count == 0:
             log("  rasterize_pdf: PDF has no pages")
             doc.close()
-            return None
-        pix = doc.load_page(0).get_pixmap(dpi=PDF_RASTER_DPI)
-        png_bytes = pix.tobytes("png")
+            return []
+        out: list[bytes] = []
+        wanted = min(doc.page_count, max_pages)
+        for n in range(wanted):
+            pix = doc.load_page(n).get_pixmap(dpi=PDF_RASTER_DPI)
+            png_bytes = pix.tobytes("png")
+            if len(png_bytes) > CONFIG["MAX_ATTACH_BYTES"]:
+                log(f"  rasterize_pdf: page {n + 1} PNG too large "
+                    f"({len(png_bytes)} bytes), stopping here")
+                break
+            out.append(png_bytes)
         doc.close()
-
-        if len(png_bytes) > CONFIG["MAX_ATTACH_BYTES"]:
-            log(f"  rasterize_pdf: PNG too large ({len(png_bytes)} bytes), skipping")
-            return None
-        log(f"  rasterize_pdf: page 1 -> PNG ({len(png_bytes)} bytes @ {PDF_RASTER_DPI}dpi)")
-        return png_bytes
+        log(f"  rasterize_pdf: {len(out)}/{doc_page_count_safe(pdf_bytes)} page(s) "
+            f"-> PNG @ {PDF_RASTER_DPI}dpi")
+        return out
     except Exception as ex:
         log(f"  rasterize_pdf: FAILED ({type(ex).__name__}: {ex})")
-        return None
+        return []
 
-def add_ocr_companion_images(attachments: list) -> list:
+
+def doc_page_count_safe(pdf_bytes: bytes) -> int:
+    """Page count for logging only; never raises."""
+    try:
+        d = fitz.open(stream=pdf_bytes, filetype="pdf")
+        n = d.page_count
+        d.close()
+        return n
+    except Exception:
+        return 0
+
+
+def rasterize_pdf_first_page(pdf_bytes: bytes) -> bytes | None:
+    """Back-compat wrapper: page 1 only, the receipt path's behaviour."""
+    pages = rasterize_pdf_pages(pdf_bytes, max_pages=1)
+    return pages[0] if pages else None
+
+def add_ocr_companion_images(attachments: list, max_pages: int = 1) -> list:
     """Insert a PNG render ahead of each PDF so OCR has something it can read.
 
     The edge function scans for the FIRST OCR-compatible attachment, so
@@ -377,14 +423,19 @@ def add_ocr_companion_images(attachments: list) -> list:
                 log(f"  rasterize_pdf: could not decode {att['filename']} ({ex})")
                 result.append(att)
                 continue
-            png_bytes = rasterize_pdf_first_page(pdf_bytes)
-            if png_bytes:
+            pages = rasterize_pdf_pages(pdf_bytes, max_pages=max_pages)
+            if pages:
                 stem = att["filename"].rsplit(".", 1)[0] or "attachment"
-                result.append({
-                    "filename": f"{stem}.png",
-                    "content_type": "image/png",
-                    "data": base64.b64encode(png_bytes).decode("ascii"),
-                })
+                for n, png_bytes in enumerate(pages, start=1):
+                    # Page order matters: extract-statement correlates line
+                    # items across page breaks, so the images must arrive in
+                    # reading order.
+                    suffix = "" if len(pages) == 1 else f"-p{n}"
+                    result.append({
+                        "filename": f"{stem}{suffix}.png",
+                        "content_type": "image/png",
+                        "data": base64.b64encode(png_bytes).decode("ascii"),
+                    })
                 rendered += 1
         result.append(att)
     return result
@@ -526,7 +577,13 @@ def main():
                 log(f"  HTML to PDF rendering failed or output too large, sending body as text")
 
         # Give every PDF an OCR-readable PNG companion, inserted ahead of it.
-        attachments = add_ocr_companion_images(attachments)
+        # A statement needs every page (extract-statement caps at 10); a
+        # receipt needs only page 1. Matching the subject here keeps the extra
+        # upload cost on the one flow that actually needs it.
+        attachments = add_ocr_companion_images(
+            attachments,
+            max_pages=STATEMENT_MAX_PAGES if is_statement_subject(subject) else 1,
+        )
 
         payload = {
             "from_email": from_email,

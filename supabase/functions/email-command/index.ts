@@ -220,7 +220,8 @@ Deno.serve(async (req: Request) => {
           <p style="margin:0 0 6px;"><strong>estimates</strong> — resumo dos orçamentos (requer conta de administrador ou administrador de residência).</p>
           <p style="margin:0 0 6px;"><strong>invoices</strong> — resumo das faturas (requer conta de administrador ou administrador de residência).</p>
           <p style="margin:0 0 6px;"><strong>pending</strong> — o que precisa de atenção: faturas a aprovar e orçamentos parados (admin / administrador de residência).</p>
-          <p style="margin:0 0 6px;"><strong>activity</strong> — resumo dos últimos 7 dias (admin / administrador de residência).</p>`;
+          <p style="margin:0 0 6px;"><strong>activity</strong> — resumo dos últimos 7 dias (admin / administrador de residência).</p>
+          <p style="margin:0;"><strong>statement</strong> — envie o extrato do cartão em anexo com este assunto e eu respondo com o que li, para você corrigir antes de salvar (apenas admin).</p>`;
       } else {
         replySubject = "LedgerX commands";
         bodyHtml = `
@@ -229,7 +230,8 @@ Deno.serve(async (req: Request) => {
           <p style="margin:0 0 6px;"><strong>estimates</strong> — a summary of your estimates (requires an admin or household-admin account).</p>
           <p style="margin:0 0 6px;"><strong>invoices</strong> — a summary of your invoices (requires an admin or household-admin account).</p>
           <p style="margin:0 0 6px;"><strong>pending</strong> — what needs attention: invoices to approve and stalled estimates (admin / household admin).</p>
-          <p style="margin:0 0 6px;"><strong>activity</strong> — a last-7-days summary (admin / household admin).</p>`;
+          <p style="margin:0 0 6px;"><strong>activity</strong> — a last-7-days summary (admin / household admin).</p>
+          <p style="margin:0;"><strong>statement</strong> — attach a credit-card statement and send it with this subject; I reply with what I read so you can correct it before it is saved (admin only).</p>`;
       }
     } else if (command === "pending") {
       // "What needs attention" digest — admin / household-admin only.
