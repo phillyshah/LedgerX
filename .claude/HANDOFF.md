@@ -8,6 +8,44 @@ substantial session.
 
 - **Version `v13.20`** in repo/branch (`src/version.ts` / `package.json`). CLAUDE.md's
   "v7.8" is stale.
+- **⏳ Open as of 2026-11-19 — PR #109, unmerged.** The deploy-automation
+  commit below is pushed but NOT merged. Two follow-ups the owner deferred
+  deliberately, neither blocking:
+  1. Merge PR #109 so the poller stops needing SSH.
+  2. Add `SUPABASE_ACCESS_TOKEN` to repo secrets to switch the
+     `edge-functions` job on — **deliberately held until the owner is at a
+     laptop**, since the first run with that secret redeploys functions for
+     real and they were on an iPad.
+- **Deploys are automated now — `.github/workflows/deploy.yml` has three jobs.**
+  This project's recurring failure was never bad code; it was a correct fix
+  landing in only some of the places it had to land, with nothing reporting the
+  gap. v13.9 shipped the poller half and not the edge-function half and PDF
+  receipts came back blank for a month. `whatsapp-send` 401'd once a minute for
+  weeks because a dashboard toggle was never flipped. Both were hand steps.
+  - **`deploy`** — frontend build + rsync to `/var/www/ledger.90ten.life/`.
+    Unchanged apart from the name.
+  - **`poller`** (NEW, works immediately — `VPS_SSH_KEY` already exists) —
+    rsyncs `scripts/poll_email_inbox.py` to `/opt/ledgerx/` and then
+    **py_compiles it on the VPS in the venv cron actually uses**, failing the
+    deploy if it does not import. A broken poller otherwise dies into a log
+    nobody reads and email ingestion just stops.
+  - **`edge-functions`** (NEW, INERT until a secret is added) — deploys only
+    the functions whose files changed, via the Supabase CLI.
+    ⚠️ **Needs `SUPABASE_ACCESS_TOKEN` in repo secrets.** Without it the job
+    logs a `::warning::` and skips, so adding it could not break the deploy.
+    Project ref `bkxccrbfjoqtxbtekrgw` is hardcoded (not a secret — it is in
+    the shipped bundle already).
+  - **Side effect worth knowing: `supabase/config.toml` stops being
+    decorative.** The CLI reads `verify_jwt` from it, so once the token exists
+    a function's JWT setting comes from the repo instead of from whether
+    somebody remembered the dashboard toggle. Until then the toggle is still
+    the only thing that matters.
+  - **A change to `config.toml` redeploys ALL functions**, deliberately — that
+    file carries `verify_jwt`, and a stale toggle is the silent-401 this job
+    exists to end.
+  - **Migrations are NOT automated and that is deliberate.** Auto-applying DDL
+    to production on every merge is a different risk class from redeploying an
+    idempotent function. Raise it as its own decision if it ever comes up.
 - **v13.24 — email a credit-card statement, review it by reply, then confirm.**
   Owner asked to start a statement by emailing it in, get the extraction back,
   edit it, and send a final version to be reconciled.
@@ -38,7 +76,18 @@ substantial session.
   - **Admin gate lives in `inbound-email`**, before routing, so a contractor
     forwarding a vendor's "Statement of account" is still processed as an
     ordinary receipt instead of being hijacked by a first-word match.
-  - WARNING: **VPS poller change required — statements are multi-page.**
+  - ✅ **DEPLOYED AND VERIFIED 2026-11-19 — no manual steps outstanding.**
+    SQL run (`information_schema` check returned 1), `statement-email` created
+    with **Verify JWT off**, `inbound-email` replaced, poller copied to
+    `/opt/ledgerx/` and py_compiled in the venv, frontend live (footer reads
+    v13.24, deploy run `1fb0ed6` green). **Do not re-do any of these.**
+    ⏳ **Not yet exercised**: nobody has sent a real statement through it. The
+    owner is waiting on a statement to test with (~late Nov 2026). Until that
+    happens the flow is deployed but unproven end to end — treat a first
+    report of "no reply arrived" as a live bug, not a deployment question, and
+    check the `statement-email` function logs first (a 401 there would mean
+    Verify JWT got switched back on).
+  - WARNING (historical — now done): **VPS poller change required — statements are multi-page.**
     `rasterize_pdf_first_page` became `rasterize_pdf_pages(max_pages)`; the
     receipt path still asks for 1, statement subjects ask for 10.
     **Without the new script on the VPS, OCR silently sees page 1 only** and
